@@ -66,20 +66,13 @@ em { font-style: italic; }
 }
 .pill--white { background: var(--paper); color: var(--ink); box-shadow: 0 0 0 1px rgba(11, 11, 12, 0.06), 0 8px 24px rgba(11, 11, 12, 0.06); }
 .pill--black { background: var(--ink); color: var(--paper); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04); }
-.pill .arr { display: inline-block; font-size: 1.05em; transition: transform 0.45s cubic-bezier(.2,.8,.2,1); }
+.arr { display: inline-block; width: 1em; height: 1em; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.pill .arr { transition: transform 0.45s cubic-bezier(.2,.8,.2,1); }
 a.pill:hover { transform: translateY(-2px); }
 a.pill:hover .arr { transform: translate(2px, -2px); }
 .pill--black:hover { background: #1c1c1f; }
 
-.logo-u {
-  display: inline-block;
-  background: repeating-linear-gradient(180deg, currentColor 0 1.8px, transparent 1.8px 2.7px);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: 700;
-  margin-right: -0.06em;
-}
+.logo-u { display: inline-block; width: 0.84em; height: 0.92em; fill: currentColor; margin-right: 0.04em; vertical-align: -0.07em; }
 
 /* ---------- Preloader ---------- */
 .preloader {
