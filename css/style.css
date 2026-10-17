@@ -359,11 +359,16 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
 .story__fade { position: absolute; inset: 0; background: var(--ink); opacity: 0; pointer-events: none; }
 
 /* ---------- Metrics ---------- */
-.metrics {
-  position: relative;
-  background: var(--ink);
-  color: var(--paper);
-  padding: max(12vh, 90px) 0 18vh;
+.metrics { position: relative; height: 190vh; background: var(--ink); color: var(--paper); }
+.metrics__pin {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-top: max(7.4vh, 56px);
+  padding-bottom: 8vh;
   padding-left: max(16px, 4.3vw, env(safe-area-inset-left, 0px));
   padding-right: max(16px, 4.3vw, env(safe-area-inset-right, 0px));
 }
@@ -377,16 +382,17 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1.7vw;
   align-items: end;
-  margin-top: 5vh;
+  flex: 1;
   --barmax: min(46vh, 430px);
 }
-.stat { min-width: 0; }
+.stat { min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; }
+.stat__text { will-change: transform, opacity; }
 .stat__value { font: 400 clamp(28px, 2.6vw, 48px)/1 var(--serif); letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
 .stat__label { margin-top: 12px; font: 600 13.5px/1.25 var(--sans); }
 .stat__sub { margin-top: 4px; font: 400 13.5px/1.25 var(--sans); color: rgba(255, 255, 255, 0.45); }
 .stat__bars {
   height: calc(var(--barmax) * var(--h));
-  margin-top: 3.4vh;
+  margin-top: 4vh;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
@@ -523,7 +529,9 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
   .about__col:first-child { display: none; }
   .about__col--mid { justify-content: flex-start; gap: 28px; }
   .about__copy { padding-top: 0; }
-  .metrics__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 7vh; gap: 4vw; --barmax: min(30vh, 300px); }
+  .metrics { height: auto; }
+  .metrics__pin { position: relative; height: auto; padding-top: 12vh; padding-bottom: 14vh; }
+  .metrics__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 7vh; gap: 4vw; margin-top: 6vh; --barmax: min(30vh, 300px); }
   .team__head { margin-left: 0; }
   .team__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; row-gap: 36px; }
   .contact__cols { grid-template-columns: 1fr; }
