@@ -9,6 +9,8 @@ import { initMetrics } from './metrics.js';
 import { initTeam } from './team.js';
 
 gsap.registerPlugin(ScrollTrigger);
+// mobile toolbars resize the viewport height constantly; don't recompute every trigger for that
+ScrollTrigger.config({ ignoreMobileResize: true });
 
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
@@ -17,12 +19,8 @@ window.scrollTo(0, 0);
 // ---------- smooth scroll ----------
 let lenis = null;
 if (!reduced) {
-  lenis = new Lenis({
-    duration: 1.2,
-    easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-    smoothWheel: true,
-    wheelMultiplier: 0.9,
-  });
+  // lerp smoothing: every frame eases toward the target scroll, so wheel bursts never restart an animation
+  lenis = new Lenis({ lerp: 0.085, smoothWheel: true, wheelMultiplier: 0.95, touchMultiplier: 1.4 });
   lenis.on('scroll', ScrollTrigger.update);
   gsap.ticker.add((time) => lenis.raf(time * 1000));
   gsap.ticker.lagSmoothing(0);
@@ -33,7 +31,6 @@ const scrollY = () => (lenis ? lenis.scroll : window.scrollY);
 // ---------- hero + transition 1 ----------
 const heroSection = document.querySelector('.hero');
 const heroContent = document.querySelector('.hero__content');
-const heroLayer = document.querySelector('.hero__layer');
 const hero = new HeroGL(document.querySelector('.hero__gl'));
 
 const hs = { y: 0, bottom: 1, q: 0, smix: 0 };
@@ -42,8 +39,7 @@ const rects = [];
 let vw = window.innerWidth, vh = window.innerHeight;
 
 const applyHero = () => {
-  heroContent.style.transform = `translate3d(0, ${hs.y * vh}px, 0)`;
-  heroLayer.style.clipPath = hs.bottom < 1 ? `inset(0 0 ${Math.max(0, (1 - hs.bottom) * 100)}% 0)` : '';
+  heroContent.style.transform = `translate3d(0, ${(hs.y * vh).toFixed(2)}px, 0)`;
   hero.state.heroBottom = hs.bottom;
   hero.state.mix = Math.max(auto.mix, hs.smix);
   hero.setBars(hs.bottom < 1.02 ? funnelRects(hs.q, vw, vh, hs.bottom * vh, rects) : []);
@@ -59,17 +55,20 @@ heroTl
   .to(hs, { y: -1.2, bottom: -0.03, duration: 26, ease: 'power1.in' }, 74)
   .to(hs, { q: 1, duration: 26 }, 74);
 
+// cached on refresh so the render loop never forces a layout read
+let heroEnd = Infinity;
 ScrollTrigger.create({
   trigger: heroSection,
   start: 'top top',
   end: 'bottom bottom',
   animation: heroTl,
   scrub: true,
+  onRefresh: (self) => { heroEnd = self.end + vh; },
 });
 applyHero();
 
 // ---------- other stages ----------
-const story = initStory({ reduced });
+const story = initStory({ reduced, smooth: !!lenis });
 const metrics = initMetrics({ reduced });
 const team = initTeam({ reduced });
 
@@ -122,13 +121,16 @@ document.addEventListener('click', (e) => {
 let heroLive = false; // the preloader covers the hero until it hands over
 gsap.ticker.add((time) => {
   const y = scrollY();
-  if (heroLive && y < heroSection.offsetTop + heroSection.offsetHeight) hero.render(time);
+  if (heroLive && y < heroEnd) hero.render(time);
   story.tick(time, y);
 });
 
 // ---------- resize ----------
 let rt = 0;
+const coarse = window.matchMedia('(pointer: coarse)').matches;
 window.addEventListener('resize', () => {
+  // on touch devices only a width change is a real resize; height changes are the URL bar
+  if (coarse && window.innerWidth === vw) return;
   clearTimeout(rt);
   rt = setTimeout(() => {
     vw = window.innerWidth; vh = window.innerHeight;

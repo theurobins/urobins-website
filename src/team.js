@@ -19,11 +19,9 @@ export function initTeam({ reduced }) {
   let q = 0;
   const draw = () => {
     funnelRects(q, window.innerWidth, window.innerHeight, 0, rects);
+    // 100x100 tiles scaled into place: transform-only, so the compositor does all the work
     rects.forEach((r, i) => {
-      const el = bars[i];
-      el.style.width = `${r.w}px`;
-      el.style.height = `${r.h}px`;
-      el.style.transform = `translate3d(${r.x}px, ${r.y}px, 0)`;
+      bars[i].style.transform = `translate3d(${r.x.toFixed(1)}px, ${r.y.toFixed(1)}px, 0) scale(${(r.w / 100).toFixed(4)}, ${(r.h / 100).toFixed(4)})`;
     });
   };
   draw();

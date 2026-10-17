@@ -51,7 +51,7 @@ function splitChars(el) {
   return chars;
 }
 
-export function initStory({ reduced }) {
+export function initStory({ reduced, smooth }) {
   const section = document.querySelector('.story');
   const pin = section.querySelector('.story__pin');
   const title = section.querySelector('.about__title');
@@ -78,25 +78,48 @@ export function initStory({ reduced }) {
   });
 
   const pillWidth = () => Math.min(Math.max(window.innerWidth * (window.innerWidth < 640 ? 0.26 : 0.215), 96), 460);
+  // the pill keeps its final width in layout; it opens with a clip while the two words slide apart,
+  // so nothing re-lays-out while scrolling
+  const midWords = [...title.querySelectorAll('.aline--mid > .split')];
+  const pillOpen = { k: 0 };
+  let pillW = 0;
+  const sizePill = () => {
+    pillW = pillWidth();
+    pill.style.width = `${pillW}px`;
+  };
+  const applyPill = () => {
+    const shift = (pillW / 2 + 2) * (1 - pillOpen.k);
+    midWords[0].style.transform = `translate3d(${shift.toFixed(2)}px, 0, 0)`;
+    midWords[1].style.transform = `translate3d(${(-shift).toFixed(2)}px, 0, 0)`;
+    const inset = (50 * (1 - pillOpen.k)).toFixed(3);
+    pill.style.clipPath = `inset(0 ${inset}% 0 ${inset}%)`;
+  };
+  sizePill();
 
   const portal = { fade: 0, t: 0 };
   const deck = { c: 0 };
   let sculpture = null;
 
+  // pill position inside the stage, measured on refresh (the stage is sticky, so it never moves while stuck)
+  let pillBox = null;
+  const measurePill = () => {
+    const r = pill.getBoundingClientRect();
+    const s = pin.getBoundingClientRect();
+    pillBox = { top: r.top - s.top, left: r.left - s.left, right: s.right - r.right, bottom: s.bottom - r.bottom };
+  };
   const applyPortal = () => {
     if (portal.fade <= 0.001) {
       services.classList.remove('is-open');
       return;
     }
     services.classList.add('is-open');
-    const r = pill.getBoundingClientRect();
-    const s = pin.getBoundingClientRect();
+    if (!pillBox) measurePill();
     const k = portal.t;
-    const top = (r.top - s.top) * (1 - k);
-    const left = (r.left - s.left) * (1 - k);
-    const right = (s.right - r.right) * (1 - k);
-    const bottom = (s.bottom - r.bottom) * (1 - k);
-    services.style.clipPath = `inset(${top}px ${right}px ${bottom}px ${left}px round ${2 * (1 - k)}px)`;
+    const top = pillBox.top * (1 - k);
+    const left = pillBox.left * (1 - k);
+    const right = pillBox.right * (1 - k);
+    const bottom = pillBox.bottom * (1 - k);
+    services.style.clipPath = `inset(${top.toFixed(1)}px ${right.toFixed(1)}px ${bottom.toFixed(1)}px ${left.toFixed(1)}px)`;
     services.style.opacity = portal.fade;
   };
 
@@ -106,17 +129,17 @@ export function initStory({ reduced }) {
     const n = cards.length;
     cards.forEach((card, i) => {
       const u = 0.25 + deck.c * (n - 1 + 1.45) - i;
-      if (u < -1 || u > 4) {
-        card.style.opacity = 0;
-        card.style.visibility = 'hidden';
-        return;
+      const on = u >= -1 && u <= 4;
+      if (card._on !== on) {
+        card._on = on;
+        card.style.visibility = on ? 'visible' : 'hidden';
+        if (!on) card.style.opacity = 0;
       }
+      if (!on) return;
       pathAt(u, pt);
       const x = narrow ? pt.x * 0.55 : pt.x;
       const y = narrow ? pt.y * 1.05 : pt.y;
-      card.style.visibility = 'visible';
-      card.style.opacity = Math.max(0, Math.min(1, pt.o));
-      card.style.zIndex = String(Math.round(1000 + pt.z));
+      card.style.opacity = Math.max(0, Math.min(1, pt.o)).toFixed(3);
       card.style.transform =
         `translate(-50%, -50%) translate3d(${x}vw, ${y}vh, ${pt.z}px) rotateY(${pt.ry}deg) rotateZ(${pt.rz}deg) scale(${pt.s})`;
     });
@@ -151,7 +174,7 @@ export function initStory({ reduced }) {
   const gridItems = section.querySelectorAll('.about__grid .eyebrow, .founder, .about__copy p');
   tl.fromTo(gridItems, { opacity: 0, y: 34 }, { opacity: 1, y: 0, duration: 40, stagger: 7, ease: 'power2.out' }, 52);
 
-  tl.fromTo(pill, { width: 0 }, { width: pillWidth, duration: 80, ease: 'power2.inOut' }, 112);
+  tl.to(pillOpen, { k: 1, duration: 80, ease: 'power2.inOut', onUpdate: applyPill }, 112);
 
   // the video pill turns into the services stage, then opens to full screen
   tl.to(portal, { fade: 1, duration: 26, onUpdate: applyPortal }, 214);
@@ -166,9 +189,11 @@ export function initStory({ reduced }) {
     start: 'top top',
     end: 'bottom bottom',
     animation: tl,
-    scrub: reduced ? true : 0.6,
+    // Lenis already smooths the scroll; a second scrub lag on top reads as rubber-banding
+    scrub: smooth || reduced ? true : 0.5,
     invalidateOnRefresh: true,
-    onRefresh: () => { applyPortal(); layoutCards(); },
+    onRefreshInit: () => { sizePill(); pillBox = null; },
+    onRefresh: () => { applyPill(); applyPortal(); layoutCards(); },
   });
 
   // video plays only while its pill is on screen
@@ -195,6 +220,7 @@ export function initStory({ reduced }) {
     },
   });
 
+  applyPill();
   layoutCards();
 
   return {
@@ -205,6 +231,9 @@ export function initStory({ reduced }) {
     },
     resize() {
       if (sculpture) sculpture.resize();
+      sizePill();
+      pillBox = null;
+      applyPill();
       layoutCards();
       applyPortal();
     },

@@ -157,9 +157,10 @@ export class HeroGL {
 
   resize() {
     if (this.failed) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     const w = this.canvas.clientWidth || window.innerWidth;
     const h = this.canvas.clientHeight || window.innerHeight;
+    // the glass is soft by nature: cap the backing store around 2.2 MP so big/retina screens stay cheap
+    const dpr = Math.max(0.75, Math.min(window.devicePixelRatio || 1, 1.25, Math.sqrt(2.2e6 / (w * h))));
     this.w = w; this.h = h; this.dpr = dpr;
     this.canvas.width = Math.round(w * dpr);
     this.canvas.height = Math.round(h * dpr);

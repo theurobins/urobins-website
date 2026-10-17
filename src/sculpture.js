@@ -2,7 +2,7 @@
 // torus-knot core, with white panels and specks drifting through the scene.
 import {
   WebGLRenderer, Scene, PerspectiveCamera, Group, Mesh, TorusGeometry, TorusKnotGeometry,
-  SphereGeometry, PlaneGeometry, BoxGeometry, MeshPhysicalMaterial, MeshStandardMaterial,
+  SphereGeometry, PlaneGeometry, BoxGeometry, MeshStandardMaterial,
   DirectionalLight, PMREMGenerator, BufferGeometry, Float32BufferAttribute, Points,
   PointsMaterial, DoubleSide, ACESFilmicToneMapping, SRGBColorSpace, Color, MathUtils,
 } from 'three';
@@ -14,7 +14,7 @@ export class Sculpture {
     this.progress = 0;
     this.visible = false;
     try {
-      this.renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+      this.renderer = new WebGLRenderer({ canvas, antialias: (window.devicePixelRatio || 1) < 1.5, alpha: true, powerPreference: 'high-performance' });
     } catch (e) {
       console.warn('[services] WebGL unavailable', e);
       this.failed = true;
@@ -34,18 +34,14 @@ export class Sculpture {
     this.camera = new PerspectiveCamera(34, 1, 0.1, 100);
     this.camera.position.set(0, 0, 9);
 
-    const metal = new MeshPhysicalMaterial({
-      color: new Color('#2d66cf'), metalness: 1, roughness: 0.3, clearcoat: 0.6, clearcoatRoughness: 0.25,
-    });
-    const metalBright = new MeshPhysicalMaterial({
-      color: new Color('#4f8cf0'), metalness: 1, roughness: 0.16, clearcoat: 1, clearcoatRoughness: 0.08,
-    });
+    const metal = new MeshStandardMaterial({ color: new Color('#2d66cf'), metalness: 1, roughness: 0.3 });
+    const metalBright = new MeshStandardMaterial({ color: new Color('#4f8cf0'), metalness: 1, roughness: 0.18 });
 
     const rig = (this.rig = new Group());
     const g1 = new Group(), g2 = new Group(), g3 = new Group();
-    const ring1 = new Mesh(new TorusGeometry(1.75, 0.085, 40, 220), metal);
-    const ring2 = new Mesh(new TorusGeometry(1.42, 0.07, 36, 200), metal);
-    const ring3 = new Mesh(new TorusGeometry(1.12, 0.06, 32, 180), metal);
+    const ring1 = new Mesh(new TorusGeometry(1.75, 0.085, 20, 160), metal);
+    const ring2 = new Mesh(new TorusGeometry(1.42, 0.07, 18, 140), metal);
+    const ring3 = new Mesh(new TorusGeometry(1.12, 0.06, 16, 120), metal);
     g1.add(ring1); g2.add(ring2); g3.add(ring3);
     // pivot pins where each ring hangs in the next
     const pin = new SphereGeometry(0.12, 32, 24);
@@ -56,7 +52,7 @@ export class Sculpture {
         g.add(m);
       }
     }
-    const core = new Mesh(new TorusKnotGeometry(0.5, 0.17, 260, 36, 2, 3), metalBright);
+    const core = new Mesh(new TorusKnotGeometry(0.5, 0.17, 180, 24, 2, 3), metalBright);
     g3.add(core);
     g2.add(g3); g1.add(g2); rig.add(g1);
     this.g1 = g1; this.g2 = g2; this.g3 = g3; this.core = core;
@@ -117,7 +113,7 @@ export class Sculpture {
     if (this.failed) return;
     const w = this.canvas.clientWidth || window.innerWidth;
     const h = this.canvas.clientHeight || window.innerHeight;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();

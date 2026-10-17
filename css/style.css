@@ -79,7 +79,7 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: #1a0806;
+  background: #3e1d14;
   overflow: hidden;
 }
 .preloader__canvas {
@@ -88,23 +88,50 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
   width: 100%;
   height: 100%;
   display: block;
-  will-change: transform;
+}
+.preloader::before,
+.preloader::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+}
+.preloader::before {
+  inset: 0;
+  background: radial-gradient(ellipse 80% 75% at 50% 55%, rgba(0, 0, 0, 0) 60%, rgba(20, 6, 3, 0.12) 100%);
+}
+.preloader::after {
+  inset: -60px;
+  background-image: var(--grain);
+  opacity: 0.18;
+  mix-blend-mode: soft-light;
+  animation: grain 0.5s steps(5) infinite;
+}
+@keyframes grain {
+  0% { transform: translate3d(0, 0, 0); }
+  20% { transform: translate3d(-23px, 17px, 0); }
+  40% { transform: translate3d(31px, -9px, 0); }
+  60% { transform: translate3d(-12px, -28px, 0); }
+  80% { transform: translate3d(19px, 24px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
 }
 .preloader__flash {
   position: absolute;
+  z-index: 2;
   inset: 0;
   background: #ffe9e0;
   pointer-events: none;
 }
 .preloader__count {
   position: absolute;
-  right: calc(var(--gutter) + env(safe-area-inset-right, 0px));
-  bottom: calc(5vh + env(safe-area-inset-bottom, 0px));
-  font: italic 400 clamp(64px, 8.4vw, 150px)/0.9 var(--serif);
-  letter-spacing: -0.02em;
-  color: #fff3ee;
+  z-index: 3;
+  right: calc(3.95vw + env(safe-area-inset-right, 0px));
+  bottom: calc(3.7vh + env(safe-area-inset-bottom, 0px));
+  font: italic 400 7.6vw/0.9 var(--serif);
+  letter-spacing: -0.045em;
+  color: #fefdf9;
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 40px rgba(255, 120, 90, 0.25);
+  will-change: transform;
 }
 
 /* ---------- Nav ---------- */
@@ -198,8 +225,8 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
     radial-gradient(40% 30% at 62% 78%, rgba(255, 255, 255, 0.055), transparent 70%),
     radial-gradient(35% 25% at 34% 96%, rgba(255, 255, 255, 0.04), transparent 70%),
     radial-gradient(30% 40% at 88% 60%, rgba(160, 190, 210, 0.035), transparent 70%);
-  filter: blur(10px);
   animation: smoke 18s ease-in-out infinite alternate;
+  will-change: transform;
 }
 @keyframes smoke {
   from { transform: translate3d(-2%, 1%, 0) scale(1); }
@@ -243,6 +270,8 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
   background: #1a0f0a;
   flex: none;
 }
+.about__video { clip-path: inset(0 50% 0 50%); will-change: clip-path; }
+.about__title .split { display: inline-block; will-change: transform; }
 .about__video video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 
 .about__grid {
@@ -311,14 +340,16 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
   width: clamp(270px, 27vw, 460px);
   padding: 22px 24px 28px;
   background: rgba(6, 24, 29, 0.74);
-  -webkit-backdrop-filter: blur(12px) saturate(1.15);
-  backdrop-filter: blur(12px) saturate(1.15);
+  contain: layout paint;
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 3px;
   box-shadow: 0 30px 70px rgba(0, 0, 0, 0.28);
   will-change: transform, opacity;
   backface-visibility: visible;
   opacity: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  .svc-card { -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
 }
 .svc-card__num { font: 500 12px/1 var(--sans); color: rgba(255, 255, 255, 0.72); display: flex; align-items: center; gap: 7px; }
 .svc-card__num::before { content: ""; width: 4px; height: 4px; background: currentColor; }
@@ -373,7 +404,7 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
 .team { position: relative; background: var(--paper); color: var(--ink); }
 .team__shift { position: relative; height: 170vh; }
 .team__bars { position: sticky; top: 0; height: 100vh; overflow: hidden; }
-.team__bars i { position: absolute; left: 0; top: 0; display: block; background: var(--ink); will-change: transform; }
+.team__bars i { position: absolute; left: 0; top: 0; display: block; width: 100px; height: 100px; background: var(--ink); transform-origin: 0 0; will-change: transform; }
 .team__inner {
   position: relative;
   margin-top: -45vh;
@@ -498,6 +529,7 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
   .contact__cols { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
+  .preloader__count { font-size: 15vw; }
   .nav__cta { padding: 0 14px; font-size: 13px; }
   .hero__title { font-size: clamp(38px, 11.4vw, 64px); }
   .hero__line { white-space: normal; }
