@@ -1,20 +1,19 @@
-// Transition 2 (black stepped bars wiping into white) + team grid reveal.
+// Transition 2 (black stepped bars wiping into white) + team reveal, held in one sticky stage:
+// the funnel collapses at the top, "Meet the Team" blurs in, the cards fade in left to right
+// and the counters run, all while the stage holds still.
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { funnelRects, BAR_COUNT } from './funnel.js';
 
+const sticky = () => window.innerWidth > 980;
+
 export function initTeam({ reduced }) {
   const section = document.querySelector('.team');
-  const shift = section.querySelector('.team__shift');
   const holder = section.querySelector('.team__bars');
   const head = section.querySelector('.team__head');
   const members = [...section.querySelectorAll('.member')];
 
-  const bars = Array.from({ length: BAR_COUNT }, () => {
-    const el = document.createElement('i');
-    holder.appendChild(el);
-    return el;
-  });
+  const bars = Array.from({ length: BAR_COUNT }, () => holder.appendChild(document.createElement('i')));
   const rects = [];
   let q = 0;
   const draw = () => {
@@ -26,14 +25,14 @@ export function initTeam({ reduced }) {
   };
   draw();
 
+  // the funnel holds its full shape while the stage scrolls in, then collapses over the next 60vh
   ScrollTrigger.create({
-    trigger: shift,
+    trigger: section,
     start: 'top bottom',
-    end: 'bottom bottom',
+    end: 'top -60%',
     scrub: true,
     onUpdate: (self) => {
-      // bars hold their full funnel while entering (100vh), then collapse during the sticky phase (70vh)
-      q = gsap.utils.clamp(0, 1, (self.progress - 100 / 170) / (70 / 170));
+      q = gsap.utils.clamp(0, 1, (self.progress - 100 / 160) / (60 / 160));
       draw();
     },
   });
@@ -47,23 +46,23 @@ export function initTeam({ reduced }) {
   counters.forEach((c) => { c.textContent = '0+'; });
 
   ScrollTrigger.create({
-    trigger: head,
-    start: 'top 86%',
+    trigger: section,
+    start: () => (sticky() ? 'top -38%' : 'top -10%'),
     once: true,
-    onEnter: () => gsap.to(titleWords, { opacity: 1, filter: 'blur(0px)', y: 0, duration: 1.3, stagger: 0.18, ease: 'power3.out' }),
+    onEnter: () => gsap.to(titleWords, { opacity: 1, filter: 'blur(0px)', y: 0, duration: 1.2, stagger: 0.16, ease: 'power3.out' }),
   });
 
   ScrollTrigger.create({
-    trigger: section.querySelector('.team__grid'),
-    start: 'top 88%',
+    trigger: section,
+    start: () => (sticky() ? 'top -52%' : 'top -40%'),
     once: true,
     onEnter: () => {
-      gsap.to(members, { opacity: 1, y: 0, duration: 1.2, stagger: 0.16, ease: 'power3.out' });
+      gsap.to(members, { opacity: 1, y: 0, duration: 1.1, stagger: 0.14, ease: 'power3.out' });
       counters.forEach((c, i) => {
         const target = parseFloat(c.dataset.count);
         const o = { v: 0 };
         gsap.to(o, {
-          v: target, duration: 2.4, delay: 0.35 + i * 0.16, ease: 'power3.out',
+          v: target, duration: 2.6, delay: 0.25 + i * 0.12, ease: 'power2.out',
           onUpdate: () => { c.textContent = Math.round(o.v).toLocaleString('en-US') + (c.dataset.suffix || ''); },
         });
       });
