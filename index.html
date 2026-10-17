@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Urobins</title>
+<meta name="description" content="Urobins is a digital technology agency. We build custom websites, mobile apps, CRM workflows, and secure cloud infrastructure, paired with strategic SEO and performance marketing.">
+<meta name="theme-color" content="#0b0b0c">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="is-loading">
+
+<!-- A. Preloader -->
+<div class="preloader" id="preloader" aria-hidden="true">
+  <canvas class="preloader__canvas"></canvas>
+  <div class="preloader__flash"></div>
+  <div class="preloader__count"><span class="preloader__num">1</span>%</div>
+</div>
+
+<!-- Navbar: three floating elements -->
+<header class="nav" id="nav">
+  <a class="nav__logo pill pill--white" href="#top" aria-label="Urobins, back to top"><span class="logo-u">U</span>robins</a>
+  <nav class="nav__menu pill pill--white" id="nav-menu" aria-label="Primary">
+    <a href="#about">About</a>
+    <a href="#services">Services</a>
+    <a href="#faq">FAQ</a>
+    <a href="#resources">Resources</a>
+    <a href="#contact">Contact</a>
+  </nav>
+  <div class="nav__right">
+    <a class="nav__cta pill pill--black" href="#contact">Start a Project <span class="arr" aria-hidden="true">↗</span></a>
+    <button class="nav__toggle pill pill--white" type="button" id="nav-toggle" aria-expanded="false" aria-controls="nav-menu">Menu</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- B. Hero + C. Transition 1 (stepped bars, drawn in WebGL) -->
+  <section class="hero" id="top" aria-label="Introduction">
+    <div class="hero__pin">
+      <canvas class="hero__gl" aria-hidden="true"></canvas>
+      <div class="hero__layer">
+        <div class="hero__content">
+          <h1 class="hero__title" aria-label="Scaling Brands, Digital Technology Agency">
+            <span class="hero__line" aria-hidden="true"><span class="w">Scaling</span> <em class="w">Brands</em></span>
+            <span class="hero__line" aria-hidden="true"><em class="w">Digital</em> <span class="w">Technology</span> <span class="w">Agency</span></span>
+          </h1>
+          <p class="hero__sub">We build custom websites, mobile applications, CRM workflows, and secure cloud infrastructure, paired with strategic SEO and performance marketing to scale your brand.</p>
+          <a class="pill pill--black hero__cta" href="#contact">Contact Us <span class="arr" aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- D. About + E. Services (one sticky stage; the video pill opens into Services) -->
+  <section class="story" id="about" aria-label="About Urobins and services">
+    <div class="story__pin">
+
+      <div class="about">
+        <div class="about__smoke" aria-hidden="true"></div>
+        <svg class="about__line" viewBox="0 0 1440 900" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M 236 104 C 252 128, 262 150, 252 160 C 244 168, 228 150, 246 142 C 300 196, 388 300, 470 420 C 540 520, 548 584, 520 628 C 496 666, 548 700, 640 664 C 760 616, 900 520, 958 522 C 1010 524, 992 584, 938 646 C 876 720, 792 828, 780 872 C 772 902, 826 884, 862 822 C 940 690, 1040 520, 1104 342"/>
+        </svg>
+
+        <h2 class="about__title" aria-label="A Clear Digital Path To Scale Fast">
+          <span class="aline" aria-hidden="true"><span class="split">A Clear</span></span>
+          <span class="aline aline--mid" aria-hidden="true">
+            <span class="split">Digital</span>
+            <span class="about__video">
+              <video poster="assets/video/about-poster.jpg" muted loop playsinline preload="metadata">
+                <source src="assets/video/about-loop.mp4" type="video/mp4; codecs=avc1.64001F">
+                <source src="assets/video/about-loop.webm" type="video/webm; codecs=vp9">
+              </video>
+            </span>
+            <span class="split">Path</span>
+          </span>
+          <span class="aline" aria-hidden="true"><em class="split">To Scale Fast</em></span>
+        </h2>
+
+        <div class="about__grid">
+          <div class="about__col">
+            <p class="eyebrow">About us</p>
+          </div>
+          <div class="about__col about__col--mid">
+            <p class="eyebrow">Promises</p>
+            <div class="founder">
+              <img class="founder__img" src="assets/team/founder.jpg" alt="" width="46" height="46">
+              <div>
+                <p class="founder__name">Ethan Cole</p>
+                <p class="founder__role">Head of Engineering</p>
+              </div>
+            </div>
+          </div>
+          <div class="about__col about__copy">
+            <p>Urobins is an engineering-led digital agency. We design, build, and ship custom websites, mobile apps, and CRM workflows end to end, from architecture and code through launch, monitoring, and iteration.</p>
+            <p>Every system runs on secure cloud infrastructure built for reliability, with 99.9% uptime as the baseline. Growth work is just as transparent: clear SEO and performance marketing plans, shared dashboards, and reporting tied to revenue.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="services" id="services" aria-label="Our technology services">
+        <div class="services__bg" aria-hidden="true"></div>
+        <canvas class="services__gl" aria-hidden="true"></canvas>
+        <h2 class="services__title">Our Technology <em>Services</em></h2>
+        <div class="services__track">
+          <article class="svc-card">
+            <p class="svc-card__num">01</p>
+            <h3 class="svc-card__title">Custom Web &amp; <em>Mobile Apps</em></h3>
+            <p class="svc-card__text">High-performance, scalable web platforms and native mobile experiences, engineered for speed and built to grow with your users.</p>
+          </article>
+          <article class="svc-card">
+            <p class="svc-card__num">02</p>
+            <h3 class="svc-card__title">CRM Workflows &amp; <em>Automation</em></h3>
+            <p class="svc-card__text">Custom pipelines and integrations that streamline operations, connecting sales, support, and billing into one reliable flow.</p>
+          </article>
+          <article class="svc-card">
+            <p class="svc-card__num">03</p>
+            <h3 class="svc-card__title">Secure Cloud <em>Infrastructure</em></h3>
+            <p class="svc-card__text">Resilient cloud architecture built for speed, security, and zero downtime, with monitoring and backups from day one.</p>
+          </article>
+          <article class="svc-card">
+            <p class="svc-card__num">04</p>
+            <h3 class="svc-card__title">Strategic <em>SEO</em></h3>
+            <p class="svc-card__text">Data-backed search optimization to capture high-intent organic traffic, from technical audits to content that ranks.</p>
+          </article>
+          <article class="svc-card">
+            <p class="svc-card__num">05</p>
+            <h3 class="svc-card__title">Performance <em>Marketing</em></h3>
+            <p class="svc-card__text">High-ROI paid acquisition campaigns engineered to scale revenue, measured against the numbers that matter to your business.</p>
+          </article>
+        </div>
+      </div>
+
+      <div class="story__fade" aria-hidden="true"></div>
+    </div>
+  </section>
+
+  <!-- F. Impact metrics -->
+  <section class="metrics" id="impact" aria-label="Impact">
+    <div class="metrics__top">
+      <p class="metrics__big" aria-label="$11.2 Billion"><span class="metrics__num" aria-hidden="true">$11.2</span> <em aria-hidden="true">Billion</em></p>
+      <div class="metrics__aside">
+        <p>in client value generated through the products, platforms, and growth campaigns we have engineered for our partners.</p>
+        <a class="pill pill--white" href="#contact">Contact us <span class="arr" aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+    <div class="metrics__grid">
+      <div class="stat" style="--h: .24; --tone: 1">
+        <p class="stat__value" data-count="99.9" data-decimals="1" data-suffix="%">99.9%</p>
+        <p class="stat__label">Cloud Uptime Rate</p>
+        <p class="stat__sub">Across managed infrastructure</p>
+        <div class="stat__bars" aria-hidden="true"></div>
+      </div>
+      <div class="stat" style="--h: .45; --tone: .72">
+        <p class="stat__value" data-count="45" data-suffix=" days">45 days</p>
+        <p class="stat__label">Average MVP Launch Time</p>
+        <p class="stat__sub">From kickoff to production</p>
+        <div class="stat__bars" aria-hidden="true"></div>
+      </div>
+      <div class="stat" style="--h: .72; --tone: .55">
+        <p class="stat__value" data-count="340" data-suffix="%">340%</p>
+        <p class="stat__label">Median Traffic Growth</p>
+        <p class="stat__sub">Organic search, first 12 months</p>
+        <div class="stat__bars" aria-hidden="true"></div>
+      </div>
+      <div class="stat" style="--h: 1; --tone: 1" data-slope="true">
+        <p class="stat__value" data-count="1.2" data-decimals="1" data-suffix="M+">1.2M+</p>
+        <p class="stat__label">Automated CRM Workflows Run</p>
+        <p class="stat__sub">Across client pipelines</p>
+        <div class="stat__bars" aria-hidden="true"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- G. Transition 2 (black stepped bars) + Team -->
+  <section class="team" id="team" aria-label="Meet the team">
+    <div class="team__shift" aria-hidden="true">
+      <div class="team__bars"></div>
+    </div>
+    <div class="team__inner">
+      <header class="team__head">
+        <h2 class="team__title">Meet <em>the Team</em></h2>
+        <p class="team__sub">Behind every deployment is a team committed to engineering excellence and scalable growth.</p>
+      </header>
+      <div class="team__grid">
+        <article class="member">
+          <div class="member__img"><img src="assets/team/team-1.jpg" alt="Portrait of Ethan Cole" loading="lazy" width="800" height="1000"></div>
+          <p class="member__name">Ethan Cole</p>
+          <p class="member__role">Head of Engineering</p>
+          <div class="member__stat">
+            <p class="member__num" data-count="2400" data-suffix="+">2,400+</p>
+            <p class="member__label"><b>deployments</b><span>14 years of experience</span></p>
+          </div>
+        </article>
+        <article class="member">
+          <div class="member__img"><img src="assets/team/team-2.jpg" alt="Portrait of Sofia Marin" loading="lazy" width="800" height="1000"></div>
+          <p class="member__name">Sofia Marin</p>
+          <p class="member__role">Performance Marketing Lead</p>
+          <div class="member__stat">
+            <p class="member__num" data-count="1800" data-suffix="+">1,800+</p>
+            <p class="member__label"><b>campaigns scaled</b><span>11 years of experience</span></p>
+          </div>
+        </article>
+        <article class="member">
+          <div class="member__img"><img src="assets/team/team-3.jpg" alt="Portrait of Priya Raman" loading="lazy" width="800" height="1000"></div>
+          <p class="member__name">Priya Raman</p>
+          <p class="member__role">CRM &amp; Automation Architect</p>
+          <div class="member__stat">
+            <p class="member__num" data-count="3500" data-suffix="+">3,500+</p>
+            <p class="member__label"><b>workflows built</b><span>9 years of experience</span></p>
+          </div>
+        </article>
+        <article class="member">
+          <div class="member__img"><img src="assets/team/team-4.jpg" alt="Portrait of Marcus Hale" loading="lazy" width="800" height="1000"></div>
+          <p class="member__name">Marcus Hale</p>
+          <p class="member__role">Cloud Infrastructure Lead</p>
+          <div class="member__stat">
+            <p class="member__num" data-count="1200" data-suffix="+">1,200+</p>
+            <p class="member__label"><b>cloud migrations</b><span>16 years of experience</span></p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact, FAQ, Resources -->
+  <footer class="contact" id="contact">
+    <div class="contact__cta">
+      <h2 class="contact__title">Have a product <em>to scale?</em></h2>
+      <div class="contact__actions">
+        <p>Tell us what you are building. We reply within one business day with next steps and a rough timeline.</p>
+        <a class="pill pill--black" href="mailto:hellourobins@gmail.com">Start a Project <span class="arr" aria-hidden="true">↗</span></a>
+        <dl class="contact__list">
+          <div>
+            <dt>General inquiries</dt>
+            <dd><a href="mailto:hellourobins@gmail.com">hellourobins@gmail.com</a></dd>
+          </div>
+          <div>
+            <dt>Client &amp; technical support</dt>
+            <dd><a href="mailto:support@urobins.com">support@urobins.com</a></dd>
+          </div>
+          <div>
+            <dt>Phone / WhatsApp</dt>
+            <dd><a href="tel:+919810942673">+91 9810942673</a> &middot; <a href="https://wa.me/919810942673">WhatsApp</a></dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+    <div class="contact__cols">
+      <div class="faq" id="faq">
+        <p class="eyebrow">FAQ</p>
+        <details>
+          <summary>How long does a typical project take?</summary>
+          <p>Most MVPs launch in about 45 days. Larger platforms ship in phased releases, with a working build to review every two weeks.</p>
+        </details>
+        <details>
+          <summary>Do you work with existing codebases?</summary>
+          <p>Yes. We start with a technical audit, then improve, migrate, or extend what you already have instead of rebuilding by default.</p>
+        </details>
+        <details>
+          <summary>What does cloud support include after launch?</summary>
+          <p>Monitoring, security patching, backups, and scaling, with a 99.9% uptime target and agreed response times.</p>
+        </details>
+        <details>
+          <summary>How do you report on SEO and marketing?</summary>
+          <p>You get a shared dashboard with rankings, traffic, conversions, and spend, plus a monthly review against your revenue goals.</p>
+        </details>
+      </div>
+      <div class="resources" id="resources">
+        <p class="eyebrow">Resources</p>
+        <ul>
+          <li><a href="#contact">Launch readiness checklist <span class="arr" aria-hidden="true">↗</span></a></li>
+          <li><a href="#contact">Technical SEO audit template <span class="arr" aria-hidden="true">↗</span></a></li>
+          <li><a href="#contact">Cloud cost planning guide <span class="arr" aria-hidden="true">↗</span></a></li>
+          <li><a href="#contact">CRM automation playbook <span class="arr" aria-hidden="true">↗</span></a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="contact__base">
+      <p class="contact__mark"><span class="logo-u">U</span>robins</p>
+      <p>&copy; 2026 Urobins. Engineering and growth for ambitious brands.</p>
+    </div>
+  </footer>
+</main>
+
+<script src="js/app.js"></script>
+</body>
+</html>
