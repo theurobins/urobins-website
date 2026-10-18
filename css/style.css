@@ -217,7 +217,7 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
 .story { position: relative; height: 980vh; background: var(--ink); }
 .story__pin { position: sticky; top: 0; height: 100vh; overflow: hidden; }
 
-.about { position: absolute; inset: 0; color: var(--paper); }
+.about { position: absolute; inset: 0; color: var(--paper); will-change: transform; }
 .about__smoke {
   position: absolute;
   inset: -10%;
@@ -247,7 +247,7 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
 
 .about__title {
   position: absolute;
-  top: max(9vh, 64px);
+  top: max(2.8vh, 18px);
   left: 0;
   right: 0;
   text-align: center;
@@ -263,8 +263,8 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
   position: relative;
   display: inline-block;
   width: 0;
-  height: 0.84em;
-  margin: 0 0.04em;
+  height: 0.86em;
+  margin: 0 0.22em;
   overflow: hidden;
   border-radius: 2px;
   background: #1a0f0a;
@@ -278,7 +278,7 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
   position: absolute;
   left: 0;
   right: 0;
-  top: 54vh;
+  top: 52.8vh;
   display: grid;
   grid-template-columns: 34fr 34.6fr 23.4fr;
   padding: 0 var(--gutter);

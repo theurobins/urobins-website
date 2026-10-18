@@ -62,6 +62,12 @@ export function initStory({ reduced, smooth }) {
   const cards = [...services.querySelectorAll('.svc-card')];
   const fade = section.querySelector('.story__fade');
   const path = section.querySelector('.about__line path');
+  const aboutLayer = section.querySelector('.about');
+  // the About block assembles 24.3vh lower, then glides up into place while the pill opens
+  const LIFT = 0.243;
+  const lift = { k: 0 };
+  const shiftPx = () => (1 - lift.k) * LIFT * window.innerHeight;
+  const applyLift = () => { aboutLayer.style.transform = `translate3d(0, ${shiftPx().toFixed(2)}px, 0)`; };
 
   // ---- letters: each line starts scattered on its own arc in depth ----
   const lines = [...title.querySelectorAll('.aline')];
@@ -82,13 +88,15 @@ export function initStory({ reduced, smooth }) {
   // so nothing re-lays-out while scrolling
   const midWords = [...title.querySelectorAll('.aline--mid > .split')];
   const pillOpen = { k: 0 };
-  let pillW = 0;
+  let pillW = 0, em = 100;
   const sizePill = () => {
+    em = fs();
     pillW = pillWidth();
     pill.style.width = `${pillW}px`;
   };
   const applyPill = () => {
-    const shift = (pillW / 2 + 2) * (1 - pillOpen.k);
+    // closed: the two words sit a normal word-space apart; open: 0.22em either side of the pill
+    const shift = ((pillW + 0.44 * em - 0.26 * em) / 2) * (1 - pillOpen.k);
     midWords[0].style.transform = `translate3d(${shift.toFixed(2)}px, 0, 0)`;
     midWords[1].style.transform = `translate3d(${(-shift).toFixed(2)}px, 0, 0)`;
     const inset = (50 * (1 - pillOpen.k)).toFixed(3);
@@ -105,7 +113,9 @@ export function initStory({ reduced, smooth }) {
   const measurePill = () => {
     const r = pill.getBoundingClientRect();
     const s = pin.getBoundingClientRect();
-    pillBox = { top: r.top - s.top, left: r.left - s.left, right: s.right - r.right, bottom: s.bottom - r.bottom };
+    // remove the current glide offset so the box is the pill's resting position
+    const sh = shiftPx();
+    pillBox = { top: r.top - s.top - sh, left: r.left - s.left, right: s.right - r.right, bottom: s.bottom - r.bottom + sh };
   };
   const applyPortal = () => {
     if (portal.fade <= 0.001) {
@@ -172,9 +182,10 @@ export function initStory({ reduced, smooth }) {
   tl.to(path, { strokeDashoffset: 0, duration: 190, ease: 'power1.inOut' }, 0);
 
   const gridItems = section.querySelectorAll('.about__grid .eyebrow, .founder, .about__copy p');
-  tl.fromTo(gridItems, { opacity: 0, y: 34 }, { opacity: 1, y: 0, duration: 40, stagger: 7, ease: 'power2.out' }, 52);
+  tl.fromTo(gridItems, { opacity: 0, y: 34 }, { opacity: 1, y: 0, duration: 40, stagger: 9, ease: 'power2.out' }, 40);
+  tl.to(lift, { k: 1, duration: 95, ease: 'power2.out', onUpdate: applyLift }, 100);
 
-  tl.to(pillOpen, { k: 1, duration: 80, ease: 'power2.inOut', onUpdate: applyPill }, 112);
+  tl.to(pillOpen, { k: 1, duration: 82, ease: 'power2.inOut', onUpdate: applyPill }, 104);
 
   // the video pill turns into the services stage, then opens to full screen
   tl.to(portal, { fade: 1, duration: 26, onUpdate: applyPortal }, 214);
@@ -193,7 +204,7 @@ export function initStory({ reduced, smooth }) {
     scrub: smooth || reduced ? true : 0.5,
     invalidateOnRefresh: true,
     onRefreshInit: () => { sizePill(); pillBox = null; },
-    onRefresh: () => { applyPill(); applyPortal(); layoutCards(); },
+    onRefresh: () => { applyLift(); applyPill(); applyPortal(); layoutCards(); },
   });
 
   // video plays only while its pill is on screen
@@ -221,6 +232,7 @@ export function initStory({ reduced, smooth }) {
   });
 
   applyPill();
+  applyLift();
   layoutCards();
 
   return {
