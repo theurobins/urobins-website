@@ -375,7 +375,11 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
 .story__fade { position: absolute; inset: 0; background: var(--ink); opacity: 0; pointer-events: none; }
 
 /* ---------- Metrics ---------- */
-.metrics { position: relative; height: 190vh; background: var(--ink); color: var(--paper); }
+/* The stage slides up over the story's closing black hold (transparent and empty until it reveals),
+   so its frame pins the moment the Services fade completes and the reveal plays in place. */
+.metrics { position: relative; z-index: 1; height: 115vh; margin-top: -128vh; color: var(--paper); pointer-events: none; }
+.metrics a { pointer-events: auto; }
+.metrics__fx { position: absolute; width: 0; height: 0; }
 .metrics__pin {
   position: sticky;
   top: 0;
@@ -383,39 +387,33 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding-top: max(7.4vh, 56px);
-  padding-bottom: 8vh;
-  padding-left: max(16px, 4.3vw, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, 4.3vw, env(safe-area-inset-right, 0px));
+  padding-top: max(8.05vh, 56px);
+  padding-bottom: 7.4vh;
+  padding-left: max(16px, 4.1vw, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, 4.1vw, env(safe-area-inset-right, 0px));
 }
-.metrics__top { display: flex; justify-content: space-between; align-items: flex-start; gap: 4vw; flex-wrap: wrap; }
-.metrics__big { font: 400 clamp(64px, 10vw, 196px)/0.86 var(--serif); letter-spacing: -0.025em; white-space: nowrap; }
-/* counters: the box is locked to the final number's width, so nothing beside it moves while it counts */
-.metrics__num { display: inline-block; text-align: right; }
-.metrics__aside { width: min(310px, 100%); padding-top: 0.6vw; }
-.metrics__aside p { font: 400 14px/1.36 var(--sans); color: rgba(255, 255, 255, 0.86); margin-bottom: 18px; }
+/* same 4-column grid as the bars: the headline spans three, the aside sits on the fourth */
+.metrics__top { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 1.66vw; align-items: start; }
+.metrics__big { grid-column: 1 / 4; font: 400 clamp(64px, 10.35vw, 203px)/0.86 var(--serif); letter-spacing: -0.025em; white-space: nowrap; }
+.metrics__aside { grid-column: 4; padding-top: 6px; }
+.metrics__aside p { font: 400 14px/1.25 var(--sans); color: rgba(255, 255, 255, 0.86); margin-bottom: 18px; }
+.m-line { display: block; }
+.metrics__cta { display: inline-block; }
+.metrics__aside .pill { padding: 0 24px; font-weight: 600; }
 .metrics__grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1.7vw;
+  gap: 1.66vw;
   align-items: end;
   flex: 1;
-  --barmax: min(46vh, 430px);
+  --barmax: min(45.8vh, 430px);
 }
 .stat { min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; }
 .stat__text { will-change: transform, opacity; }
-.stat__value { font: 400 clamp(28px, 2.6vw, 48px)/1 var(--serif); letter-spacing: -0.01em; white-space: nowrap; }
-.stat__n { display: inline-block; }
-.stat__label { margin-top: 12px; font: 600 13.5px/1.25 var(--sans); }
-.stat__sub { margin-top: 4px; font: 400 13.5px/1.25 var(--sans); color: rgba(255, 255, 255, 0.45); }
-.stat__bars {
-  height: calc(var(--barmax) * var(--h));
-  margin-top: 4vh;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  color: rgba(255, 255, 255, var(--tone));
-}
+.stat__value { font: 400 clamp(26px, 2.48vw, 46px)/1 var(--serif); letter-spacing: -0.01em; white-space: nowrap; }
+.stat__label { margin-top: 9px; font: 600 13.5px/1.25 var(--sans); }
+.stat__sub { margin-top: 0.5px; font: 400 13.5px/1.25 var(--sans); color: rgba(255, 255, 255, 0.56); }
+.stat__bars { height: calc(var(--barmax) * var(--h)); margin-top: 3vh; }
 .stat__bars canvas { display: block; width: 100%; height: 100%; }
 
 /* ---------- Team ---------- */
@@ -542,7 +540,9 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
   .about__col:first-child { display: none; }
   .about__col--mid { justify-content: flex-start; gap: 28px; }
   .about__copy { padding-top: 0; }
-  .metrics { height: auto; }
+  .metrics { height: auto; margin-top: 0; background: var(--ink); pointer-events: auto; }
+  .metrics__top { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4vw; }
+  .metrics__aside { width: min(310px, 100%); }
   .metrics__pin { position: relative; height: auto; padding-top: 12vh; padding-bottom: 14vh; }
   .metrics__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 7vh; gap: 4vw; margin-top: 6vh; --barmax: min(30vh, 300px); }
   .team { height: auto; }
