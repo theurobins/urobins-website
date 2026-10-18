@@ -535,7 +535,7 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
   .metrics__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 7vh; gap: 4vw; margin-top: 6vh; --barmax: min(30vh, 300px); }
   .team { height: auto; }
   .team__pin { position: relative; height: auto; overflow: visible; }
-  .team__bars { position: relative; height: 100vh; }
+  .team__bars { position: relative; height: 80vh; }
   .team__inner { position: relative; padding-bottom: 14vh; }
   .team__head { margin-left: 0; }
   .team__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; row-gap: 36px; }
