@@ -5,8 +5,11 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Sculpture } from './sculpture.js';
 
-const TOTAL = 880;
-export const STORY_MARKS = { about: 125, services: 350 };
+// The stage pins under the hero from 73.5vh of scroll, so it idles for LEAD units while the
+// hero's funnel plays over it; the blue line starts as the last bars collapse.
+const LEAD = 116;
+const TOTAL = 880 + LEAD;
+export const STORY_MARKS = { about: 125 + LEAD, services: 350 + LEAD };
 
 // card path keyframes at u = -1 .. 4 (x: vw, y: vh, z: px, ry/rz: deg)
 const PATH = [
@@ -156,7 +159,8 @@ export function initStory({ reduced, smooth }) {
     if (sculpture) sculpture.setProgress(deck.c);
   };
 
-  // ---- build the timeline ----
+  // ---- build the timeline (positions below are relative to the end of the lead-in) ----
+  const master = gsap.timeline({ defaults: { ease: 'none' } });
   const tl = gsap.timeline({ defaults: { ease: 'none' } });
 
   letterGroups.forEach(({ chars, cfg }, li) => {
@@ -168,13 +172,13 @@ export function initStory({ reduced, smooth }) {
       rotationY: (i) => cfg.ry + (i - mid) * 4,
       rotationX: cfg.rx,
       rotationZ: (i) => cfg.rz + (i - mid) * 1.5,
-      opacity: 0.35,
+      opacity: 0,
     }, {
       x: 0, y: 0, z: 0, rotationY: 0, rotationX: 0, rotationZ: 0, opacity: 1,
       duration: 62,
       ease: 'power2.out',
       stagger: { each: 1.1, from: 'center' },
-    }, li * 6);
+    }, 6 + li * 6);
   });
 
   const L = path.getTotalLength();
@@ -193,13 +197,14 @@ export function initStory({ reduced, smooth }) {
   tl.fromTo(svcTitle, { opacity: 0.25, y: 40 }, { opacity: 1, y: 0, duration: 80, ease: 'power2.out' }, 262);
   tl.to(deck, { c: 1, duration: 520, onUpdate: layoutCards }, 300);
   tl.to(fade, { opacity: 1, duration: 54 }, 826);
-  tl.set({}, {}, TOTAL);
+  tl.set({}, {}, TOTAL - LEAD);
+  master.add(tl, LEAD);
 
   const st = ScrollTrigger.create({
     trigger: section,
     start: 'top top',
     end: 'bottom bottom',
-    animation: tl,
+    animation: master,
     // Lenis already smooths the scroll; a second scrub lag on top reads as rubber-banding
     scrub: smooth || reduced ? true : 0.5,
     invalidateOnRefresh: true,
@@ -212,7 +217,7 @@ export function initStory({ reduced, smooth }) {
   ScrollTrigger.create({
     trigger: section,
     start: 'top bottom',
-    end: () => `top+=${window.innerHeight * 3.4} top`,
+    end: () => `top+=${window.innerHeight * (3.4 + LEAD / 100)} top`,
     onToggle: (self) => {
       if (reduced) return;
       if (self.isActive && !playing) { playing = true; video.play().catch(() => {}); }
@@ -233,6 +238,7 @@ export function initStory({ reduced, smooth }) {
 
   applyPill();
   applyLift();
+  applyPortal();
   layoutCards();
 
   return {

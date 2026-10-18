@@ -1,6 +1,7 @@
 // Full-screen ribbed (fluted) glass gradient for the hero.
-// The same shader also paints the stepped funnel bars below the hero edge,
-// so each bar reads as a slice of the hero glass.
+// The same shader paints the stepped funnel bars below the hero's bottom edge, so each bar
+// reads as a slice of the glass. Everything outside the glass is transparent, so the About
+// stage pinned underneath shows through.
 import { BAR_COUNT } from './funnel.js';
 
 const VERT = `
@@ -15,17 +16,19 @@ uniform float uDpr;
 uniform float uTime;
 uniform float uMix;         // 0 burnt orange -> 1 lavender
 uniform float uHeroBottom;  // css px from top
-uniform float uWarp;        // intro hourglass warp, 1 -> 0
-uniform float uReveal;      // 0 solid flash colour -> 1 full glass
-uniform vec3 uBlack;
+uniform float uShift;       // css px the glass has scrolled up
+uniform float uPitch;       // rib pitch, css px
+uniform float uHyp;         // intro hourglass strength (0 = straight ribs)
+uniform float uFlash;       // intro peach flash 0..1
+uniform float uReveal;      // 0 dark red hand-off colour -> 1 full glass
 uniform vec4 uBars[${BAR_COUNT}];
 
-float hash(float n) { return fract(sin(n * 127.1) * 43758.5453); }
 float hash2(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
 
-vec3 blob(vec3 col, vec2 q, vec2 c, float r, vec3 bc, float a, float aspect) {
+vec3 blob(vec3 col, vec2 q, vec2 c, float r, vec3 bc, float a, float aspect, float sx) {
   c.x *= aspect;
   vec2 d = q - c;
+  d.x /= sx;
   float w = exp(-dot(d, d) / (r * r));
   return mix(col, bc, clamp(w * a, 0.0, 1.0));
 }
@@ -33,91 +36,82 @@ vec3 blob(vec3 col, vec2 q, vec2 c, float r, vec3 bc, float a, float aspect) {
 vec3 field(vec2 p, float t, float m) {
   float aspect = uRes.x / uRes.y;
   vec2 q = vec2(p.x * aspect, p.y);
-  vec3 base = mix(vec3(0.80, 0.29, 0.19), vec3(0.79, 0.77, 0.94), m);
-  vec3 col = base;
-  // left band
-  col = blob(col, q, mix(vec2(0.05, 0.52), vec2(0.04, 0.55), m) + 0.03 * vec2(sin(t * 0.23), cos(t * 0.19)),
-             0.32, mix(vec3(0.86, 0.40, 0.22), vec3(0.70, 0.64, 0.93), m), 0.8, aspect);
-  // bottom-left warm / periwinkle
-  col = blob(col, q, mix(vec2(0.14, 0.88), vec2(0.20, 0.90), m) + 0.04 * vec2(cos(t * 0.17), sin(t * 0.21)),
-             0.42, mix(vec3(0.89, 0.50, 0.28), vec3(0.78, 0.79, 0.96), m), 0.85, aspect);
-  // top-left deep red / violet
-  col = blob(col, q, mix(vec2(0.32, 0.22), vec2(0.20, 0.10), m) + 0.05 * vec2(sin(t * 0.13 + 1.0), cos(t * 0.16)),
-             mix(0.40, 0.34, m), mix(vec3(0.74, 0.17, 0.14), vec3(0.33, 0.22, 0.80), m), 0.95, aspect);
-  // top-right red / violet
-  col = blob(col, q, mix(vec2(0.80, 0.18), vec2(0.93, 0.05), m) + 0.04 * vec2(cos(t * 0.15 + 2.0), sin(t * 0.12)),
-             mix(0.36, 0.28, m), mix(vec3(0.77, 0.22, 0.17), vec3(0.40, 0.28, 0.86), m), 0.92, aspect);
-  // centre glow (salmon -> near white dome)
-  col = blob(col, q, mix(vec2(0.55, 0.52), vec2(0.57, 0.40), m) + 0.035 * vec2(sin(t * 0.11), cos(t * 0.14 + 1.0)),
-             mix(0.34, 0.40, m), mix(vec3(0.84, 0.40, 0.32), vec3(0.95, 0.95, 0.99), m), mix(0.7, 0.97, m), aspect);
-  // bottom-right hot corner / lilac
-  col = blob(col, q, mix(vec2(0.98, 0.96), vec2(0.92, 0.80), m) + 0.03 * vec2(cos(t * 0.2), sin(t * 0.18 + 2.0)),
-             mix(0.24, 0.32, m), mix(vec3(0.96, 0.50, 0.15), vec3(0.78, 0.68, 0.95), m), 0.95, aspect);
-  // mid-right accent
-  col = blob(col, q, mix(vec2(0.86, 0.62), vec2(0.82, 0.55), m) + 0.03 * vec2(sin(t * 0.16 + 3.0), cos(t * 0.13)),
-             0.22, mix(vec3(0.83, 0.33, 0.20), vec3(0.74, 0.70, 0.95), m), 0.6, aspect);
+  vec2 dr = 0.015 * vec2(sin(t * 0.21), cos(t * 0.17));
+  vec3 col = mix(vec3(0.76, 0.24, 0.19), vec3(0.79, 0.77, 0.94), m);
+  // left band: saturated orange / lilac
+  col = blob(col, q, mix(vec2(0.03, 0.45), vec2(0.0, 0.45), m) + dr, mix(0.30, 0.35, m),
+             mix(vec3(0.84, 0.30, 0.13), vec3(0.67, 0.60, 0.88), m), mix(0.9, 0.8, m), aspect, 1.0);
+  // bottom-left: light orange rising diagonally / periwinkle
+  col = blob(col, q, mix(vec2(0.08, 0.97), vec2(0.20, 0.90), m) - dr, mix(0.45, 0.40, m),
+             mix(vec3(0.87, 0.52, 0.30), vec3(0.78, 0.79, 0.96), m), mix(0.95, 0.85, m), aspect, 1.0);
+  // deep crimson core / top-left violet
+  col = blob(col, q, mix(vec2(0.45, 0.33), vec2(0.27, 0.02), m) + dr, mix(0.42, 0.30, m),
+             mix(vec3(0.75, 0.20, 0.16), vec3(0.33, 0.24, 0.73), m), mix(0.9, 0.95, m), aspect, 1.0);
+  // violet diagonal running down from the top-left (lavender only)
+  col = blob(col, q, vec2(0.18, 0.36), 0.22, vec3(0.50, 0.42, 0.80), 0.7 * m, aspect, 1.0);
+  // top-right: muted rose / grey violet
+  col = blob(col, q, mix(vec2(0.88, 0.22), vec2(0.88, 0.04), m) - dr, mix(0.34, 0.22, m),
+             mix(vec3(0.76, 0.36, 0.30), vec3(0.36, 0.30, 0.62), m), mix(0.85, 0.9, m), aspect, 1.0);
+  // right edge violet (lavender only)
+  col = blob(col, q, vec2(1.0, 0.32), 0.22, vec3(0.47, 0.40, 0.79), 0.7 * m, aspect, 1.0);
+  // wide white dome (lavender only)
+  col = blob(col, q, vec2(0.64, 0.33) + dr * 0.5, 0.40, vec3(0.93, 0.93, 0.98), 0.97 * m, aspect, 1.3);
+  // right side: orange-red low / lilac
+  col = blob(col, q, mix(vec2(1.0, 0.78), vec2(0.92, 0.80), m), mix(0.20, 0.32, m),
+             mix(vec3(0.84, 0.36, 0.17), vec3(0.78, 0.68, 0.95), m), mix(0.9, 0.95, m), aspect, 1.0);
+  // mid-right accent (lavender only)
+  col = blob(col, q, vec2(0.82, 0.55), 0.22, vec3(0.74, 0.70, 0.95), 0.6 * m, aspect, 1.0);
+  // orange-only corners: brown-rose top-right, salmon top-left
+  col = blob(col, q, vec2(1.0, 0.0), 0.12, vec3(0.57, 0.29, 0.25), 0.8 * (1.0 - m), aspect, 1.0);
+  col = blob(col, q, vec2(0.0, 0.0), 0.10, vec3(0.80, 0.42, 0.35), 0.6 * (1.0 - m), aspect, 1.0);
+  // lower glass (only seen once it scrolls up): faint grey-blue curve at the right
+  col = blob(col, q, vec2(1.0, 1.25), 0.25, vec3(0.62, 0.64, 0.80), 0.5 * m, aspect, 1.0);
   return col;
 }
 
 void main() {
   vec2 frag = gl_FragCoord.xy / uDpr;
-  float ypx = uRes.y - frag.y;
+  float W = uRes.x, H = uRes.y;
+  float ypx = H - frag.y;
 
-  bool inside = ypx <= uHeroBottom;
-  float barTop = 0.0;
+  // coverage: the glass above the edge, plus antialiased rounded bars below it
+  float cover = ypx <= uHeroBottom ? 1.0 : 0.0;
   for (int i = 0; i < ${BAR_COUNT}; i++) {
     vec4 b = uBars[i];
-    if (b.z > 0.5 && frag.x >= b.x && frag.x <= b.x + b.z && ypx >= b.y && ypx <= b.y + b.w) {
-      inside = true;
-      barTop = ypx - b.y;
+    if (b.z > 0.5) {
+      vec2 c = b.xy + b.zw * 0.5;
+      float r = 0.27 * b.w;
+      vec2 qd = abs(vec2(frag.x, ypx) - c) - (b.zw * 0.5 - r);
+      float sd = length(max(qd, 0.0)) + min(max(qd.x, qd.y), 0.0) - r;
+      cover = max(cover, clamp(0.5 - sd, 0.0, 1.0));
     }
   }
-  if (!inside) { gl_FragColor = vec4(uBlack, 1.0); return; }
+  if (cover <= 0.0) { gl_FragColor = vec4(0.0); return; }
 
-  float W = uRes.x, H = uRes.y;
-  // intro hourglass: flutes bow outward top and bottom, then relax straight
-  float cx = frag.x - W * 0.5;
-  float yy = ypx / H - 0.5;
-  float warped = cx / (1.0 + uWarp * 7.0 * yy * yy);
-  float fw = mix(11.0, 46.0, uWarp);
-  float fx = (warped + W * 0.5) / fw;
-  float cell = floor(fx);
-  float u = fract(fx);
-  float jit = hash(cell);
+  // rib coordinate: straight ribs at rest, an X-shaped hyperbola during the intro
+  vec2 c = vec2(frag.x - W * 0.5, ypx - H * 0.5);
+  float d2 = c.x * c.x - uHyp * c.y * c.y;
+  float wedge = d2 < 0.0 ? 1.0 : 0.0;
+  float xr = W * 0.5 + sign(c.x) * sqrt(abs(d2));
+  float u = fract(xr / uPitch + 0.5);
+  float hl = exp(-pow(u - 0.5, 2.0) / (2.0 * 0.11 * 0.11));
 
-  // convex flute: each rib shows a mirrored, compressed slice of the gradient
-  float spread = (1.7 + jit * 1.1) * (1.0 + uWarp * 1.5);
-  float sx = frag.x - (u - 0.5) * fw * spread;
-  vec2 sp = vec2(sx / W, ypx / H);
-  vec3 col = field(sp, uTime, uMix);
-
-  // rib shading: soft highlight on the leading edge, hairline shadow on the trailing edge
-  float shade = 1.0;
-  shade += 0.05 * (1.0 - smoothstep(0.0, 0.22, u));
-  shade -= 0.06 * smoothstep(0.82, 1.0, u);
-  shade += (jit - 0.5) * 0.035;
-  col *= mix(shade, 1.0 + (shade - 1.0) * 3.0, uWarp);
-  col += 0.03 * (1.0 - smoothstep(0.0, 0.06, u)) * (1.0 + 3.0 * uWarp);
-
-  // reveal from the solid flash colour
-  col = mix(vec3(0.784, 0.263, 0.184), col, uReveal);
-
-  // bars: faint lip on the top edge
-  if (barTop > 0.0 && barTop < 1.2) col *= 0.82;
-
-  // grain
-  float g = hash2(gl_FragCoord.xy + fract(uTime * 13.0) * 91.0) - 0.5;
-  col += g * 0.028;
-  gl_FragColor = vec4(col, 1.0);
+  vec3 col = field(vec2(frag.x / W, (ypx + uShift) / H), uTime, uMix);
+  float l = dot(col, vec3(0.299, 0.587, 0.114));
+  col += hl * 0.042 * (1.0 - smoothstep(0.55, 0.95, l)) * (1.0 - wedge) * (1.0 + 1.5 * uFlash);
+  col = 1.0 - (1.0 - col) * (1.0 - uFlash * vec3(0.83, 0.38, 0.25));
+  col = mix(vec3(0.592, 0.192, 0.125), col, uReveal);
+  col += (hash2(gl_FragCoord.xy + fract(uTime * 13.0) * 91.0) - 0.5) * 0.006;
+  gl_FragColor = vec4(col * cover, cover);
 }
 `;
 
 export class HeroGL {
   constructor(canvas) {
     this.canvas = canvas;
-    this.state = { mix: 0, heroBottom: 1, warp: 1, reveal: 0 };
+    this.state = { mix: 0, heroBottom: 1, shift: 0, pitch: 1400, hyp: 12, flash: 0, reveal: 0 };
     this.bars = new Float32Array(BAR_COUNT * 4);
-    const gl = canvas.getContext('webgl', { antialias: false, alpha: false, depth: false, stencil: false, powerPreference: 'high-performance' });
+    const gl = canvas.getContext('webgl', { antialias: false, alpha: true, premultipliedAlpha: true, depth: false, stencil: false, powerPreference: 'high-performance' });
     if (!gl) { this.failed = true; canvas.classList.add('is-fallback'); return; }
     this.gl = gl;
     const prog = gl.createProgram();
@@ -146,14 +140,17 @@ export class HeroGL {
     const loc = gl.getAttribLocation(prog, 'aPos');
     gl.enableVertexAttribArray(loc);
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    gl.clearColor(0, 0, 0, 0);
     const u = (n) => gl.getUniformLocation(prog, n);
     this.u = {
       res: u('uRes'), dpr: u('uDpr'), time: u('uTime'), mix: u('uMix'), heroBottom: u('uHeroBottom'),
-      warp: u('uWarp'), reveal: u('uReveal'), black: u('uBlack'), bars: u('uBars'),
+      shift: u('uShift'), pitch: u('uPitch'), hyp: u('uHyp'), flash: u('uFlash'), reveal: u('uReveal'), bars: u('uBars'),
     };
-    gl.uniform3f(this.u.black, 11 / 255, 11 / 255, 12 / 255);
     this.resize();
   }
+
+  // rib pitch at rest: 101 ribs across the viewport (13.8px at 1392px)
+  get restPitch() { return (this.w || window.innerWidth) / 101; }
 
   resize() {
     if (this.failed) return;
@@ -170,22 +167,27 @@ export class HeroGL {
   setBars(rects) {
     for (let i = 0; i < BAR_COUNT; i++) {
       const r = rects[i];
-      this.bars[i * 4] = r ? r.x : 0;
-      this.bars[i * 4 + 1] = r ? r.y : 0;
-      this.bars[i * 4 + 2] = r ? r.w : 0;
-      this.bars[i * 4 + 3] = r ? r.h : 0;
+      const on = r && r.w > 0;
+      this.bars[i * 4] = on ? r.x : 0;
+      this.bars[i * 4 + 1] = on ? r.y : 0;
+      this.bars[i * 4 + 2] = on ? r.w : 0;
+      this.bars[i * 4 + 3] = on ? r.h : 0;
     }
   }
 
   render(time) {
     if (this.failed) return;
     const { gl, u, state } = this;
+    gl.clear(gl.COLOR_BUFFER_BIT);
     gl.uniform2f(u.res, this.canvas.width / this.dpr, this.canvas.height / this.dpr);
     gl.uniform1f(u.dpr, this.dpr);
     gl.uniform1f(u.time, time);
     gl.uniform1f(u.mix, state.mix);
     gl.uniform1f(u.heroBottom, state.heroBottom * this.h);
-    gl.uniform1f(u.warp, state.warp);
+    gl.uniform1f(u.shift, state.shift);
+    gl.uniform1f(u.pitch, state.pitch);
+    gl.uniform1f(u.hyp, state.hyp);
+    gl.uniform1f(u.flash, state.flash);
     gl.uniform1f(u.reveal, state.reveal);
     gl.uniform4fv(u.bars, this.bars);
     gl.drawArrays(gl.TRIANGLES, 0, 3);

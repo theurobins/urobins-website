@@ -1,26 +1,29 @@
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { CustomEase } from 'gsap/CustomEase';
 import Lenis from 'lenis';
 import { runPreloader } from './preloader.js';
 import { HeroGL } from './hero-gl.js';
-import { funnelRects } from './funnel.js';
+import { heroFunnel } from './funnel.js';
 import { initStory } from './story.js';
 import { initMetrics } from './metrics.js';
 import { initTeam } from './team.js';
 
-gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(ScrollTrigger, CustomEase);
 // mobile toolbars resize the viewport height constantly; don't recompute every trigger for that
 ScrollTrigger.config({ ignoreMobileResize: true });
+CustomEase.create('menuOpen', '0.45,0,0.15,1');
 
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+document.documentElement.classList.add('js');
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 window.scrollTo(0, 0);
 
 // ---------- smooth scroll ----------
 let lenis = null;
 if (!reduced) {
-  // lerp smoothing: every frame eases toward the target scroll, so wheel bursts never restart an animation
-  lenis = new Lenis({ lerp: 0.085, smoothWheel: true, wheelMultiplier: 0.95, touchMultiplier: 1.4 });
+  // lerp smoothing: each frame eases toward the target scroll, with the reference's long soft tail
+  lenis = new Lenis({ lerp: 0.06, smoothWheel: true, wheelMultiplier: 0.95, touchMultiplier: 1.4 });
   lenis.on('scroll', ScrollTrigger.update);
   gsap.ticker.add((time) => lenis.raf(time * 1000));
   gsap.ticker.lagSmoothing(0);
@@ -29,31 +32,47 @@ if (!reduced) {
 const scrollY = () => (lenis ? lenis.scroll : window.scrollY);
 
 // ---------- hero + transition 1 ----------
+// 1 timeline unit = 1vh of scroll. Content and glass ride up 1:1 for 73.5vh, then hold while the
+// bottom edge rises in 0.046vh-high slots (stepping with the scroll) to a 5-slot hold, the funnel
+// narrows, and finally everything scrolls off together.
 const heroSection = document.querySelector('.hero');
 const heroContent = document.querySelector('.hero__content');
 const hero = new HeroGL(document.querySelector('.hero__gl'));
 
-const hs = { y: 0, bottom: 1, q: 0, smix: 0 };
+const hs = { y: 0, e: 0, out: 0 };
 const auto = { mix: 0 };
 const rects = [];
 let vw = window.innerWidth, vh = window.innerHeight;
+const smooth01 = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
 const applyHero = () => {
-  heroContent.style.transform = `translate3d(0, ${(hs.y * vh).toFixed(2)}px, 0)`;
-  hero.state.heroBottom = hs.bottom;
-  hero.state.mix = Math.max(auto.mix, hs.smix);
-  hero.setBars(hs.bottom < 1.02 ? funnelRects(hs.q, vw, vh, hs.bottom * vh, rects) : []);
+  const P = 0.046 * vh;
+  const shift = (-hs.y + hs.out) * vh;
+  heroContent.style.transform = `translate3d(0, ${(-shift).toFixed(2)}px, 0)`;
+  hero.state.shift = shift;
+  hero.state.mix = auto.mix;
+  let edgeY = vh, phi = 0;
+  if (hs.e > 0) {
+    const ec = vh - hs.e * vh;
+    if (ec <= 5 * P) edgeY = 5 * P;
+    else { edgeY = P * Math.floor(ec / P); phi = (edgeY + P - ec) / P; }
+  }
+  hero.state.heroBottom = (edgeY - hs.out * vh) / vh;
+  if (hs.e > 0) {
+    const D = 15.25 + 33 * (1 - smooth01(0.3, 0.8, hs.e));
+    const g = 1 - Math.pow(Math.min(1, hs.out / 0.33), 3);
+    hero.setBars(heroFunnel(edgeY, phi, D, g, hs.out * vh, vw, vh, rects));
+  } else {
+    hero.setBars([]);
+  }
 };
 
 const heroTl = gsap.timeline({ defaults: { ease: 'none' }, onUpdate: applyHero });
 heroTl
-  .to(hs, { smix: 1, duration: 34 }, 0)
-  .to(hs, { y: -0.8, duration: 40 }, 0)
-  .to(hs, { bottom: 0.26, duration: 18, ease: 'power1.inOut' }, 34)
-  .to(hs, { q: 0.15, duration: 18 }, 34)
-  .to(hs, { q: 0.55, duration: 22 }, 52)
-  .to(hs, { y: -1.2, bottom: -0.03, duration: 26, ease: 'power1.in' }, 74)
-  .to(hs, { q: 1, duration: 26 }, 74);
+  .to(hs, { y: -0.735, duration: 73.5 }, 0)
+  .to(hs, { e: 0.92, duration: 92 }, 73.5)
+  .to(hs, { out: 0.33, duration: 33 }, 165.5)
+  .set({}, {}, 200);
 
 // cached on refresh so the render loop never forces a layout read
 let heroEnd = Infinity;
@@ -66,6 +85,10 @@ ScrollTrigger.create({
   onRefresh: (self) => { heroEnd = self.end + vh; },
 });
 applyHero();
+
+// orange -> lavender: plays on its own after the intro, or as soon as the visitor scrolls
+const colorTween = gsap.to(auto, { mix: 1, duration: 2.6, ease: 'power4.out', paused: true, onUpdate: applyHero });
+const startColor = () => { if (!colorTween.isActive() && colorTween.progress() === 0) colorTween.play(); };
 
 // ---------- other stages ----------
 const story = initStory({ reduced, smooth: !!lenis });
@@ -81,15 +104,17 @@ toggle.addEventListener('click', () => {
   toggle.setAttribute('aria-expanded', String(open));
 });
 let lastY = 0;
-const onScrollNav = () => {
+const onScroll = () => {
   const y = scrollY();
+  if (y > 2) startColor();
   if (nav.classList.contains('is-open')) { lastY = y; return; }
-  if (y > 140 && y > lastY + 2) nav.classList.add('is-hidden');
-  else if (y < lastY - 2 || y <= 140) nav.classList.remove('is-hidden');
+  // the nav slides away the moment scrolling starts and returns on any upward scroll
+  if (y > 2 && y > lastY + 0.5) nav.classList.add('is-hidden');
+  else if (y <= 2 || y < lastY - 2) nav.classList.remove('is-hidden');
   lastY = y;
 };
-if (lenis) lenis.on('scroll', onScrollNav);
-else window.addEventListener('scroll', onScrollNav, { passive: true });
+if (lenis) lenis.on('scroll', onScroll);
+else window.addEventListener('scroll', onScroll, { passive: true });
 
 // ---------- anchors ----------
 const anchorY = (hash) => {
@@ -135,6 +160,7 @@ window.addEventListener('resize', () => {
   rt = setTimeout(() => {
     vw = window.innerWidth; vh = window.innerHeight;
     hero.resize();
+    if (heroLive && hero.state.hyp === 0) hero.state.pitch = hero.restPitch;
     story.resize();
     metrics.resize();
     team.resize();
@@ -146,46 +172,83 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => Scro
 
 // ---------- intro ----------
 const desktopNav = window.matchMedia('(min-width: 981px)').matches;
-const introTargets = {
-  logo: document.querySelector('.nav__logo'),
+const logo = document.querySelector('.nav__logo');
+// wrap the logo letters so they can step in one by one
+[...logo.childNodes].forEach((n) => {
+  if (n.nodeType !== 3) return;
+  const frag = document.createDocumentFragment();
+  for (const ch of n.textContent) {
+    const s = document.createElement('span');
+    s.className = 'nav__logo-ch';
+    s.textContent = ch;
+    frag.appendChild(s);
+  }
+  n.replaceWith(frag);
+});
+const T = {
+  logo,
+  logoParts: logo.querySelectorAll('.logo-u, .nav__logo-ch'),
   menu: document.querySelector('.nav__menu'),
-  menuLinks: document.querySelectorAll('.nav__menu a'),
-  right: document.querySelector('.nav__right'),
+  menuLinks: [...document.querySelectorAll('.nav__menu a')],
+  cta: document.querySelector('.nav__cta'),
+  toggle: document.querySelector('.nav__toggle'),
   words: document.querySelectorAll('.hero__title .w'),
   sub: document.querySelector('.hero__sub'),
-  cta: document.querySelector('.hero__cta'),
+  heroCta: document.querySelector('.hero__cta'),
 };
+let menuFull = 0;
 
 function heroIntro() {
   heroLive = true;
-  const t = introTargets;
-  const tl = gsap.timeline({
-    onComplete: () => {
-      if (desktopNav) gsap.set(t.menu, { clearProps: 'clipPath' });
-    },
-  });
-  tl.to(hero.state, { reveal: 1, duration: 0.8, ease: 'power2.out' }, 0)
-    .to(hero.state, { warp: 0, duration: 2.2, ease: 'power3.inOut' }, 0.1)
-    .to(t.logo, { opacity: 1, scale: 1, duration: 0.8, ease: 'power3.out' }, 0.9)
-    .to(t.right, { opacity: 1, x: 0, duration: 0.8, ease: 'power3.out' }, 1.05)
-    .to(t.words, { opacity: 1, filter: 'blur(0px)', yPercent: 0, duration: 1.2, stagger: 0.09, ease: 'power3.out' }, 1.1)
-    .to(t.sub, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 1.0, ease: 'power3.out' }, 1.6)
-    .to(t.cta, { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out' }, 1.8)
-    .add(() => {
-      document.body.classList.remove('is-loading');
-      if (lenis) lenis.start();
-    }, 1.4)
-    .to(auto, { mix: 1, duration: 7, ease: 'sine.inOut', onUpdate: applyHero }, 2.8);
   if (desktopNav) {
-    tl.fromTo(t.menu, { opacity: 1, clipPath: 'inset(0% 50% 0% 50% round 9px)' }, { clipPath: 'inset(0% 0% 0% 0% round 9px)', duration: 1.1, ease: 'power3.inOut' }, 0.95)
-      .to(t.menuLinks, { opacity: 1, y: 0, duration: 0.6, stagger: 0.07, ease: 'power2.out' }, 1.25);
+    // measure the open menu now that the fonts are in
+    const w = T.menu.style.width;
+    T.menu.style.width = 'auto';
+    menuFull = T.menu.offsetWidth;
+    T.menu.style.width = w;
   }
+  const tl = gsap.timeline();
+  // pill pop: grow straight through to a small overshoot, then settle
+  const pop = (el, at, ov, dur, origin) => {
+    tl.set(el, { scale: 0, opacity: 1, transformOrigin: origin }, at)
+      .to(el, { keyframes: [{ scale: ov, duration: dur, ease: 'none' }, { scale: 1, duration: 0.23, ease: 'sine.inOut' }] }, at);
+  };
+
+  // glass: dark red hand-off, a peach flash, then an X of ribs zooming out to straight ribs
+  tl.set(hero.state, { reveal: 0.15, pitch: 1400, hyp: 12, flash: 0 }, 0)
+    .to(hero.state, { reveal: 1, duration: 0.03, ease: 'none' }, 0.22)
+    .set(hero.state, { flash: 1 }, 0.24)
+    .to(hero.state, { flash: 0, duration: 0.5, ease: 'power3.out' }, 0.25)
+    .to(hero.state, { pitch: () => hero.restPitch, duration: 0.75, ease: 'expo.out' }, 0.17)
+    .to(hero.state, {
+      keyframes: [{ hyp: 0.64, duration: 0.15 }, { hyp: 0.08, duration: 0.18 }, { hyp: -0.12, duration: 0.22 }, { hyp: 0, duration: 0.4 }],
+      ease: 'sine.inOut',
+    }, 0.12);
+
+  pop(T.logo, 1.0, 1.08, 0.32, '8px -16px');
+  tl.to(T.logoParts, { opacity: 1, duration: 0.15, stagger: 0.07 }, 1.12);
+  if (desktopNav) {
+    pop(T.menu, 1.22, 1.06, 0.23, '50% 50%');
+    tl.to(T.menu, { width: menuFull, duration: 0.93, ease: 'menuOpen' }, 1.69)
+      .to(T.menuLinks.slice(1), { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out', stagger: 0.15 }, 1.95)
+      .add(() => gsap.set(T.menu, { clearProps: 'width,overflow,justifyContent' }), 2.7);
+  }
+  pop(T.cta, 1.35, 1.09, 0.3, '50% 50%');
+  if (!desktopNav) pop(T.toggle, 1.4, 1.08, 0.3, '50% 50%');
+
+  tl.to(T.words, { opacity: 1, filter: 'blur(0px)', y: 0, duration: 0.8, ease: 'power2.out', stagger: 0.13 }, 1.59)
+    .to(T.sub, { opacity: 1, filter: 'blur(0px)', y: 0, duration: 0.8, ease: 'power2.out' }, 2.32);
+  pop(T.heroCta, 2.72, 1.06, 0.35, '50% 50%');
+  tl.add(() => {
+    document.body.classList.remove('is-loading');
+    if (lenis) lenis.start();
+  }, 2.9)
+    .add(startColor, 4.37);
 }
 
 if (reduced) {
   heroLive = true;
-  hero.state.reveal = 1;
-  hero.state.warp = 0;
+  Object.assign(hero.state, { reveal: 1, hyp: 0, flash: 0, pitch: hero.restPitch });
   auto.mix = 1;
   applyHero();
   runPreloader({
@@ -194,15 +257,17 @@ if (reduced) {
     onDone: () => document.body.classList.remove('is-loading'),
   });
 } else {
-  const t = introTargets;
-  gsap.set(t.logo, { opacity: 0, scale: 0.7 });
-  gsap.set(t.right, { opacity: 0, x: 24 });
-  gsap.set(t.words, { opacity: 0, filter: 'blur(14px)', yPercent: 35 });
-  gsap.set(t.sub, { opacity: 0, y: 18, filter: 'blur(6px)' });
-  gsap.set(t.cta, { opacity: 0, y: 18 });
+  gsap.set([T.logo, T.cta, T.heroCta], { scale: 0 });
+  if (!desktopNav) gsap.set(T.toggle, { scale: 0 });
+  gsap.set(T.logoParts, { opacity: 0 });
+  gsap.set(T.words, { opacity: 0, filter: 'blur(8px)', y: 14 });
+  gsap.set(T.sub, { opacity: 0, filter: 'blur(4px)', y: 6 });
   if (desktopNav) {
-    gsap.set(t.menu, { clipPath: 'inset(0% 50% 0% 50% round 9px)' });
-    gsap.set(t.menuLinks, { opacity: 0, y: 6 });
+    // the menu opens from a lone "About" pill
+    gsap.set(T.menu, { xPercent: -50, x: 0, scale: 0 });
+    const aboutW = T.menuLinks[0].offsetWidth + 16;
+    gsap.set(T.menu, { width: aboutW, overflow: 'hidden', justifyContent: 'flex-start' });
+    gsap.set(T.menuLinks.slice(1), { opacity: 0, y: 6 });
   }
   runPreloader({
     el: document.getElementById('preloader'),

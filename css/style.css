@@ -8,7 +8,7 @@
   --mist: rgba(255, 255, 255, 0.55);
   --grey: #75757a;
   --line-blue: #1f7495;
-  --flash: #c8432f;
+  --flash: #97311f;
 
   --serif: "Instrument Serif", "Iowan Old Style", "Times New Roman", serif;
   --sans: "Inter Tight", "Helvetica Neue", Arial, sans-serif;
@@ -54,7 +54,7 @@ em { font-style: italic; }
   align-items: center;
   justify-content: center;
   gap: 0.55em;
-  height: 42px;
+  height: 40px;
   padding: 0 20px;
   border: 0;
   border-radius: var(--radius);
@@ -64,7 +64,7 @@ em { font-style: italic; }
   cursor: pointer;
   transition: transform 0.4s cubic-bezier(.2,.8,.2,1), background-color 0.3s, color 0.3s, box-shadow 0.3s;
 }
-.pill--white { background: var(--paper); color: var(--ink); box-shadow: 0 0 0 1px rgba(11, 11, 12, 0.06), 0 8px 24px rgba(11, 11, 12, 0.06); }
+.pill--white { background: var(--paper); color: var(--ink); }
 .pill--black { background: var(--ink); color: var(--paper); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04); }
 .arr { display: inline-block; width: 1em; height: 1em; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .pill .arr { transition: transform 0.45s cubic-bezier(.2,.8,.2,1); }
@@ -72,7 +72,7 @@ a.pill:hover { transform: translateY(-2px); }
 a.pill:hover .arr { transform: translate(2px, -2px); }
 .pill--black:hover { background: #1c1c1f; }
 
-.logo-u { display: inline-block; width: 0.84em; height: 0.92em; fill: currentColor; margin-right: 0.04em; vertical-align: -0.07em; }
+.logo-u { display: inline-block; width: 0.78em; height: 0.78em; fill: currentColor; margin-right: 0.06em; vertical-align: -0.02em; }
 
 /* ---------- Preloader ---------- */
 .preloader {
@@ -137,22 +137,23 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
 /* ---------- Nav ---------- */
 .nav {
   position: fixed;
-  top: calc(16px + env(safe-area-inset-top, 0px));
+  top: calc(18px + env(safe-area-inset-top, 0px));
   left: 0;
   right: 0;
   z-index: 60;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 calc(var(--gutter) * 0.62);
-  padding-left: max(16px, calc(var(--gutter) * 0.62), env(safe-area-inset-left, 0px));
-  padding-right: max(16px, calc(var(--gutter) * 0.62), env(safe-area-inset-right, 0px));
+  padding-left: max(16px, 2vw, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, 2vw, env(safe-area-inset-right, 0px));
   pointer-events: none;
-  transition: transform 0.6s cubic-bezier(.2,.8,.2,1), opacity 0.4s;
+  /* returning: a soft ease-out */
+  transition: transform 0.5s cubic-bezier(.2,.8,.2,1);
 }
 .nav > * { pointer-events: auto; }
-.nav.is-hidden { transform: translateY(-140%); opacity: 0; }
-.nav__logo { font: 600 21px/1 var(--sans); letter-spacing: -0.035em; padding: 0 16px; height: 42px; }
+/* leaving: a quick accelerating slide straight up, fully opaque */
+.nav.is-hidden { transform: translateY(calc(-100% - 20px)); transition: transform 0.24s cubic-bezier(0.55, 0, 1, 0.45); }
+.nav__logo { font: 600 26px/1 var(--sans); letter-spacing: -0.03em; padding: 0 15px; height: 40px; gap: 0; }
 .nav__menu {
   position: absolute;
   left: 50%;
@@ -161,6 +162,8 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
   padding: 0 8px;
 }
 .nav__menu a {
+  flex: none;
+  white-space: nowrap;
   padding: 8px 12px;
   border-radius: 6px;
   font: 500 14px/1 var(--sans);
@@ -171,15 +174,22 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
 .nav__toggle { display: none; }
 
 /* ---------- Hero ---------- */
-.hero { position: relative; height: 300vh; background: var(--ink); }
+.hero {
+  position: relative;
+  z-index: 2;
+  height: 300vh;
+  /* the About stage pins underneath from 73.5vh of scroll and shows through below the glass */
+  margin-bottom: -226.5vh;
+  pointer-events: none;
+}
 .hero__pin { position: sticky; top: 0; height: 100vh; overflow: hidden; }
+.hero__content { pointer-events: auto; }
 .hero__gl {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   display: block;
-  background: var(--flash);
 }
 .hero__gl.is-fallback {
   background:
@@ -199,22 +209,22 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
 }
 .hero__content { display: flex; flex-direction: column; align-items: center; text-align: center; color: var(--ink); }
 .hero__title {
-  font: 400 clamp(46px, 6.5vw, 132px)/0.9 var(--serif);
+  font: 400 clamp(46px, 7.4vw, 150px)/0.91 var(--serif);
   letter-spacing: -0.012em;
 }
 .hero__line { display: block; white-space: nowrap; }
 .hero__title .w { display: inline-block; }
 .hero__sub {
-  max-width: 27.5em;
-  margin-top: clamp(14px, 1.6vw, 26px);
-  font: 400 15px/1.32 var(--sans);
+  max-width: 370px;
+  margin-top: 18px;
+  font: 400 13.5px/1.3 var(--sans);
   color: #121214;
   text-wrap: balance;
 }
-.hero__cta { margin-top: clamp(18px, 2.2vw, 30px); }
+.hero__cta { margin-top: 24px; }
 
 /* ---------- About + Services stage ---------- */
-.story { position: relative; height: 980vh; background: var(--ink); }
+.story { position: relative; height: 1096vh; background: var(--ink); }
 .story__pin { position: sticky; top: 0; height: 100vh; overflow: hidden; }
 
 .about { position: absolute; inset: 0; color: var(--paper); will-change: transform; }
@@ -259,6 +269,12 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
 .aline--mid { gap: 0; }
 .about__title .word { display: inline-block; white-space: nowrap; transform-style: preserve-3d; }
 .about__title .ch { display: inline-block; will-change: transform, opacity; }
+/* With JS running, the About letters and grid rest hidden: the stage is visible under the hero's
+   funnel before its timeline reaches them (ScrollTrigger reverts untouched tweens to this state). */
+.js .about__title .ch,
+.js .about__grid .eyebrow,
+.js .about__grid .founder,
+.js .about__copy p { opacity: 0; }
 .about__video {
   position: relative;
   display: inline-block;
