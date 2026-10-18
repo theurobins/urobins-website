@@ -29,10 +29,10 @@ video and fonts behave like production. Use `npm run watch` while editing `src/`
 | `src/hero-gl.js` | WebGL ribbed-glass gradient (orange to lavender) that also paints the stepped funnel bars of transition 1 |
 | `src/funnel.js` | Shared geometry for both stepped-bar transitions |
 | `src/story.js` | About + Services sticky stage: 3D letter assembly, line draw, video pill split, portal into Services, curved card carousel |
-| `src/sculpture.js` | Three.js toon-shaded props (orbit rings, laptop, phone, gear, papers…) drifting behind the service cards; built as its own bundle |
+| `src/sculpture.js` | Three.js cel-shaded cobalt props (orbit rings, laptop, phone, gear, papers…) and white flakes for the Services stage. Two canvases share one scene: props near the camera draw above the cards. Built as its own bundle |
 | `src/metrics.js` | `$11.2 Billion` counter and the striped bar charts |
 | `src/team.js` | Transition 2 (black bars into white) and team reveal/counters |
-| `assets/` | Team portraits, founder avatar, About video loop (MP4 + WebM) and poster |
+| `assets/` | Team portraits, founder avatar, About video loop (MP4 + WebM) and poster, Services dust texture |
 
 ## Scroll lengths
 

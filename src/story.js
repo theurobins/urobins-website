@@ -1,8 +1,9 @@
 // About + Services: one sticky stage driven by a single scrubbed timeline.
-// Timeline units are "vh of scroll" inside the stage (the stage is 980vh tall,
-// so 880 units of sticky travel).
+// Timeline units are "vh of scroll" inside the stage (the stage is 1096vh tall, so 996 units of
+// sticky travel: LEAD idle units under the hero funnel, then 880 of About + Services).
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { CustomEase } from 'gsap/CustomEase';
 import { vp } from './viewport.js';
 
 // The stage pins under the hero from 73.5vh of scroll, so it idles for LEAD units while the
@@ -27,14 +28,19 @@ function loadSculpture() {
 const TOTAL = 880 + LEAD;
 export const STORY_MARKS = { about: 125 + LEAD, services: 350 + LEAD };
 
-// card path keyframes at u = -1 .. 4 (x: vw, y: vh, z: px, ry/rz: deg)
+// card path keyframes at u = -1 .. 7 (x: vw, y: vh, z: px, ry/rz: deg; perspective 1400px from the
+// viewport centre). Cards come in from the bottom-right, sit at the centre (u = 1), recede up the
+// left edge, then turn past edge-on and drift back across the top-left mirrored.
 const PATH = [
-  { x: 72, y: 58, z: -240, ry: 42, rz: -5, s: 0.9, o: 0 },
-  { x: 35, y: 29, z: -60, ry: 24, rz: -3, s: 0.95, o: 1 },
-  { x: 3, y: 11, z: 60, ry: 0, rz: 0, s: 1, o: 1 },
-  { x: -30, y: -6, z: -140, ry: -30, rz: 1.5, s: 0.92, o: 1 },
-  { x: -50, y: -21, z: -380, ry: -96, rz: 3, s: 0.86, o: 0.8 },
-  { x: -64, y: -33, z: -640, ry: -150, rz: 4, s: 0.8, o: 0 },
+  { x: 63.2, y: 61.4, z: 0, ry: 40, rz: -2, s: 0.95, o: 1 },
+  { x: 32.4, y: 41.6, z: 0, ry: 34, rz: -1, s: 0.96, o: 1 },
+  { x: 1.8, y: 21.9, z: 0, ry: 0, rz: 0, s: 1, o: 1 },
+  { x: -30.2, y: 0, z: 0, ry: -36, rz: 0.5, s: 0.97, o: 1 },
+  { x: -71.4, y: -25.2, z: -787, ry: -75, rz: 1, s: 1, o: 1 },
+  { x: -92.8, y: -61.6, z: -1400, ry: -100, rz: 1, s: 1, o: 1 },
+  { x: -90, y: -88.6, z: -1933, ry: -150, rz: 0, s: 1, o: 0.95 },
+  { x: -58.5, y: -99.6, z: -1856, ry: -175, rz: 0, s: 1, o: 0.9 },
+  { x: -25, y: -110, z: -1900, ry: -185, rz: 0, s: 1, o: 0 },
 ];
 const KEYS = Object.keys(PATH[0]);
 
@@ -123,51 +129,84 @@ export function initStory({ reduced, smooth }) {
   };
   sizePill();
 
-  const portal = { fade: 0, t: 0 };
+  // the teal stage first wipes across the open pill (left to right), then the rect grows to full
+  // screen with everything inside it scaling up from 0.3 + 0.7 * (rect width / stage width)
+  const portal = { wipe: 0, t: 0 };
   const deck = { c: 0 };
   let sculpture = null;
+  const inner = services.querySelector('.services__inner');
+  const PILL_R = 2;
 
   // pill position inside the stage, measured on refresh (the stage is sticky, so it never moves while stuck)
   let pillBox = null;
+  let pinW = 1;
   const measurePill = () => {
     const r = pill.getBoundingClientRect();
     const s = pin.getBoundingClientRect();
     // remove the current glide offset so the box is the pill's resting position
     const sh = shiftPx();
+    pinW = s.width || 1;
     pillBox = { top: r.top - s.top - sh, left: r.left - s.left, right: s.right - r.right, bottom: s.bottom - r.bottom + sh };
   };
-  let covered = false;
+  let covered = false, growing = false, masked = false;
+  const setMask = (m) => { services.style.webkitMaskImage = m; services.style.maskImage = m; };
   const applyPortal = () => {
-    // fully open: drop the clip and opacity (no extra render surface) and stop painting About underneath
-    const full = portal.t >= 0.999 && portal.fade >= 0.999;
+    // fully open: drop the clip (no extra render surface) and stop painting About underneath
+    const full = portal.t >= 0.999 && portal.wipe >= 0.999;
     if (full !== covered) { covered = full; aboutLayer.classList.toggle('is-covered', full); }
-    if (portal.fade <= 0.001) {
+    if (portal.wipe <= 0.001) {
       services.classList.remove('is-open');
       return;
     }
     services.classList.add('is-open');
     if (!pillBox) measurePill();
+    const k = portal.t;
+    // the content layer only holds a composited layer while it is actually scaling
+    const g = k > 0.001 && k < 0.999;
+    if (g !== growing) { growing = g; inner.classList.toggle('is-growing', g); }
     if (full) {
       services.style.clipPath = 'none';
-      services.style.opacity = '';
+      inner.style.transform = '';
       return;
     }
-    const k = portal.t;
+    const pw = pinW - pillBox.left - pillBox.right;
     const top = pillBox.top * (1 - k);
     const left = pillBox.left * (1 - k);
-    const right = pillBox.right * (1 - k);
+    const right = pillBox.right * (1 - k) + (1 - portal.wipe) * pw;
     const bottom = pillBox.bottom * (1 - k);
-    services.style.clipPath = `inset(${top.toFixed(1)}px ${right.toFixed(1)}px ${bottom.toFixed(1)}px ${left.toFixed(1)}px)`;
-    services.style.opacity = portal.fade;
+    services.style.clipPath =
+      `inset(${top.toFixed(1)}px ${right.toFixed(1)}px ${bottom.toFixed(1)}px ${left.toFixed(1)}px round ${(PILL_R * (1 - k)).toFixed(2)}px)`;
+    // soft leading edge while the wipe crosses the pill
+    if (portal.wipe < 0.999) {
+      const x = pillBox.left + portal.wipe * pw;
+      setMask(`linear-gradient(90deg, #000 ${(x - 26).toFixed(1)}px, transparent ${x.toFixed(1)}px)`);
+      masked = true;
+    } else if (masked) {
+      setMask('');
+      masked = false;
+    }
+    const rectW = pinW - (pillBox.left + pillBox.right) * (1 - k);
+    inner.style.transform = `scale(${(0.3 + 0.7 * (rectW / pinW)).toFixed(4)})`;
+  };
+
+  // titles stay on one line: if any is too long for its card, all of them step down to the same size
+  const cardTitles = cards.map((c) => c.querySelector('.svc-card__title'));
+  const fitTitles = () => {
+    cardTitles.forEach((t) => { t.style.fontSize = ''; });
+    let k = 1;
+    cardTitles.forEach((t) => { if (t.scrollWidth > t.clientWidth) k = Math.min(k, t.clientWidth / t.scrollWidth); });
+    if (k >= 1) return;
+    const size = Math.floor(parseFloat(getComputedStyle(cardTitles[0]).fontSize) * k * 10) / 10;
+    cardTitles.forEach((t) => { t.style.fontSize = `${size}px`; });
   };
 
   const pt = {};
   const layoutCards = () => {
     const narrow = window.innerWidth < 760;
-    const n = cards.length;
     cards.forEach((card, i) => {
-      const u = 0.25 + deck.c * (n - 1 + 1.45) - i;
-      const on = u >= -1 && u <= 4;
+      // 110 scroll units per slot; card 0 reaches the centre as the portal finishes opening
+      const u = -0.05 + deck.c * 5.35 - i;
+      const on = u >= -1 && u <= 7;
       if (card._on !== on) {
         card._on = on;
         card.style.visibility = on ? 'visible' : 'hidden';
@@ -178,8 +217,8 @@ export function initStory({ reduced, smooth }) {
       const x = narrow ? pt.x * 0.55 : pt.x;
       const y = narrow ? pt.y * 1.05 : pt.y;
       card.style.opacity = Math.max(0, Math.min(1, pt.o)).toFixed(3);
-      card.style.transform =
-        `translate(-50%, -50%) translate3d(${x}vw, ${y}vh, ${pt.z}px) rotateY(${pt.ry}deg) rotateZ(${pt.rz}deg) scale(${pt.s})`;
+      card.style.transform = `translate(-50%, -50%) translate3d(${x.toFixed(2)}vw, ${y.toFixed(2)}vh, ${pt.z.toFixed(1)}px) ` +
+        `rotateY(${pt.ry.toFixed(2)}deg) rotateZ(${pt.rz.toFixed(2)}deg) scale(${pt.s.toFixed(4)})`;
     });
     if (sculpture) sculpture.setProgress(deck.c);
   };
@@ -217,12 +256,14 @@ export function initStory({ reduced, smooth }) {
   tl.to(pillOpen, { k: 1, duration: 82, ease: 'power2.inOut', onUpdate: applyPill }, 104);
 
   // the video pill turns into the services stage, then opens to full screen
-  tl.to(portal, { fade: 1, duration: 26, onUpdate: applyPortal }, 214);
-  tl.to(portal, { t: 1, duration: 104, ease: 'power3.inOut', onUpdate: applyPortal }, 236);
-  tl.fromTo(svcTitle, { opacity: 0.25, y: 40 }, { opacity: 1, y: 0, duration: 80, ease: 'power2.out' }, 262);
-  tl.to(deck, { c: 1, duration: 520, onUpdate: layoutCards }, 300);
+  const portalEase = CustomEase.create('svcPortal', '0.35,0.05,0.1,0.95');
+  tl.to(portal, { wipe: 1, duration: 13, onUpdate: applyPortal }, 213);
+  tl.to(portal, { t: 1, duration: 111, ease: portalEase, onUpdate: applyPortal }, 236);
+  tl.fromTo(svcTitle, { opacity: 0 }, { opacity: 1, duration: 52, ease: 'power1.out' }, 256);
+  tl.to(deck, { c: 1, duration: 590, onUpdate: layoutCards }, 236);
+  // quick fade to black, then a black hold before Metrics
   const tail = { f: 0 };
-  tl.to(tail, { f: 1, duration: 54, onUpdate: () => { fade.style.opacity = tail.f; } }, 826);
+  tl.to(tail, { f: 1, duration: 26, ease: 'power2.out', onUpdate: () => { fade.style.opacity = tail.f; } }, 826);
   tl.set({}, {}, TOTAL - LEAD);
   master.add(tl, LEAD);
 
@@ -234,7 +275,7 @@ export function initStory({ reduced, smooth }) {
     // Lenis already smooths the scroll; a second scrub lag on top reads as rubber-banding
     scrub: smooth || reduced ? true : 0.5,
     invalidateOnRefresh: true,
-    onRefreshInit: sizePill,
+    onRefreshInit: () => { sizePill(); fitTitles(); },
     // measure once layout has settled, never in the middle of a scrub
     onRefresh: () => { measurePill(); applyLift(); applyPill(); applyPortal(); layoutCards(); },
   });
@@ -258,7 +299,7 @@ export function initStory({ reduced, smooth }) {
   const warm = () => {
     if (!warming) {
       warming = loadSculpture().then(({ Sculpture }) => {
-        sculpture = new Sculpture(services.querySelector('.services__gl'));
+        sculpture = new Sculpture(services.querySelector('.services__gl'), services.querySelector('.services__gl--front'));
         sculpture.setProgress(deck.c);
         return sculpture.warm();
       }).catch((e) => console.warn('[services] 3D scene unavailable', e));
@@ -270,6 +311,7 @@ export function initStory({ reduced, smooth }) {
   // the About smoke loop only runs while the stage is on screen
   ScrollTrigger.create({ trigger: section, start: 'top bottom', end: 'bottom top', toggleClass: { targets: section, className: 'is-live' } });
 
+  fitTitles();
   applyPill();
   applyLift();
   measurePill();
@@ -293,7 +335,7 @@ export function initStory({ reduced, smooth }) {
     tick(time, scrollY) {
       if (!sculpture) return;
       // nothing to draw before the portal opens or once the black fade has covered the stage
-      sculpture.visible = portal.fade > 0.01 && tail.f < 0.995 && scrollY > st.start - vp.h && scrollY <= st.end;
+      sculpture.visible = portal.wipe > 0.01 && tail.f < 0.995 && scrollY > st.start - vp.h && scrollY <= st.end;
       sculpture.render(time);
     },
   };
