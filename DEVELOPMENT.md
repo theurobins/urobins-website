@@ -1,19 +1,21 @@
 # Development
 
 Scroll-driven agency site built with GSAP + ScrollTrigger, Lenis smooth scrolling, and Three.js.
-Everything is bundled locally into `js/app.js`, so the site has no runtime CDN dependencies
-(fonts load from Google Fonts).
+Everything is bundled locally, so the site has no runtime CDN dependencies (fonts load from
+Google Fonts). There are two bundles: `js/app.js` (site code, GSAP, Lenis) loads with the page,
+and `js/sculpture.js` (Three.js and the Services scene) is fetched in idle time after the intro.
 
 ## Run it
 
 ```bash
 npm install        # once
-npm run build      # bundles src/ -> js/app.js
+npm run build      # bundles src/ -> js/app.js + js/sculpture.js
 npm run serve      # http://localhost:8080
 ```
 
 Opening `index.html` directly from disk also works, but a local server is recommended so the
-video and fonts behave like production. Use `npm run watch` while editing `src/`.
+video and fonts behave like production. Use `npm run watch` while editing `src/` (it rebuilds
+`js/app.js`; run `npm run build:3d` after editing `src/sculpture.js`).
 
 ## Structure
 
@@ -21,12 +23,13 @@ video and fonts behave like production. Use `npm run watch` while editing `src/`
 | --- | --- |
 | `index.html` | All markup and copy |
 | `css/style.css` | Design tokens, layout, responsive rules |
-| `src/main.js` | Lenis + ScrollTrigger setup, hero stage, nav, anchors, intro |
+| `src/main.js` | Lenis + ScrollTrigger setup, hero stage, nav, anchors, intro, render loop |
+| `src/viewport.js` | Cached CSS viewport size (what `100vh` resolves to), so phone toolbars can't shift the scroll maths |
 | `src/preloader.js` | Canvas preloader (spotlights, desk figure, silhouettes, 1% to 99% counter, zoom hand-off) |
 | `src/hero-gl.js` | WebGL ribbed-glass gradient (orange to lavender) that also paints the stepped funnel bars of transition 1 |
 | `src/funnel.js` | Shared geometry for both stepped-bar transitions |
 | `src/story.js` | About + Services sticky stage: 3D letter assembly, line draw, video pill split, portal into Services, curved card carousel |
-| `src/sculpture.js` | Three.js metallic sculpture, panels and specks behind the service cards |
+| `src/sculpture.js` | Three.js toon-shaded props (orbit rings, laptop, phone, gear, papers…) drifting behind the service cards; built as its own bundle |
 | `src/metrics.js` | `$11.2 Billion` counter and the striped bar charts |
 | `src/team.js` | Transition 2 (black bars into white) and team reveal/counters |
 | `assets/` | Team portraits, founder avatar, About video loop (MP4 + WebM) and poster |
@@ -35,21 +38,39 @@ video and fonts behave like production. Use `npm run watch` while editing `src/`
 
 Each stage is a tall section with a `position: sticky` inner frame; its timeline is scrubbed by scroll.
 
-- Hero + transition 1: `.hero { height: 300vh }` (timeline in `main.js`)
-- About + Services: `.story { height: 980vh }`; timeline units in `story.js` are vh of scroll
-  (`STORY_MARKS` sets where the About/Services nav links land)
-- Transition 2: `.team__shift { height: 170vh }`
+- Hero + transition 1: `.hero { height: 300vh; margin-bottom: -226.5vh }`. The hero overlaps the
+  About stage, which pins underneath it from 73.5vh of scroll, so the stepped funnel opens straight
+  onto About. Timeline in `main.js` (1 unit = 1vh).
+- About + Services: `.story { height: 1096vh }`; timeline units in `story.js` are vh of scroll.
+  The first `LEAD` (116) units idle while the hero funnel plays over the stage; `STORY_MARKS` sets
+  where the About/Services nav links land.
+- Metrics: `.metrics { height: 190vh }` with a sticky frame; the bars play once as it settles.
+- Transition 2 + Team: `.team { height: 280vh }` with a sticky frame (funnel, then title and cards).
+- Below 981px wide, Metrics and Team scroll normally (no sticky frame).
 
 ## Replacing placeholder content
 
-- **Team photos:** replace `assets/team/team-1.jpg` … `team-4.jpg` (4:5 crops work best; cards
-  show a square crop centred slightly high) and `assets/team/founder.jpg` (square).
+- **Team photos:** replace `assets/team/team-1.jpg` … `team-4.jpg` (4:5 crops work best; the 1st
+  and 3rd cards show a square crop, the 2nd and 4th a 313:400 crop, both centred slightly high)
+  and `assets/team/founder.jpg` (square).
   The current images are rendered placeholders shot "through reeded glass".
 - **Names, roles, counters:** in `index.html` under `.team__grid` and `.founder`.
   Counter targets are the `data-count` attributes.
 - **About video:** replace `assets/video/about-loop.mp4` / `.webm` and `about-poster.jpg`.
 - **Contact details:** the footer's `.contact__list` in `index.html` (general, support, phone/WhatsApp).
 - **Metrics:** values and bar heights live on each `.stat` (`data-count`, `--h` from 0 to 1).
+
+## Keeping it smooth
+
+- Only `transform`, `opacity` and `clip-path` change while scrolling; nothing reads layout per frame
+  (sizes are measured on refresh/resize and cached).
+- Lenis drives the scroll (`lerp: 0.06`) from GSAP's ticker; every ScrollTrigger scrubs with
+  `scrub: true`, so there is one smoothing stage, not two.
+- WebGL canvases only render while they can be seen: the hero stops once its funnel has collapsed,
+  and the Services scene stops before the portal opens and under the closing black fade.
+- Counters are locked to their final width (the serif's digits are proportional), so the text
+  beside them never shifts.
+- Blur-in reveals clear their `filter` when they finish.
 
 ## Accessibility and motion
 

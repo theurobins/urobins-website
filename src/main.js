@@ -8,10 +8,12 @@ import { heroFunnel } from './funnel.js';
 import { initStory } from './story.js';
 import { initMetrics } from './metrics.js';
 import { initTeam } from './team.js';
+import { vp, measureViewport } from './viewport.js';
 
 gsap.registerPlugin(ScrollTrigger, CustomEase);
-// mobile toolbars resize the viewport height constantly; don't recompute every trigger for that
-ScrollTrigger.config({ ignoreMobileResize: true });
+// mobile toolbars resize the viewport height constantly; don't recompute every trigger for that.
+// Window resizes go through the debounced handler below (canvases first, then one refresh).
+ScrollTrigger.config({ ignoreMobileResize: true, autoRefreshEvents: 'visibilitychange,DOMContentLoaded,load' });
 CustomEase.create('menuOpen', '0.45,0,0.15,1');
 
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -23,7 +25,8 @@ window.scrollTo(0, 0);
 let lenis = null;
 if (!reduced) {
   // lerp smoothing: each frame eases toward the target scroll, with the reference's long soft tail
-  lenis = new Lenis({ lerp: 0.06, smoothWheel: true, wheelMultiplier: 0.95, touchMultiplier: 1.4 });
+  // touch keeps native momentum scrolling
+  lenis = new Lenis({ lerp: 0.06, smoothWheel: true, wheelMultiplier: 0.95 });
   lenis.on('scroll', ScrollTrigger.update);
   gsap.ticker.add((time) => lenis.raf(time * 1000));
   gsap.ticker.lagSmoothing(0);
@@ -38,11 +41,12 @@ const scrollY = () => (lenis ? lenis.scroll : window.scrollY);
 const heroSection = document.querySelector('.hero');
 const heroContent = document.querySelector('.hero__content');
 const hero = new HeroGL(document.querySelector('.hero__gl'));
+hero.render(0); // first draw (program link, buffers) while the preloader still covers it
 
 const hs = { y: 0, e: 0, out: 0 };
 const auto = { mix: 0 };
 const rects = [];
-let vw = window.innerWidth, vh = window.innerHeight;
+let vw = vp.w, vh = vp.h;
 const smooth01 = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
 const applyHero = () => {
@@ -82,7 +86,7 @@ ScrollTrigger.create({
   end: 'bottom bottom',
   animation: heroTl,
   scrub: true,
-  onRefresh: (self) => { heroEnd = self.end + vh; },
+  onRefresh: (self) => { heroEnd = self.end; },
 });
 applyHero();
 
@@ -144,9 +148,14 @@ document.addEventListener('click', (e) => {
 
 // ---------- render loop ----------
 let heroLive = false; // the preloader covers the hero until it hands over
+let heroFinal = false;
 gsap.ticker.add((time) => {
   const y = scrollY();
-  if (heroLive && y < heroEnd) hero.render(time);
+  if (heroLive) {
+    // once the funnel has fully collapsed the canvas is empty: draw that frame once, then idle
+    if (y < heroEnd && heroTl.progress() < 1) { hero.render(time); heroFinal = false; }
+    else if (!heroFinal) { hero.render(time); heroFinal = true; }
+  }
   story.tick(time, y);
 });
 
@@ -158,7 +167,8 @@ window.addEventListener('resize', () => {
   if (coarse && window.innerWidth === vw) return;
   clearTimeout(rt);
   rt = setTimeout(() => {
-    vw = window.innerWidth; vh = window.innerHeight;
+    measureViewport();
+    vw = vp.w; vh = vp.h;
     hero.resize();
     if (heroLive && hero.state.hyp === 0) hero.state.pitch = hero.restPitch;
     story.resize();
@@ -199,7 +209,6 @@ const T = {
 let menuFull = 0;
 
 function heroIntro() {
-  heroLive = true;
   if (desktopNav) {
     // measure the open menu now that the fonts are in
     const w = T.menu.style.width;
@@ -208,6 +217,8 @@ function heroIntro() {
     T.menu.style.width = w;
   }
   const tl = gsap.timeline();
+  // the glass starts drawing just before the preloader's red field fades off it
+  tl.add(() => { heroLive = true; }, 0.08);
   // pill pop: grow straight through to a small overshoot, then settle
   const pop = (el, at, ov, dur, origin) => {
     tl.set(el, { scale: 0, opacity: 1, transformOrigin: origin }, at)
@@ -215,7 +226,9 @@ function heroIntro() {
   };
 
   // glass: dark red hand-off, a peach flash, then an X of ribs zooming out to straight ribs
-  tl.set(hero.state, { reveal: 0.15, pitch: 1400, hyp: 12, flash: 0 }, 0)
+  // (the preloader's red field ends on the same #97311f the glass starts from, then fades off it)
+  tl.set(hero.state, { reveal: 0, pitch: 1400, hyp: 12, flash: 0 }, 0)
+    .to(hero.state, { reveal: 0.5, duration: 0.07, ease: 'none' }, 0.12)
     .to(hero.state, { reveal: 1, duration: 0.03, ease: 'none' }, 0.22)
     .set(hero.state, { flash: 1 }, 0.24)
     .to(hero.state, { flash: 0, duration: 0.5, ease: 'power3.out' }, 0.25)
@@ -236,14 +249,20 @@ function heroIntro() {
   pop(T.cta, 1.35, 1.09, 0.3, '50% 50%');
   if (!desktopNav) pop(T.toggle, 1.4, 1.08, 0.3, '50% 50%');
 
-  tl.to(T.words, { opacity: 1, filter: 'blur(0px)', y: 0, duration: 0.8, ease: 'power2.out', stagger: 0.13 }, 1.59)
-    .to(T.sub, { opacity: 1, filter: 'blur(0px)', y: 0, duration: 0.8, ease: 'power2.out' }, 2.32);
+  // blur-ins drop their filter when done so the text goes back to plain, crisp layers
+  tl.to(T.words, { opacity: 1, filter: 'blur(0px)', y: 0, duration: 0.8, ease: 'power2.out', stagger: 0.13, clearProps: 'filter,willChange' }, 1.59)
+    .to(T.sub, { opacity: 1, filter: 'blur(0px)', y: 0, duration: 0.8, ease: 'power2.out', clearProps: 'filter,willChange' }, 2.32);
   pop(T.heroCta, 2.72, 1.06, 0.35, '50% 50%');
   tl.add(() => {
     document.body.classList.remove('is-loading');
     if (lenis) lenis.start();
   }, 2.9)
-    .add(startColor, 4.37);
+    .add(startColor, 4.37)
+    // build and compile the Services 3D scene while the visitor is still reading the hero
+    .add(() => {
+      const idle = window.requestIdleCallback || ((f) => setTimeout(f, 200));
+      idle(() => story.warm(), { timeout: 2500 });
+    }, 3.2);
 }
 
 if (reduced) {
@@ -260,8 +279,8 @@ if (reduced) {
   gsap.set([T.logo, T.cta, T.heroCta], { scale: 0 });
   if (!desktopNav) gsap.set(T.toggle, { scale: 0 });
   gsap.set(T.logoParts, { opacity: 0 });
-  gsap.set(T.words, { opacity: 0, filter: 'blur(8px)', y: 14 });
-  gsap.set(T.sub, { opacity: 0, filter: 'blur(4px)', y: 6 });
+  gsap.set(T.words, { opacity: 0, filter: 'blur(8px)', y: 14, willChange: 'filter, transform, opacity' });
+  gsap.set(T.sub, { opacity: 0, filter: 'blur(4px)', y: 6, willChange: 'filter, transform, opacity' });
   if (desktopNav) {
     // the menu opens from a lone "About" pill
     gsap.set(T.menu, { xPercent: -50, x: 0, scale: 0 });

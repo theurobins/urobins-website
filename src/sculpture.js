@@ -85,6 +85,8 @@ export class Sculpture {
       return;
     }
     const r = this.renderer;
+    // don't stall the main thread on a synchronous link-status check for every program
+    r.debug.checkShaderErrors = false;
     r.setClearColor(0x000000, 0);
     r.outputColorSpace = SRGBColorSpace;
 
@@ -228,6 +230,24 @@ export class Sculpture {
   }
 
   setProgress(p) { this.progress = p; }
+
+  // upload textures and compile every program off the scroll path (parallel compile where supported),
+  // then draw one hidden frame so the first visible one costs no more than any other
+  warm() {
+    if (this.failed) return Promise.resolve();
+    const { renderer, scene, camera, props } = this;
+    scene.traverse((o) => {
+      const m = o.material;
+      if (m && m.map) renderer.initTexture(m.map);
+      if (m && m.gradientMap) renderer.initTexture(m.gradientMap);
+    });
+    props.forEach((p) => { p.obj.visible = true; });
+    const done = () => {
+      renderer.render(scene, camera);
+      props.forEach((p) => { p.obj.visible = false; });
+    };
+    return renderer.compileAsync(scene, camera).then(done, done);
+  }
 
   render(time) {
     if (this.failed || !this.visible) return;

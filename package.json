@@ -4,7 +4,9 @@
   "private": true,
   "description": "Urobins agency website: scroll-driven, GSAP + Lenis + Three.js",
   "scripts": {
-    "build": "esbuild src/main.js --bundle --minify --format=iife --target=es2019 --outfile=js/app.js",
+    "build": "npm run build:app && npm run build:3d",
+    "build:app": "esbuild src/main.js --bundle --minify --format=iife --target=es2019 --outfile=js/app.js",
+    "build:3d": "esbuild src/sculpture.js --bundle --minify --format=iife --global-name=UrobinsSculpture --target=es2019 --outfile=js/sculpture.js",
     "watch": "esbuild src/main.js --bundle --format=iife --target=es2019 --outfile=js/app.js --watch",
     "serve": "npx http-server . -p 8080 -c-1"
   },

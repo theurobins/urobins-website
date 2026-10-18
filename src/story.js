@@ -3,11 +3,27 @@
 // so 880 units of sticky travel).
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { Sculpture } from './sculpture.js';
+import { vp } from './viewport.js';
 
 // The stage pins under the hero from 73.5vh of scroll, so it idles for LEAD units while the
 // hero's funnel plays over it; the blue line starts as the last bars collapse.
 const LEAD = 116;
+
+// three.js and the Services scene ship as a separate script (js/sculpture.js), fetched after the
+// intro so the first paint only has to parse the small main bundle
+const here = document.currentScript && document.currentScript.src;
+const SCULPTURE_SRC = here ? new URL('sculpture.js', here).href : 'js/sculpture.js';
+function loadSculpture() {
+  if (window.UrobinsSculpture) return Promise.resolve(window.UrobinsSculpture);
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = SCULPTURE_SRC;
+    s.async = true;
+    s.onload = () => (window.UrobinsSculpture ? resolve(window.UrobinsSculpture) : reject(new Error('sculpture missing')));
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
 const TOTAL = 880 + LEAD;
 export const STORY_MARKS = { about: 125 + LEAD, services: 350 + LEAD };
 
@@ -69,7 +85,7 @@ export function initStory({ reduced, smooth }) {
   // the About block assembles 24.3vh lower, then glides up into place while the pill opens
   const LIFT = 0.243;
   const lift = { k: 0 };
-  const shiftPx = () => (1 - lift.k) * LIFT * window.innerHeight;
+  const shiftPx = () => (1 - lift.k) * LIFT * vp.h;
   const applyLift = () => { aboutLayer.style.transform = `translate3d(0, ${shiftPx().toFixed(2)}px, 0)`; };
 
   // ---- letters: each line starts scattered on its own arc in depth ----
@@ -120,13 +136,22 @@ export function initStory({ reduced, smooth }) {
     const sh = shiftPx();
     pillBox = { top: r.top - s.top - sh, left: r.left - s.left, right: s.right - r.right, bottom: s.bottom - r.bottom + sh };
   };
+  let covered = false;
   const applyPortal = () => {
+    // fully open: drop the clip and opacity (no extra render surface) and stop painting About underneath
+    const full = portal.t >= 0.999 && portal.fade >= 0.999;
+    if (full !== covered) { covered = full; aboutLayer.classList.toggle('is-covered', full); }
     if (portal.fade <= 0.001) {
       services.classList.remove('is-open');
       return;
     }
     services.classList.add('is-open');
     if (!pillBox) measurePill();
+    if (full) {
+      services.style.clipPath = 'none';
+      services.style.opacity = '';
+      return;
+    }
     const k = portal.t;
     const top = pillBox.top * (1 - k);
     const left = pillBox.left * (1 - k);
@@ -196,7 +221,8 @@ export function initStory({ reduced, smooth }) {
   tl.to(portal, { t: 1, duration: 104, ease: 'power3.inOut', onUpdate: applyPortal }, 236);
   tl.fromTo(svcTitle, { opacity: 0.25, y: 40 }, { opacity: 1, y: 0, duration: 80, ease: 'power2.out' }, 262);
   tl.to(deck, { c: 1, duration: 520, onUpdate: layoutCards }, 300);
-  tl.to(fade, { opacity: 1, duration: 54 }, 826);
+  const tail = { f: 0 };
+  tl.to(tail, { f: 1, duration: 54, onUpdate: () => { fade.style.opacity = tail.f; } }, 826);
   tl.set({}, {}, TOTAL - LEAD);
   master.add(tl, LEAD);
 
@@ -208,8 +234,9 @@ export function initStory({ reduced, smooth }) {
     // Lenis already smooths the scroll; a second scrub lag on top reads as rubber-banding
     scrub: smooth || reduced ? true : 0.5,
     invalidateOnRefresh: true,
-    onRefreshInit: () => { sizePill(); pillBox = null; },
-    onRefresh: () => { applyLift(); applyPill(); applyPortal(); layoutCards(); },
+    onRefreshInit: sizePill,
+    // measure once layout has settled, never in the middle of a scrub
+    onRefresh: () => { measurePill(); applyLift(); applyPill(); applyPortal(); layoutCards(); },
   });
 
   // video plays only while its pill is on screen
@@ -217,7 +244,7 @@ export function initStory({ reduced, smooth }) {
   ScrollTrigger.create({
     trigger: section,
     start: 'top bottom',
-    end: () => `top+=${window.innerHeight * (3.4 + LEAD / 100)} top`,
+    end: () => `top+=${vp.h * (3.4 + LEAD / 100)} top`,
     onToggle: (self) => {
       if (reduced) return;
       if (self.isActive && !playing) { playing = true; video.play().catch(() => {}); }
@@ -225,19 +252,27 @@ export function initStory({ reduced, smooth }) {
     },
   });
 
-  // sculpture is created lazily as the stage approaches
-  ScrollTrigger.create({
-    trigger: section,
-    start: 'top 200%',
-    once: true,
-    onEnter: () => {
-      sculpture = new Sculpture(services.querySelector('.services__gl'));
-      sculpture.setProgress(deck.c);
-    },
-  });
+  // the 3D scene (and three.js itself) loads once the intro has settled, in idle time;
+  // this trigger is only a fallback for visitors who start scrolling straight away
+  let warming = null;
+  const warm = () => {
+    if (!warming) {
+      warming = loadSculpture().then(({ Sculpture }) => {
+        sculpture = new Sculpture(services.querySelector('.services__gl'));
+        sculpture.setProgress(deck.c);
+        return sculpture.warm();
+      }).catch((e) => console.warn('[services] 3D scene unavailable', e));
+    }
+    return warming;
+  };
+  ScrollTrigger.create({ trigger: section, start: 'top 200%', once: true, onEnter: warm });
+
+  // the About smoke loop only runs while the stage is on screen
+  ScrollTrigger.create({ trigger: section, start: 'top bottom', end: 'bottom top', toggleClass: { targets: section, className: 'is-live' } });
 
   applyPill();
   applyLift();
+  measurePill();
   applyPortal();
   layoutCards();
 
@@ -247,18 +282,18 @@ export function initStory({ reduced, smooth }) {
       const units = STORY_MARKS[name];
       return st.start + (st.end - st.start) * (units / TOTAL);
     },
+    warm,
     resize() {
       if (sculpture) sculpture.resize();
       sizePill();
-      pillBox = null;
       applyPill();
       layoutCards();
       applyPortal();
     },
     tick(time, scrollY) {
       if (!sculpture) return;
-      const vh = window.innerHeight;
-      sculpture.visible = portal.fade > 0.01 && scrollY > st.start - vh && scrollY < st.end + vh;
+      // nothing to draw before the portal opens or once the black fade has covered the stage
+      sculpture.visible = portal.fade > 0.01 && tail.f < 0.995 && scrollY > st.start - vp.h && scrollY <= st.end;
       sculpture.render(time);
     },
   };

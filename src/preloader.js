@@ -506,7 +506,11 @@ export function runPreloader({ el, reduced, onReveal, onDone }) {
     const v = st.tau >= DIVE ? 100 : Math.round(100 * pct(Math.min(1, (st.tau + 0.78) / 6.48)));
     if (v !== shown) { shown = v; num.textContent = v; }
   };
-  const tick = () => { draw(st.tau); setCount(); };
+  // once the red field covers the scene there's nothing left to redraw
+  const tick = () => {
+    if (st.tau < DIVE + 0.12) draw(st.tau);
+    setCount();
+  };
 
   resize();
   window.addEventListener('resize', resize);
@@ -535,14 +539,15 @@ export function runPreloader({ el, reduced, onReveal, onDone }) {
   };
   const tl = gsap.timeline();
   tl.set(flash, { opacity: 0, backgroundColor: '#6a241a' })
-    .fromTo(count, { y: 60, opacity: 0, filter: 'blur(6px)' }, { y: 0, opacity: 1, filter: 'blur(0px)', duration: 0.9, ease: 'expo.out' }, 0)
+    .fromTo(count, { y: 60, opacity: 0, filter: 'blur(6px)' }, { y: 0, opacity: 1, filter: 'blur(0px)', duration: 0.9, ease: 'expo.out', clearProps: 'filter' }, 0)
     .to(st, { tau: END, duration: END, ease: 'none' }, 0)
     .add(() => { gsap.to(count, { scale: 6, opacity: 0, transformOrigin: diveOrigin(), duration: 0.12, ease: 'power2.in' }); }, DIVE)
     // red field after the dive: dark first, then ramps to the hero red underneath
     .set(flash, { opacity: 1 }, DIVE + 0.12)
-    .to(flash, { backgroundColor: '#c23f29', duration: 0.17, ease: 'power1.in' }, DIVE + 0.12)
+    .to(flash, { backgroundColor: '#97311f', duration: 0.15, ease: 'power1.in' }, DIVE + 0.12)
     .add(() => { onReveal && onReveal(); }, 4.78)
-    .to(flash, { opacity: 0, duration: 0.07, ease: 'none' }, 4.9)
+    // the whole preloader fades off the hero glass, which starts on the same red and brightens
+    .to(el, { opacity: 0, duration: 0.07, ease: 'none' }, 4.9)
     .add(finish, END);
   return tl;
 }
