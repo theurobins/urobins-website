@@ -230,22 +230,23 @@ function heroIntro() {
   // glass: dark red hand-off, a peach flash, then an X of ribs zooming out to straight ribs
   // (the preloader's red field ends on the same #97311f the glass starts from, then fades off it;
   // the extreme hourglass shows through it as a faint cross)
-  tl.set(hero.state, { reveal: 0.15, hyp: 12, flash: 0, lg: 1.6, wedge: 1, pitch: () => hero.restPitch * 1.34 }, 0)
+  tl.set(hero.state, { reveal: 0.15, hyp: 12, flash: 0, lg: 3, fan: 0, pitch: () => hero.restPitch * 1.34 }, 0)
     .to(hero.state, { reveal: 0.5, duration: 0.07, ease: 'none' }, 0.12)
     .to(hero.state, { reveal: 1, duration: 0.03, ease: 'none' }, 0.22)
     // peach flash: holds a beat, then fades out linearly
     .set(hero.state, { flash: 1 }, 0.24)
     .to(hero.state, { flash: 0, duration: 0.23, ease: 'none' }, 0.275)
     // one rib per side forms an X, then relaxes to straight ribs
-    .to(hero.state, { hyp: 0.95, duration: 0.03, ease: 'none' }, 0.205)
-    // ...and holds that hourglass until ~5.33 s before relaxing
-    .to(hero.state, { hyp: 0, duration: 0.58, ease: 'power2.out' }, 0.545)
+    .to(hero.state, { hyp: 1, duration: 0.03, ease: 'none' }, 0.205)
+    // ...and holds that hourglass until ~5.33 s before relaxing (quadratic)
+    .to(hero.state, { hyp: 0, duration: 0.53, ease: 'power1.out' }, 0.545)
     // the rib grid zooms out from the centre: spacing grows geometrically outward and evens out
-    // as lambda doubles every 0.075 s; the top and bottom wedges fill with ribs
-    .to(hero.state, { lg: 14.3, duration: 0.81, ease: 'none' }, 0.245)
+    // as lambda doubles every 0.064 s (the X's first rib sits close to the centre until then). The
+    // top and bottom wedges are blank at first, then the inner ribs fan out through the centre.
+    .to(hero.state, { lg: 14.3, duration: 0.721, ease: 'none' }, 0.334)
     .set(hero.state, { lg: 30 }, 1.06)
-    .to(hero.state, { pitch: () => hero.restPitch, duration: 0.35, ease: 'power1.inOut' }, 0.3)
-    .to(hero.state, { wedge: 0, duration: 0.1, ease: 'none' }, 0.33);
+    .to(hero.state, { pitch: () => hero.restPitch, duration: 0.18, ease: 'power1.out' }, 0.3)
+    .to(hero.state, { fan: 60, duration: 0.1, ease: 'none' }, 0.45);
 
   pop(T.logo, 0.98, 1.09, '8px -16px');
   tl.to(T.logoParts, { opacity: 1, duration: 0.15, stagger: 0.045 }, 1.12);
@@ -253,11 +254,13 @@ function heroIntro() {
     // The menu opens from a lone, centred "About" pill. Rather than animating its width (a
     // relayout every frame) the full menu is clipped in from both sides while the links slide
     // with the left edge; measured here, once the fonts are in.
-    const side = Math.max(0, (T.menu.offsetWidth - T.menuLinks[0].offsetWidth - 16) / 2);
+    // The closed pill is exactly the "About" link (the menu's own side padding opens with it).
+    const pad = parseFloat(getComputedStyle(T.menu).paddingLeft) || 0;
+    const side = Math.max(0, (T.menu.offsetWidth - T.menuLinks[0].offsetWidth) / 2);
     const r = getComputedStyle(T.menu).borderTopLeftRadius;
     tl.fromTo(T.menu, { clipPath: `inset(0px ${side}px 0px ${side}px round ${r})` },
       { clipPath: `inset(0px 0px 0px 0px round ${r})`, duration: 1.0, ease: 'menuOpen' }, 1.65)
-      .fromTo(T.menuLinks, { x: side }, { x: 0, duration: 1.0, ease: 'menuOpen' }, 1.65);
+      .fromTo(T.menuLinks, { x: side - pad }, { x: 0, duration: 1.0, ease: 'menuOpen' }, 1.65);
     pop(T.menu, 1.15, 1.065, '50% 50%');
     tl.to(T.menuLinks.slice(1), { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out', stagger: 0.2 }, 1.93)
       .add(() => { gsap.set(T.menu, { clearProps: 'clipPath' }); gsap.set(T.menuLinks, { clearProps: 'transform' }); }, 3.4);
@@ -268,7 +271,7 @@ function heroIntro() {
   // blur-ins drop their filter when done so the text goes back to plain, crisp layers
   tl.to(T.words, { opacity: 1, filter: 'blur(0px)', y: 0, duration: 0.8, ease: 'power2.out', stagger: 0.13, clearProps: 'filter,willChange' }, 1.5)
     .to(T.sub, { opacity: 1, filter: 'blur(0px)', y: 0, duration: 0.8, ease: 'power2.out', clearProps: 'filter,willChange' }, 2.28);
-  pop(T.heroCta, 2.715, 1.08, '50% 50%');
+  pop(T.heroCta, 2.715, 1.085, '50% 50%');
   // hand the pills back to CSS once they have settled (the menu keeps its centring transform)
   tl.add(() => gsap.set([T.logo, T.cta, T.heroCta], { clearProps: 'transform' }), 3.4);
   tl.add(() => {
@@ -285,7 +288,7 @@ function heroIntro() {
 
 if (reduced) {
   heroLive = true;
-  Object.assign(hero.state, { reveal: 1, hyp: 0, flash: 0, lg: 30, wedge: 0, pitch: hero.restPitch });
+  Object.assign(hero.state, { reveal: 1, hyp: 0, flash: 0, lg: 30, fan: 0, pitch: hero.restPitch });
   auto.mix = 1;
   applyHero();
   runPreloader({
@@ -297,7 +300,7 @@ if (reduced) {
   gsap.set([T.logo, T.cta, T.heroCta], { scale: 0 });
   if (!desktopNav) gsap.set(T.toggle, { scale: 0 });
   gsap.set(T.logoParts, { opacity: 0 });
-  gsap.set(T.words, { opacity: 0, filter: 'blur(8px)', y: 14, willChange: 'filter, transform, opacity' });
+  gsap.set(T.words, { opacity: 0, filter: 'blur(6px)', y: 14, willChange: 'filter, transform, opacity' });
   gsap.set(T.sub, { opacity: 0, filter: 'blur(4px)', y: 6, willChange: 'filter, transform, opacity' });
   if (desktopNav) {
     // the menu opens from a lone "About" pill

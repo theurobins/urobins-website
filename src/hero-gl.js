@@ -57,7 +57,8 @@ uniform float uHyp;         // intro hourglass strength (0 = straight ribs)
 uniform float uFlash;       // intro peach flash 0..1
 uniform float uReveal;      // 0 dark red hand-off colour -> 1 full glass
 uniform float uLg;          // log2 of the rib zoom length: small = spacing grows fast away from the centre
-uniform float uWedge;       // 1 = no ribs in the hourglass's top/bottom wedges
+uniform float uFan;         // px (at 1392 wide): ribs closer than this to the centre fan out instead of
+                            // sharing the hourglass's asymptotes; 0 leaves its top/bottom wedges blank
 uniform vec4 uBars[${BAR_COUNT}];
 
 // the colour field is a stack of soft blobs; their centres, radii, colours and weights depend only
@@ -101,23 +102,25 @@ void main() {
   }
   if (cover <= 0.0) { gl_FragColor = vec4(0.0); return; }
 
-  // rib coordinate: straight ribs at rest, an X-shaped hyperbola during the intro
+  // rib coordinate R: straight ribs (R = |x|) at rest. During the intro rib R is the curve
+  // x^2 = R^2 + k(R) y^2 with k(R) = uHyp R^2 / (R^2 + L^2): ribs far from the centre are
+  // hyperbolas sharing an X of asymptotes, ribs within ~L of it fan through the centre.
   vec2 c = vec2(frag.x - W * 0.5, ypx - H * 0.5);
-  float d2 = c.x * c.x - uHyp * c.y * c.y;
-  float wedge = d2 < 0.0 ? 1.0 : 0.0;
+  float x2 = c.x * c.x, L = uFan * W / 1392.0, L2 = L * L;
+  float b = L2 + uHyp * c.y * c.y - x2;
+  float q = sqrt(b * b + 4.0 * x2 * L2);
+  float R = sqrt(b > 0.0 ? 2.0 * x2 * L2 / (b + q) : 0.5 * (q - b));
   // ribs counted out from the centre; during the intro their spacing grows geometrically outward
-  float R = sqrt(abs(d2));
   float lam = exp2(uLg) * W / 1392.0;
   float n = lam > 1e5 ? R / uPitch : (lam / uPitch) * log(1.0 + R / lam);
-  float u = fract(n);
-  // keep each rib a thin line of its resting width while the zoom spreads them apart
   float spread = lam > 1e5 ? 1.0 : 1.0 + R / lam;
-  float sig = max(0.11 / spread, 0.6 / (uPitch * spread));
-  float hl = exp(-pow(u - 0.5, 2.0) / (2.0 * sig * sig));
+  // lines widen with the zoom's spreading, but no more than 2.5x their resting width
+  float sig = max(0.11 * min(1.0, 2.5 / spread), 0.6 / (uPitch * spread));
+  float hl = exp(-pow(fract(n) - 0.5, 2.0) / (2.0 * sig * sig));
 
   vec3 col = field(vec2(frag.x / W, (ypx + uShift) / H));
   float l = dot(col, vec3(0.299, 0.587, 0.114));
-  col += hl * 0.042 * (1.0 - smoothstep(0.55, 0.95, l)) * (1.0 - wedge * uWedge) * (1.0 + 1.5 * uFlash);
+  col += hl * 0.042 * (1.0 - smoothstep(0.55, 0.95, l)) * (1.0 + 1.5 * uFlash);
   col = 1.0 - (1.0 - col) * (1.0 - uFlash * vec3(0.83, 0.4, 0.31));
   col = mix(vec3(0.592, 0.192, 0.125), col, uReveal);
   gl_FragColor = vec4(col * cover, cover);
@@ -127,7 +130,7 @@ void main() {
 export class HeroGL {
   constructor(canvas) {
     this.canvas = canvas;
-    this.state = { mix: 0, heroBottom: 1, shift: 0, pitch: 1400, hyp: 12, flash: 0, reveal: 0, lg: 30, wedge: 0 };
+    this.state = { mix: 0, heroBottom: 1, shift: 0, pitch: 1400, hyp: 12, flash: 0, reveal: 0, lg: 30, fan: 0 };
     this.bars = new Float32Array(BAR_COUNT * 4);
     const gl = canvas.getContext('webgl', { antialias: false, alpha: true, premultipliedAlpha: true, depth: false, stencil: false, powerPreference: 'high-performance' });
     if (!gl) { this.failed = true; canvas.classList.add('is-fallback'); return; }
@@ -163,7 +166,7 @@ export class HeroGL {
     this.u = {
       res: u('uRes'), dpr: u('uDpr'), heroBottom: u('uHeroBottom'),
       shift: u('uShift'), pitch: u('uPitch'), hyp: u('uHyp'), flash: u('uFlash'), reveal: u('uReveal'), bars: u('uBars'),
-      lg: u('uLg'), wedge: u('uWedge'),
+      lg: u('uLg'), fan: u('uFan'),
       base: u('uBase'), n: u('uN'), C: u('uC'), K: u('uK'), BC: u('uBC'), A: u('uA'), P: u('uP'),
     };
     this.fC = new Float32Array(MAX_BLOBS * 2);
@@ -251,7 +254,7 @@ export class HeroGL {
     gl.uniform1f(u.flash, state.flash);
     gl.uniform1f(u.reveal, state.reveal);
     gl.uniform1f(u.lg, state.lg);
-    gl.uniform1f(u.wedge, state.wedge);
+    gl.uniform1f(u.fan, state.fan);
     gl.uniform4fv(u.bars, this.bars);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
