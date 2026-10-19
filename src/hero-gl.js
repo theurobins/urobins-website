@@ -113,10 +113,16 @@ void main() {
   // ribs counted out from the centre; during the intro their spacing grows geometrically outward
   float lam = exp2(uLg) * W / 1392.0;
   float n = lam > 1e5 ? R / uPitch : (lam / uPitch) * log(1.0 + R / lam);
-  float spread = lam > 1e5 ? 1.0 : 1.0 + R / lam;
+  // nearest rib's curve, and the screen-space distance to it (first order), so a line keeps its
+  // width all along its length (near the asymptotes R changes ~20x faster than distance)
+  float m = floor(n) + 0.5;
+  float Rm = lam > 1e5 ? m * uPitch : lam * (exp(m * uPitch / lam) - 1.0);
+  float km = uHyp * Rm * Rm / max(Rm * Rm + L2, 1e-6);
+  float F = x2 - Rm * Rm - km * c.y * c.y;
+  float dpx = F / max(2.0 * sqrt(x2 + km * km * c.y * c.y), 1e-3);
   // lines widen with the zoom's spreading, but no more than 2.5x their resting width
-  float sig = max(0.11 * min(1.0, 2.5 / spread), 0.6 / (uPitch * spread));
-  float hl = exp(-pow(fract(n) - 0.5, 2.0) / (2.0 * sig * sig));
+  float wpx = 0.11 * uPitch * min(lam > 1e5 ? 1.0 : 1.0 + Rm / lam, 2.5);
+  float hl = exp(-dpx * dpx / (2.0 * wpx * wpx));
 
   vec3 col = field(vec2(frag.x / W, (ypx + uShift) / H));
   float l = dot(col, vec3(0.299, 0.587, 0.114));

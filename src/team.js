@@ -32,11 +32,11 @@ const KEYS = [
   { s: 616, j0: 2, w: [0.963, 0.917, 0.865, 0.809, 0.751, 0.694, 0.638, 0.583, 0.533, 0.486, 0.444, 0.408, 0.378, 0.353, 0.335] },
   { s: 654, j0: 0, w: [0.977, 0.955, 0.897, 0.833, 0.767, 0.701, 0.635, 0.572, 0.511, 0.457, 0.405, 0.361, 0.321, 0.289, 0.263, 0.243, 0.23] },
   { s: 730, j0: 2, w: [0.766, 0.677, 0.591, 0.51, 0.434, 0.366, 0.303, 0.249, 0.2, 0.159, 0.126, 0.101, 0.083, 0.073, 0.069] },
-  { s: 768, j0: 3, w: [0.619, 0.527, 0.443, 0.365, 0.296, 0.233, 0.18, 0.134, 0.095, 0.063] },
-  { s: 806, j0: 4, w: [0.5, 0.415, 0.338, 0.269, 0.207, 0.153, 0.108, 0.07] },
-  { s: 843, j0: 5, w: [0.384, 0.31, 0.244, 0.185, 0.135, 0.092, 0.032] },
-  { s: 880, j0: 6, w: [0.228, 0.171, 0.123, 0.083, 0.05] },
-  { s: 902, j0: 7, w: [0.106, 0.069, 0.039] },
+  { s: 768, j0: 3, w: [0.619, 0.527, 0.443, 0.365, 0.296, 0.233, 0.18, 0.134, 0.095, 0.063, 0.042, 0.029, 0.021, 0.019] },
+  { s: 806, j0: 4, w: [0.5, 0.415, 0.338, 0.269, 0.207, 0.153, 0.108, 0.07, 0.042, 0.019] },
+  { s: 843, j0: 5, w: [0.384, 0.31, 0.244, 0.185, 0.135, 0.092, 0.059, 0.032] },
+  { s: 880, j0: 6, w: [0.228, 0.171, 0.123, 0.083, 0.05, 0.027] },
+  { s: 902, j0: 7, w: [0.106, 0.069, 0.039, 0.019] },
   { s: 920, j0: 7, w: [] },
 ];
 // width of page slot j (may be fractional) in one key; slots above its first listed bar continue
@@ -85,6 +85,7 @@ export function initTeam({ reduced }) {
     d = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(W * d);
     canvas.height = Math.round(H * d);
+    mode = ''; // resizing cleared it
   };
   // screen y of page grid line j at offset s
   const lineY = (j, s) => Math.round((ANCHOR + 36 * j) * k - s);
@@ -112,9 +113,12 @@ export function initTeam({ reduced }) {
     if (ctx.roundRect) ctx.roundRect(x, y, w, h, Math.min(2, h / 2));
     else ctx.rect(x, y, w, h);
   };
+  // during the black hold the canvas is filled once and moved with the page as a layer
+  let mode = '', holdY = '';
   const clear = () => {
     if (!shown) return;
     shown = false;
+    if (mode === 'hold') { mode = ''; holdY = ''; canvas.style.transform = ''; }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     canvas.style.visibility = 'hidden';
@@ -124,6 +128,19 @@ export function initTeam({ reduced }) {
     const sk = s / k;
     if (s < 0 || sk >= END) { clear(); return; }
     if (!shown) { shown = true; canvas.style.visibility = 'visible'; }
+    if (cur > TAIL) {
+      // black hold (no edge yet): black from the top of .team down, i.e. the whole canvas shifted
+      if (mode !== 'hold') {
+        mode = 'hold';
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.fillStyle = INK;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+      const ty = `translate3d(0, ${Math.max(0, Math.round(H - s))}px, 0)`;
+      if (ty !== holdY) { holdY = ty; canvas.style.transform = ty; }
+      return;
+    }
+    if (mode === 'hold') { mode = ''; holdY = ''; canvas.style.transform = ''; }
     ctx.setTransform(d, 0, 0, d, 0, 0);
     ctx.clearRect(0, 0, W, H);
     const top = Math.round(H - s); // screen y of the top of .team

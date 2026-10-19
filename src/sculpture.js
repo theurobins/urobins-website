@@ -310,24 +310,34 @@ export class Sculpture {
 
   // upload textures and compile every program off the scroll path (parallel compile where supported),
   // then draw one hidden frame so the first visible one costs no more than any other
-  warm() {
-    if (this.failed) return Promise.resolve();
+  // `pause` (optional) resolves when the browser is idle: each renderer's texture uploads, compile
+  // and first draw then run in their own slices instead of one long task
+  async warm(pause = () => Promise.resolve()) {
+    if (this.failed) return;
     const { scene, camera, props } = this;
-    props.forEach((p) => { p.obj.visible = true; });
-    camera.layers.enableAll();
-    const jobs = [this.renderer, this.front].filter(Boolean).map((r) => {
-      scene.traverse((o) => {
-        const u = o.material && o.material.uniforms;
-        if (u && u.uMap && u.uMap.value) r.initTexture(u.uMap.value);
-      });
-      return r.compileAsync(scene, camera).then(() => r.render(scene, camera), () => r.render(scene, camera));
-    });
-    const done = () => {
-      props.forEach((p) => { p.obj.visible = false; });
-      camera.layers.set(0);
-      for (const r of [this.renderer, this.front]) if (r) r.clear();
+    const show = (on) => {
+      props.forEach((p) => { p.obj.visible = on; });
+      if (on) camera.layers.enableAll(); else camera.layers.set(0);
     };
-    return Promise.all(jobs).then(done, done);
+    try {
+      for (const r of [this.renderer, this.front].filter(Boolean)) {
+        await pause();
+        scene.traverse((o) => {
+          const u = o.material && o.material.uniforms;
+          if (u && u.uMap && u.uMap.value) r.initTexture(u.uMap.value);
+        });
+        await pause();
+        show(true);
+        try { await r.compileAsync(scene, camera); } catch (e) { /* compile on first draw instead */ }
+        await pause();
+        show(true);
+        r.render(scene, camera);
+        show(false);
+        r.clear();
+      }
+    } finally {
+      show(false);
+    }
   }
 
   render(time) {

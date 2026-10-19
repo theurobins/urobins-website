@@ -13,7 +13,9 @@ import { vp, measureViewport } from './viewport.js';
 gsap.registerPlugin(ScrollTrigger, CustomEase);
 // mobile toolbars resize the viewport height constantly; don't recompute every trigger for that.
 // Window resizes go through the debounced handler below (canvases first, then one refresh).
-ScrollTrigger.config({ ignoreMobileResize: true, autoRefreshEvents: 'visibilitychange,DOMContentLoaded,load' });
+// no refresh on 'load': no box depends on image sizes, and it would land at a random point in the
+// preloader; fonts.ready refreshes below
+ScrollTrigger.config({ ignoreMobileResize: true, autoRefreshEvents: 'visibilitychange,DOMContentLoaded' });
 CustomEase.create('menuOpen', '0.3,0,0.1,1');
 
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -28,7 +30,9 @@ if (!reduced) {
   // touch keeps native momentum scrolling
   lenis = new Lenis({ lerp: 0.06, smoothWheel: true, wheelMultiplier: 0.95 });
   lenis.on('scroll', ScrollTrigger.update);
-  gsap.ticker.add((time) => lenis.raf(time * 1000));
+  // step Lenis on the frame's rAF timestamp (sub-ms, vsync-aligned) rather than the ticker's whole-ms
+  // clock read mid-callback, which makes its easing wobble from frame to frame
+  gsap.ticker.add((time, dt, frame, ts) => lenis.raf(typeof ts === 'number' ? ts : performance.now()));
   gsap.ticker.lagSmoothing(0);
   lenis.stop();
 }
@@ -159,13 +163,21 @@ document.addEventListener('click', (e) => {
 
 // ---------- render loop ----------
 let heroLive = false; // the preloader covers the hero until it hands over
-let heroFinal = false;
+let heroSettled = false; // the intro's rib animation is over
+let heroFinal = false, heroY = -1, heroT = 0;
 gsap.ticker.add((time) => {
   const y = scrollY();
   if (heroLive) {
     // once the funnel has fully collapsed the canvas is empty: draw that frame once, then idle
-    if (y < heroEnd && heroTl.progress() < 1) { hero.render(time); heroFinal = false; }
-    else if (!heroFinal) { hero.render(time); heroFinal = true; }
+    if (y < heroEnd && heroTl.progress() < 1) {
+      // at rest only the glass's slow drift moves (<0.1px a frame): 30 fps is plenty there and
+      // leaves the GPU free for whatever starts next
+      if (y !== heroY || !heroSettled || colorTween.isActive() || time - heroT >= 1 / 30) {
+        hero.render(time);
+        heroY = y; heroT = time;
+      }
+      heroFinal = false;
+    } else if (!heroFinal) { hero.render(time); heroFinal = true; }
   }
   story.tick(time, y);
 });
@@ -221,6 +233,7 @@ function heroIntro() {
   const tl = gsap.timeline();
   // the glass starts drawing just before the preloader's red field fades off it
   tl.add(() => { heroLive = true; }, 0.08);
+  tl.add(() => { heroSettled = true; }, 1.2);
   // pill pop: grow linearly to full size, ease into a small overshoot, then settle
   const pop = (el, at, ov, origin) => {
     tl.set(el, { scale: 0, opacity: 1, transformOrigin: origin }, at)
@@ -230,7 +243,7 @@ function heroIntro() {
   // glass: dark red hand-off, a peach flash, then an X of ribs zooming out to straight ribs
   // (the preloader's red field ends on the same #97311f the glass starts from, then fades off it;
   // the extreme hourglass shows through it as a faint cross)
-  tl.set(hero.state, { reveal: 0.15, hyp: 12, flash: 0, lg: 3, fan: 0, pitch: () => hero.restPitch * 1.34 }, 0)
+  tl.set(hero.state, { reveal: 0.15, hyp: 12, flash: 0, lg: 2, fan: 0, pitch: () => hero.restPitch }, 0)
     .to(hero.state, { reveal: 0.5, duration: 0.07, ease: 'none' }, 0.12)
     .to(hero.state, { reveal: 1, duration: 0.03, ease: 'none' }, 0.22)
     // peach flash: holds a beat, then fades out linearly
@@ -238,15 +251,15 @@ function heroIntro() {
     .to(hero.state, { flash: 0, duration: 0.23, ease: 'none' }, 0.275)
     // one rib per side forms an X, then relaxes to straight ribs
     .to(hero.state, { hyp: 1, duration: 0.03, ease: 'none' }, 0.205)
-    // ...and holds that hourglass until ~5.33 s before relaxing (quadratic)
-    .to(hero.state, { hyp: 0, duration: 0.53, ease: 'power1.out' }, 0.545)
+    // ...and holds that hourglass until ~5.36 s before relaxing (quadratic)
+    .to(hero.state, { hyp: 0, duration: 0.53, ease: 'power1.out' }, 0.57)
     // the rib grid zooms out from the centre: spacing grows geometrically outward and evens out
-    // as lambda doubles every 0.064 s (the X's first rib sits close to the centre until then). The
-    // top and bottom wedges are blank at first, then the inner ribs fan out through the centre.
-    .to(hero.state, { lg: 14.3, duration: 0.721, ease: 'none' }, 0.334)
+    // as lambda doubles every 0.064 s (only the X's first rib is on screen until ~5.1 s). The top
+    // and bottom wedges are blank at first, then the inner ribs fan out through the centre.
+    .to(hero.state, { lg: 4, duration: 0.08, ease: 'none' }, 0.315)
+    .to(hero.state, { lg: 14.3, duration: 0.656, ease: 'none' }, 0.395)
     .set(hero.state, { lg: 30 }, 1.06)
-    .to(hero.state, { pitch: () => hero.restPitch, duration: 0.18, ease: 'power1.out' }, 0.3)
-    .to(hero.state, { fan: 60, duration: 0.1, ease: 'none' }, 0.45);
+    .to(hero.state, { fan: 240, duration: 0.27, ease: 'none' }, 0.465);
 
   pop(T.logo, 0.98, 1.09, '8px -16px');
   tl.to(T.logoParts, { opacity: 1, duration: 0.15, stagger: 0.045 }, 1.12);

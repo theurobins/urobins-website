@@ -22,6 +22,8 @@ const N = 34, SW = 3.25, GROW = 1.08, FADE = 1.0;
 const START = [0.7, 0.79, 0.89, 1.01], SPREAD = [0.97, 1.02, 1.045, 1.06], SHAPE = [0.75, 0.84, 0.9, 0.93];
 // when each column's text block starts to rise (s after T0)
 const TEXT_AT = [0.65, 0.775, 0.9, 1.05];
+// ...and how much later its label and sub-line follow the value (null: the block rises as one)
+const LABEL_LAG = [null, null, 0.15, null];
 const P4 = (x) => 1 - Math.pow(1 - x, 4);
 const P3 = (x) => 1 - Math.pow(1 - x, 3);
 
@@ -53,7 +55,9 @@ export function initMetrics({ reduced }) {
     bars.textContent = '';
     const cv = bars.appendChild(document.createElement('canvas'));
     return {
-      stat, bars, cv, ctx: cv.getContext('2d'), num, text: stat.querySelector('.stat__text'),
+      stat, bars, cv, ctx: cv.getContext('2d'), num,
+      rises: LABEL_LAG[k] == null ? [[stat.querySelector('.stat__text'), 0]]
+        : [[value, 0], [[...stat.querySelectorAll('.stat__label, .stat__sub')], LABEL_LAG[k]]],
       target, dec, count: COUNT[k] || null, spread: SPREAD[k], shape: SHAPE[k], shown: '', t: 0, p: 0, w: 0, d: 1, tone: 1,
     };
   });
@@ -107,7 +111,7 @@ export function initMetrics({ reduced }) {
   gsap.set([big, bigEm], { opacity: 0, y: 0.0588 * vp.h });
   gsap.set(lines, { opacity: 0, y: 0.0256 * vp.h });
   gsap.set(cta, { scale: 0 });
-  cols.forEach((c) => { gsap.set(c.text, { opacity: 0, y: rise() }); setCount(c); render(c); });
+  cols.forEach((c) => { c.rises.forEach(([el]) => gsap.set(el, { opacity: 0, y: rise() })); setCount(c); render(c); });
   let played = false;
   // line breaks depend on the web font: split again once it is in
   if (document.fonts && document.fonts.ready) {
@@ -136,15 +140,17 @@ export function initMetrics({ reduced }) {
         }, at + 0.05);
     });
     tl.to(counter, { v: 8, duration: 0.23, ease: 'none', onUpdate: setBig }, T0)
-      .to(counter, { v: 11.2, duration: 2.4, ease: 'power3.out', onUpdate: setBig }, T0 + 0.23)
+      .to(counter, { v: 11.2, duration: 3.45, ease: 'expo.out', onUpdate: setBig }, T0 + 0.23)
       .to(lines, { y: 0, duration: 1.25, ease: 'power3.out', stagger: 0.07 }, T0 + 0.47)
       .to(lines, { opacity: 1, duration: 1.15, ease: 'power3.out', stagger: 0.07 }, T0 + 0.47)
       .to(cta, { scale: 1, duration: 0.6, ease: 'back.out(1.3)' }, T0 + 0.72);
     cols.forEach((c, k) => {
       const at = T0 + TEXT_AT[k];
-      tl.to(c.text, { y: 0, duration: 1.0, ease: 'power3.out' }, at)
-        .to(c.text, { opacity: 1, duration: 0.8, ease: 'power1.out' }, at)
-        .to(c, { t: 2.2, duration: 2.2, ease: 'none', onUpdate: () => render(c) }, T0 + START[k]);
+      c.rises.forEach(([el, lag]) => {
+        tl.to(el, { y: 0, duration: 1.0, ease: 'power3.out' }, at + lag)
+          .to(el, { opacity: 1, duration: 0.8, ease: 'power1.out' }, at + lag);
+      });
+      tl.to(c, { t: 2.2, duration: 2.2, ease: 'none', onUpdate: () => render(c) }, T0 + START[k]);
       if (c.count) tl.to(c, { p: 1, duration: c.count.dur, ease: 'none', onUpdate: () => setCount(c) }, T0 + c.count.at);
     });
   };

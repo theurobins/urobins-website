@@ -311,7 +311,6 @@ export function initStory({ reduced, smooth }) {
       if (card._op !== op) { card._op = op; card.style.opacity = op; }
       if (card._tr !== tr) { card._tr = tr; card.style.transform = tr; }
     });
-    if (sculpture) sculpture.setProgress(flow.c);
   };
 
   // ---- build the timeline (positions below are relative to the end of the lead-in) ----
@@ -323,21 +322,46 @@ export function initStory({ reduced, smooth }) {
   // the line hooks and spikes while the hero's last bars clear (easing into its main speed), then
   // draws at one constant rate to its tail under the last line, just before the Services wipe.
   // With a non-scaling stroke the dash is laid out in screen pixels, so measure the on-screen length.
+  // The line is drawn as SEG consecutive pieces of equal on-screen length: a dash change repaints
+  // only the piece being drawn, not a viewport-sized path every frame.
   const lineSvg = path.ownerSVGElement;
   const lineDraw = { f: 0 };
+  const SEG = 10, SAMPLES = 1200;
+  const segs = Array.from({ length: SEG }, () => {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    lineSvg.appendChild(el);
+    return { el, S: 0, L: 1, last: '' };
+  });
+  path.style.visibility = 'hidden';
   let lineLen = 1;
-  const applyLine = () => { path.style.strokeDashoffset = ((lineLen + 2) * (1 - lineDraw.f)).toFixed(1); };
+  const applyLine = () => {
+    const D = lineDraw.f * lineLen;
+    for (const s of segs) {
+      const v = (s.L + 2 - Math.min(s.L, Math.max(0, D - s.S))).toFixed(1);
+      if (v !== s.last) { s.last = v; s.el.style.strokeDashoffset = v; }
+    }
+  };
   const measureLine = () => {
     const sx = lineSvg.clientWidth / 1440, sy = lineSvg.clientHeight / 900, Lu = path.getTotalLength();
-    let px = 0, py = 0;
-    lineLen = 0;
-    for (let i = 0; i <= 600; i++) {
-      const p = path.getPointAtLength((Lu * i) / 600);
-      const x = p.x * sx, y = p.y * sy;
-      if (i) lineLen += Math.hypot(x - px, y - py);
-      px = x; py = y;
+    const pts = [], cum = [0];
+    for (let i = 0; i <= SAMPLES; i++) {
+      const p = path.getPointAtLength((Lu * i) / SAMPLES);
+      pts.push(p);
+      if (i) cum.push(cum[i - 1] + Math.hypot((p.x - pts[i - 1].x) * sx, (p.y - pts[i - 1].y) * sy));
     }
-    path.style.strokeDasharray = `${(lineLen + 2).toFixed(1)} ${(lineLen + 2).toFixed(1)}`;
+    lineLen = cum[SAMPLES];
+    let a = 0;
+    segs.forEach((s, k) => {
+      let b = a;
+      const end = ((k + 1) * lineLen) / SEG;
+      while (b < SAMPLES && (k === SEG - 1 || cum[b] < end)) b++;
+      s.S = cum[a];
+      s.L = Math.max(0.01, cum[b] - cum[a]);
+      s.el.setAttribute('d', 'M' + pts.slice(a, b + 1).map((p) => `${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' L'));
+      s.el.style.strokeDasharray = `${(s.L + 2).toFixed(1)} ${(s.L + 2).toFixed(1)}`;
+      s.last = '';
+      a = b;
+    });
     applyLine();
   };
   measureLine();
@@ -423,20 +447,24 @@ export function initStory({ reduced, smooth }) {
     });
   }
 
-  // the 3D scene (and three.js itself) loads once the intro has settled, in idle time;
-  // this trigger is only a fallback for visitors who start scrolling straight away
+  // the 3D scene (and three.js itself) loads once the intro has settled, in idle time, in small
+  // slices so no single task stalls a frame; this trigger is only a fallback for visitors who start
+  // scrolling straight away (it is not active at load, so it never fires under the preloader)
+  const idle = () => new Promise((r) => (window.requestIdleCallback || ((f) => setTimeout(f, 50)))(() => r(), { timeout: 1000 }));
   let warming = null;
   const warm = () => {
     if (!warming) {
-      warming = loadSculpture().then(({ Sculpture }) => {
+      warming = loadSculpture().then(async ({ Sculpture }) => {
+        await idle();
         sculpture = new Sculpture(services.querySelector('.services__gl'), services.querySelector('.services__gl--front'));
         sculpture.setProgress(flow.c);
-        return sculpture.warm();
+        await idle();
+        return sculpture.warm(idle);
       }).catch((e) => console.warn('[services] 3D scene unavailable', e));
     }
     return warming;
   };
-  ScrollTrigger.create({ trigger: section, start: 'top 200%', once: true, onEnter: warm });
+  ScrollTrigger.create({ trigger: section, start: 'top top', once: true, onEnter: warm });
 
   // card steps: each one is a 0.95 s quartic ease-out move, whichever way the scroll crosses it
   const stepTo = (n) => gsap.to(deck, { s: n, duration: 0.95, ease: 'power3.out', overwrite: true, onUpdate: layoutCards });
@@ -523,6 +551,10 @@ export function initStory({ reduced, smooth }) {
       if (!sculpture) return;
       // nothing to draw before the portal opens or once the black fade has covered the stage
       sculpture.visible = portal.wipe > 0.01 && tail.f < 0.995 && scrollY > st.start - vp.h && scrollY <= st.end;
+      // the props follow Lenis's fractional scroll (the native one is whole pixels, which makes them
+      // step 2-4px on irregular frames as a scroll eases out); same mapping as `flow`, units 236-826
+      const u = ((scrollY - st.start) / vp.h) * 100 - LEAD;
+      sculpture.setProgress(Math.min(1, Math.max(0, (u - 236) / 590)));
       sculpture.render(time);
     },
   };
