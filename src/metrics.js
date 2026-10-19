@@ -16,7 +16,10 @@ const fmt = (v, min, max = min) => {
 };
 
 // stripes: 34 per column, each growing on its own curve, started left to right
-const N = 34, SW = 3.25, GROW = 1.0, FADE = 0.9;
+// (eases are GSAP's: powerN.out = 1 - (1 - x)^(N + 1))
+const N = 34, SW = 3.25, GROW = 1.08, FADE = 1.0;
+// per column: when its stripes start (s after T0) and how long the wave takes to cross it
+const START = [0.7, 0.79, 0.89, 1.01], SPREAD = [0.97, 1.02, 1.045, 1.06];
 const P4 = (x) => 1 - Math.pow(1 - x, 4);
 const P3 = (x) => 1 - Math.pow(1 - x, 3);
 
@@ -49,7 +52,7 @@ export function initMetrics({ reduced }) {
     const cv = bars.appendChild(document.createElement('canvas'));
     return {
       stat, bars, cv, ctx: cv.getContext('2d'), num, text: stat.querySelector('.stat__text'),
-      target, dec, count: COUNT[k] || null, shown: '', t: 0, p: 0, w: 0, d: 1, tone: 1,
+      target, dec, count: COUNT[k] || null, spread: SPREAD[k], shown: '', t: 0, p: 0, w: 0, d: 1, tone: 1,
     };
   });
 
@@ -69,7 +72,7 @@ export function initMetrics({ reduced }) {
     const pitch = (w - SW) / (N - 1);
     for (let i = 0; i < N; i++) {
       const u = i / (N - 1);
-      const lt = c.t - (0.83 * u + 0.17 * u * u);
+      const lt = c.t - c.spread * (0.83 * u + 0.17 * u * u);
       if (lt <= 0) break;
       const h = P4(Math.min(1, lt / GROW)) * cv.height;
       ctx.globalAlpha = c.tone * (0.25 + 0.75 * P3(Math.min(1, lt / FADE)));
@@ -86,7 +89,7 @@ export function initMetrics({ reduced }) {
   let lines = splitLines(asideP, 'm-line');
   measure();
   if (reduced) {
-    cols.forEach((c) => { c.t = 2; c.p = 1; render(c); });
+    cols.forEach((c) => { c.t = 2.2; c.p = 1; render(c); });
     return { resize() { lines = splitLines(asideP, 'm-line'); measure(); cols.forEach(render); } };
   }
 
@@ -99,15 +102,15 @@ export function initMetrics({ reduced }) {
   };
   setBig();
   const rise = () => 0.097 * vp.h;
-  gsap.set([big, bigEm], { opacity: 0, y: 46 });
-  gsap.set(lines, { opacity: 0, y: 20 });
+  gsap.set([big, bigEm], { opacity: 0, y: 0.0588 * vp.h });
+  gsap.set(lines, { opacity: 0, y: 0.0256 * vp.h });
   gsap.set(cta, { scale: 0 });
   cols.forEach((c) => { gsap.set(c.text, { opacity: 0, y: rise() }); setCount(c); render(c); });
   let played = false;
   // line breaks depend on the web font: split again once it is in
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(() => {
-      if (!played) { lines = splitLines(asideP, 'm-line'); gsap.set(lines, { opacity: 0, y: 20 }); }
+      if (!played) { lines = splitLines(asideP, 'm-line'); gsap.set(lines, { opacity: 0, y: 0.0256 * vp.h }); }
       measure();
       cols.forEach(render);
     });
@@ -116,30 +119,30 @@ export function initMetrics({ reduced }) {
   const play = () => {
     if (played) return;
     played = true;
-    const T0 = 0.15; // a beat of pure black first
+    const T0 = 0.05; // a beat of pure black first
     const tl = gsap.timeline();
     // headline: rises out of a vertical-only blur; "Billion" follows 0.4 s later
     [big, bigEm].forEach((el, i) => {
       const at = T0 + 0.4 * i;
       const blur = blurs[i];
       el.style.filter = `url(#${blur.parentNode.id})`;
-      tl.to(el, { y: 0, duration: 1.1, ease: 'power4.out' }, at)
-        .to(el, { opacity: 1, duration: 0.9, ease: 'power3.out' }, at)
+      tl.to(el, { y: 0, duration: 1.25, ease: 'power3.out' }, at)
+        .to(el, { opacity: 1, duration: 0.9, ease: 'power2.out' }, at)
         .fromTo(blur, { attr: { stdDeviation: '0 9' } }, {
-          attr: { stdDeviation: '0 0' }, duration: 0.75, ease: 'power2.out',
+          attr: { stdDeviation: '0 0' }, duration: 0.75, ease: 'power1.out',
           onComplete: () => { el.style.filter = ''; },
         }, at);
     });
-    tl.to(counter, { v: 8, duration: 0.2, ease: 'power2.out', onUpdate: setBig }, T0)
-      .to(counter, { v: 11.2, duration: 1.9, ease: 'power3.out', onUpdate: setBig }, T0 + 0.2)
-      .to(lines, { y: 0, duration: 1.1, ease: 'power4.out', stagger: 0.07 }, T0 + 0.43)
-      .to(lines, { opacity: 1, duration: 0.9, ease: 'power3.out', stagger: 0.07 }, T0 + 0.43)
-      .to(cta, { scale: 1, duration: 0.55, ease: 'back.out(1.5)' }, T0 + 0.67);
+    tl.to(counter, { v: 8, duration: 0.2, ease: 'power1.out', onUpdate: setBig }, T0)
+      .to(counter, { v: 11.2, duration: 1.9, ease: 'power2.out', onUpdate: setBig }, T0 + 0.2)
+      .to(lines, { y: 0, duration: 1.25, ease: 'power3.out', stagger: 0.07 }, T0 + 0.47)
+      .to(lines, { opacity: 1, duration: 0.9, ease: 'power2.out', stagger: 0.07 }, T0 + 0.47)
+      .to(cta, { scale: 1, duration: 0.6, ease: 'back.out(1.3)' }, T0 + 0.72);
     cols.forEach((c, k) => {
       const at = T0 + 0.625 + 0.133 * k;
-      tl.to(c.text, { y: 0, duration: 1.0, ease: 'power4.out' }, at)
-        .to(c.text, { opacity: 1, duration: 0.8, ease: 'power2.out' }, at)
-        .to(c, { t: 2, duration: 2, ease: 'none', onUpdate: () => render(c) }, T0 + 0.68 + 0.103 * k);
+      tl.to(c.text, { y: 0, duration: 1.0, ease: 'power3.out' }, at)
+        .to(c.text, { opacity: 1, duration: 0.8, ease: 'power1.out' }, at)
+        .to(c, { t: 2.2, duration: 2.2, ease: 'none', onUpdate: () => render(c) }, T0 + START[k]);
       if (c.count) tl.to(c, { p: 1, duration: c.count.dur, ease: 'none', onUpdate: () => setCount(c) }, T0 + c.count.at);
     });
   };
@@ -151,7 +154,7 @@ export function initMetrics({ reduced }) {
   return {
     resize() {
       lines = splitLines(asideP, 'm-line');
-      gsap.set(lines, played ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 });
+      gsap.set(lines, played ? { opacity: 1, y: 0 } : { opacity: 0, y: 0.0256 * vp.h });
       measure();
       cols.forEach(render);
     },

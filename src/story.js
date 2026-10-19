@@ -405,8 +405,8 @@ export function initStory({ reduced, smooth }) {
   };
   ScrollTrigger.create({ trigger: section, start: 'top 200%', once: true, onEnter: warm });
 
-  // card steps: each one is a 0.95 s power3.out move, whichever way the scroll crosses it
-  const stepTo = (n) => gsap.to(deck, { s: n, duration: 0.95, ease: 'power3.out', overwrite: true, onUpdate: layoutCards });
+  // card steps: each one is a 0.95 s cubic ease-out move, whichever way the scroll crosses it
+  const stepTo = (n) => gsap.to(deck, { s: n, duration: 0.95, ease: 'power2.out', overwrite: true, onUpdate: layoutCards });
   STEPS.forEach((unit, i) => ScrollTrigger.create({
     trigger: section,
     start: () => st.start + ((LEAD + unit) * vp.h) / 100,

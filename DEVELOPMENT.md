@@ -47,7 +47,7 @@ glide and its text reveals, and the Metrics reveal.
 - About + Services: `.story { height: 1096vh }`; timeline units in `story.js` are vh of scroll.
   The first `LEAD` (116) units idle while the hero funnel plays over the stage; `STORY_MARKS` sets
   where the About/Services nav links land.
-- Metrics: `.metrics { height: 115vh; margin-top: -128vh }` with a sticky frame. It slides up over
+- Metrics: `.metrics { height: 100vh; margin-top: -128vh }` with a sticky frame. It slides up over
   the story's closing black hold (transparent until it reveals), so it pins the moment the Services
   fade completes; the reveal then plays in place on its own clock (about 3 s).
 - Transition 2 + Team: `.team` scrolls normally (no pin). While its top scrolls in, `team.js` draws the

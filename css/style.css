@@ -418,7 +418,7 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
 /* ---------- Metrics ---------- */
 /* The stage slides up over the story's closing black hold (transparent and empty until it reveals),
    so its frame pins the moment the Services fade completes and the reveal plays in place. */
-.metrics { position: relative; z-index: 1; height: 115vh; margin-top: -128vh; color: var(--paper); pointer-events: none; }
+.metrics { position: relative; z-index: 1; height: 100vh; margin-top: -128vh; color: var(--paper); pointer-events: none; }
 .metrics a { pointer-events: auto; }
 .metrics__fx { position: absolute; width: 0; height: 0; }
 .metrics__pin {
@@ -435,6 +435,8 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
 }
 /* same 4-column grid as the bars: the headline spans three, the aside sits on the fourth */
 .metrics__top { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 1.66vw; align-items: start; }
+/* the number and 'Billion' rise into place, so they must be transformable boxes */
+.metrics__num, .metrics__big em { display: inline-block; }
 .metrics__big { grid-column: 1 / 4; font: 400 clamp(64px, 10.35vw, 203px)/0.86 var(--serif); letter-spacing: -0.025em; white-space: nowrap; }
 .metrics__aside { grid-column: 4; padding-top: 6px; }
 .metrics__aside p { font: 400 14px/1.25 var(--sans); color: rgba(255, 255, 255, 0.86); margin-bottom: 18px; }

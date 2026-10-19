@@ -215,8 +215,8 @@ export function initTeam({ reduced }) {
       .fromTo(words, { filter: 'blur(10px)' }, { filter: 'blur(0px)', duration: 0.35, ease: 'power2.out', stagger: 0.1, clearProps: 'filter' }, 0.25)
       .to(sub, { opacity: 1, duration: 0.3, ease: 'power1.out' }, 0.6)
       // cards fade in left to right while rising into place
-      .to(members, { opacity: 1, duration: 0.75, ease: 'power2.out', stagger: 0.067 }, 0.57)
-      .to(members, { y: 0, duration: 1.0, ease: 'power4.out', stagger: 0.067 }, 0.57);
+      .to(members, { opacity: 1, duration: 0.75, ease: 'power1.out', stagger: 0.067 }, 0.57)
+      .to(members, { y: 0, duration: 1.0, ease: 'power3.out', stagger: 0.067 }, 0.57);
   };
   ScrollTrigger.create({ trigger: section.querySelector('.team__title'), start: 'top 50%', once: true, onEnter: play });
 
