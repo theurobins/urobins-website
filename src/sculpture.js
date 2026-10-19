@@ -189,7 +189,7 @@ export class Sculpture {
       orbit.add(end);
     }
     this.rings = [g1, g2, g3, knot];
-    add(orbit, { c0: 0.56, c1: 0.92, from: [-5.5, 3.2, -2], via: [0.4, 0.2, 4.0], to: [5.8, -3.0, -1], scale: 0.8, spin: [0.5, 1.6, 0.4], base: [0.4, -0.5, 0.2] });
+    add(orbit, { c0: 0.56, c1: 0.9, from: [-8.8, 5.1, -2], via: [0.4, 0.2, 5.4], to: [8.3, -4.3, -1], scale: 0.72, spin: [0.5, 1.6, 0.4], base: [0.4, -0.5, 0.2] });
 
     // phone: the small first arrival, drifting down from beside the title
     const phone = new Group();
@@ -197,7 +197,7 @@ export class Sculpture {
     const ps = new Mesh(new PlaneGeometry(0.52, 1.08), screenMat);
     ps.position.z = 0.045;
     phone.add(ps);
-    add(phone, { c0: 0.25, c1: 0.72, from: [-0.9, 2.9, 0.5], to: [2.0, -1.2, 0.8], scale: 0.9, spin: [0.4, 1.5, 0.5], base: [0.3, 0.2, 0.6] });
+    add(phone, { c0: 0.21, c1: 0.68, from: [-1.15, 3.7, 0.5], to: [5.55, -3.35, 0.8], scale: 0.85, spin: [0.4, 1.5, 0.5], base: [0.3, 0.2, 0.6] });
 
     // laptop (web)
     const laptop = new Group();
@@ -211,10 +211,10 @@ export class Sculpture {
     lid.position.set(0, 0.04, -0.5);
     lid.rotation.x = -0.35;
     laptop.add(lb, lid);
-    add(laptop, { c0: 0.4, c1: 0.66, from: [5.6, -3.4, -1.5], to: [-5.0, 2.8, -2.5], scale: 0.6, spin: [0.9, 1.3, 0.4], base: [0.5, 0.6, 0] });
+    add(laptop, { c0: 0.42, c1: 0.63, from: [7.1, -4.3, -1.5], to: [-7.7, 4.3, -2.5], scale: 1.15, spin: [0.9, 1.3, 0.4], base: [0.5, 0.6, 0] });
 
     // gear (CRM workflows)
-    add(new Mesh(gearGeometry(), blue), { c0: 0.44, c1: 0.7, from: [-6.0, -1.0, -2.0], to: [5.6, 2.4, 0.0], scale: 0.6, spin: [0.4, 0.8, 2.2], base: [0.6, 0.4, 0] });
+    add(new Mesh(gearGeometry(), blue), { c0: 0.47, c1: 0.68, from: [-7.3, -1.2, -2.0], to: [6.1, 2.6, 0.0], scale: 1.05, spin: [0.4, 0.8, 2.2], base: [0.6, 0.4, 0] });
 
     // cloud (infrastructure)
     const cloud = new Group();
@@ -224,7 +224,7 @@ export class Sculpture {
       m.scale.z = 0.7;
       cloud.add(m);
     }
-    add(cloud, { c0: 0.84, c1: 1.12, from: [5.8, 2.0, -2.0], to: [-5.0, -2.6, 0.0], scale: 0.75, spin: [0.2, 0.9, 0.3], base: [0, 0, 0] });
+    add(cloud, { c0: 0.8, c1: 1.01, from: [7.35, 2.55, -2.0], to: [-6.35, -3.3, 0.0], scale: 0.8, spin: [0.2, 0.9, 0.3], base: [0, 0, 0] });
 
     // magnifier (SEO)
     const mag = new Group();
@@ -236,7 +236,7 @@ export class Sculpture {
     handle.position.set(0.52, -0.52, 0);
     handle.rotation.z = Math.PI / 4;
     mag.add(handle);
-    add(mag, { c0: 0.78, c1: 1.06, from: [-4.8, -3.8, 0.3], to: [3.8, 3.8, -1.2], scale: 0.9, spin: [1.1, 0.7, 1.4], base: [0.2, 0.5, 0.3] });
+    add(mag, { c0: 0.86, c1: 1.26, from: [-4.8, -3.8, 0.3], to: [4.3, 4.3, -1.2], scale: 1.15, spin: [1.1, 0.7, 1.4], base: [0.2, 0.5, 0.3] });
 
     // megaphone (performance marketing)
     const mega = new Group();
@@ -246,7 +246,7 @@ export class Sculpture {
     const grip = new Mesh(new CylinderGeometry(0.08, 0.08, 0.45, 10), deep);
     grip.position.set(-0.25, -0.3, 0);
     mega.add(grip);
-    add(mega, { c0: 0.84, c1: 1.12, from: [6.0, 0.8, -1.0], to: [-4.0, -4.4, 0.5], scale: 0.9, spin: [0.8, 1.5, 0.6], base: [0.3, 0.8, 0] });
+    add(mega, { c0: 0.86, c1: 1.08, from: [6.5, 0.87, -1.0], to: [-4.0, -4.4, 0.5], scale: 1.1, spin: [0.8, 1.5, 0.6], base: [0.3, 0.8, 0] });
 
     // papers: two big sheets sweep fast across the screen right in front of the camera (top-right to
     // bottom-left), late flurries of mid-size sheets near the cards, two small ones far back
