@@ -217,16 +217,7 @@ const T = {
   sub: document.querySelector('.hero__sub'),
   heroCta: document.querySelector('.hero__cta'),
 };
-let menuFull = 0;
-
 function heroIntro() {
-  if (desktopNav) {
-    // measure the open menu now that the fonts are in
-    const w = T.menu.style.width;
-    T.menu.style.width = 'auto';
-    menuFull = T.menu.offsetWidth;
-    T.menu.style.width = w;
-  }
   const tl = gsap.timeline();
   // the glass starts drawing just before the preloader's red field fades off it
   tl.add(() => { heroLive = true; }, 0.08);
@@ -259,10 +250,17 @@ function heroIntro() {
   pop(T.logo, 0.98, 1.09, '8px -16px');
   tl.to(T.logoParts, { opacity: 1, duration: 0.15, stagger: 0.045 }, 1.12);
   if (desktopNav) {
+    // The menu opens from a lone, centred "About" pill. Rather than animating its width (a
+    // relayout every frame) the full menu is clipped in from both sides while the links slide
+    // with the left edge; measured here, once the fonts are in.
+    const side = Math.max(0, (T.menu.offsetWidth - T.menuLinks[0].offsetWidth - 16) / 2);
+    const r = getComputedStyle(T.menu).borderTopLeftRadius;
+    tl.fromTo(T.menu, { clipPath: `inset(0px ${side}px 0px ${side}px round ${r})` },
+      { clipPath: `inset(0px 0px 0px 0px round ${r})`, duration: 1.0, ease: 'menuOpen' }, 1.65)
+      .fromTo(T.menuLinks, { x: side }, { x: 0, duration: 1.0, ease: 'menuOpen' }, 1.65);
     pop(T.menu, 1.15, 1.065, '50% 50%');
-    tl.to(T.menu, { width: menuFull, duration: 1.0, ease: 'menuOpen' }, 1.65)
-      .to(T.menuLinks.slice(1), { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out', stagger: 0.2 }, 1.93)
-      .add(() => gsap.set(T.menu, { clearProps: 'width,overflow,justifyContent' }), 2.7);
+    tl.to(T.menuLinks.slice(1), { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out', stagger: 0.2 }, 1.93)
+      .add(() => { gsap.set(T.menu, { clearProps: 'clipPath' }); gsap.set(T.menuLinks, { clearProps: 'transform' }); }, 3.4);
   }
   pop(T.cta, 1.315, 1.09, '50% 50%');
   if (!desktopNav) pop(T.toggle, 1.315, 1.08, '50% 50%');
@@ -304,8 +302,6 @@ if (reduced) {
   if (desktopNav) {
     // the menu opens from a lone "About" pill
     gsap.set(T.menu, { xPercent: -50, x: 0, scale: 0 });
-    const aboutW = T.menuLinks[0].offsetWidth + 16;
-    gsap.set(T.menu, { width: aboutW, overflow: 'hidden', justifyContent: 'flex-start' });
     gsap.set(T.menuLinks.slice(1), { opacity: 0, y: 12 });
   }
   runPreloader({
