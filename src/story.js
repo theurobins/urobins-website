@@ -46,7 +46,7 @@ const PATH = [
   { x: -25, y: -110, z: -1900, ry: -185, rz: 0, s: 1, o: 0 },
 ];
 // the cards step one slot at a time on their own clock at these story units, resting between steps
-const STEPS = [389, 496, 602, 709, 815];
+const STEPS = [360, 456, 554, 652, 754, 815];
 const KEYS = Object.keys(PATH[0]);
 
 function cr(p0, p1, p2, p3, t) {
@@ -89,6 +89,12 @@ export function initStory({ reduced, smooth }) {
   const video = pill.querySelector('video');
   const services = section.querySelector('.services');
   const svcTitle = services.querySelector('.services__title');
+  // the reference deck shows its first card twice (once settling on the centre as the stage opens,
+  // once waiting in the next slot); the copy is hidden from assistive tech
+  const svcTrack = services.querySelector('.services__track');
+  const dup = svcTrack.querySelector('.svc-card').cloneNode(true);
+  dup.setAttribute('aria-hidden', 'true');
+  svcTrack.prepend(dup);
   const cards = [...services.querySelectorAll('.svc-card')];
   const fade = section.querySelector('.story__fade');
   const path = section.querySelector('.about__line path');
@@ -236,8 +242,8 @@ export function initStory({ reduced, smooth }) {
     const left = pillBox.left * (1 - k);
     const right = pillBox.right * (1 - k) + (1 - portal.wipe) * pw;
     const bottom = pillBox.bottom * (1 - k);
-    services.style.clipPath =
-      `inset(${top.toFixed(1)}px ${right.toFixed(1)}px ${bottom.toFixed(1)}px ${left.toFixed(1)}px round ${(PILL_R * (1 - k)).toFixed(2)}px)`;
+    const round = PILL_R ? ` round ${(PILL_R * (1 - k)).toFixed(2)}px` : '';
+    services.style.clipPath = `inset(${top.toFixed(1)}px ${right.toFixed(1)}px ${bottom.toFixed(1)}px ${left.toFixed(1)}px${round})`;
     // soft leading edge while the wipe crosses the pill
     if (portal.wipe < 0.999) {
       const x = pillBox.left + portal.wipe * pw;
@@ -279,9 +285,12 @@ export function initStory({ reduced, smooth }) {
       pathAt(u, pt);
       const x = narrow ? pt.x * 0.55 : pt.x;
       const y = narrow ? pt.y * 1.05 : pt.y;
-      card.style.opacity = Math.max(0, Math.min(1, pt.o)).toFixed(3);
-      card.style.transform = `translate(-50%, -50%) translate3d(${x.toFixed(2)}vw, ${y.toFixed(2)}vh, ${pt.z.toFixed(1)}px) ` +
+      // only touch the style when the card actually moved (it rests between steps)
+      const op = Math.max(0, Math.min(1, pt.o)).toFixed(3);
+      const tr = `translate(-50%, -50%) translate3d(${x.toFixed(2)}vw, ${y.toFixed(2)}vh, ${pt.z.toFixed(1)}px) ` +
         `rotateY(${pt.ry.toFixed(2)}deg) rotateZ(${pt.rz.toFixed(2)}deg) scale(${pt.s.toFixed(4)})`;
+      if (card._op !== op) { card._op = op; card.style.opacity = op; }
+      if (card._tr !== tr) { card._tr = tr; card.style.transform = tr; }
     });
     if (sculpture) sculpture.setProgress(flow.c);
   };
@@ -329,29 +338,30 @@ export function initStory({ reduced, smooth }) {
   // the flat teal veil clears in a diagonal sweep (top-left first) onto a darker base, then soft
   // cobalt haze drifts across it. Transform and opacity only, so nothing repaints.
   const veil = services.querySelector('.services__veil');
-  const VEIL_A = (25 * Math.PI) / 180;
-  const veilReach = () => 0.5 * (Math.cos(VEIL_A) * vp.w + Math.sin(VEIL_A) * vp.h) + 290;
+  const VEIL_A = (58.6 * Math.PI) / 180;
+  const veilReach = () => 0.5 * (Math.cos(VEIL_A) * vp.w + Math.sin(VEIL_A) * vp.h) + 182;
   const sweep = { p: 0 };
   const applyVeil = () => {
     const t = (2 * sweep.p - 1) * veilReach();
-    veil.style.transform = `translate(${(t * Math.cos(VEIL_A)).toFixed(1)}px, ${(t * Math.sin(VEIL_A)).toFixed(1)}px) rotate(25deg) scale(13.75)`;
+    veil.style.transform = `translate(${(t * Math.cos(VEIL_A)).toFixed(1)}px, ${(t * Math.sin(VEIL_A)).toFixed(1)}px) rotate(58.6deg) scale(13.75)`;
   };
-  tl.to(sweep, { p: 1, duration: 83, onUpdate: applyVeil }, 375);
+  tl.to(sweep, { p: 1, duration: 126, onUpdate: applyVeil }, 363);
   const [hzA, hzB, hzC] = services.querySelectorAll('.services__haze .hz');
   const X = (px) => () => (px / 1392) * vp.w;
   const Y = (px) => () => (px / 782) * vp.h;
-  tl.fromTo(hzA, { x: X(1000), y: Y(60), opacity: 0, rotation: 0 }, { x: X(900), y: Y(80), opacity: 1, duration: 38 }, 440)
-    .to(hzA, { x: X(560), y: Y(250), rotation: -6, duration: 39 }, 478)
-    .to(hzA, { x: X(640), y: Y(230), rotation: -9, duration: 39 }, 517)
-    .to(hzA, { x: X(450), y: Y(170), rotation: -12, duration: 39 }, 556)
-    .to(hzA, { x: X(600), y: Y(60), rotation: 0, duration: 40 }, 595)
-    .to(hzA, { x: X(650), y: Y(30), duration: 39 }, 635)
+  tl.fromTo(hzA, { x: X(800), y: Y(300), opacity: 0, rotation: -14 }, { x: X(781), y: Y(310), opacity: 1, duration: 38 }, 440)
+    .to(hzA, { x: X(675), y: Y(252), rotation: -8, duration: 26 }, 478)
+    .to(hzA, { x: X(647), y: Y(243), rotation: -2, duration: 13 }, 504)
+    .to(hzA, { x: X(565), y: Y(241), rotation: 7, duration: 39 }, 517)
+    .to(hzA, { x: X(591), y: Y(211), rotation: 22, duration: 39 }, 556)
+    .to(hzA, { x: X(687), y: Y(192), rotation: 12, duration: 40 }, 595)
+    .to(hzA, { x: X(720), y: Y(300), duration: 39 }, 635)
     .to(hzA, { opacity: 0, duration: 46 }, 674);
-  tl.fromTo(hzB, { x: X(640), y: 0, opacity: 0 }, { opacity: 1, duration: 33 }, 680)
+  tl.fromTo(hzB, { x: X(600), y: 0, rotation: 35, opacity: 0 }, { opacity: 1, duration: 33 }, 680)
     .to(hzB, { x: X(600), duration: 77 }, 713)
     .to(hzB, { x: X(700), duration: 36 }, 790);
-  tl.fromTo(hzC, { x: X(1180), y: Y(640), opacity: 0 }, { opacity: 0.9, duration: 52 }, 700)
-    .to(hzC, { x: X(1080), y: Y(660), duration: 74 }, 752);
+  tl.fromTo(hzC, { x: X(1180), y: Y(640), opacity: 0 }, { opacity: 0.9, duration: 40 }, 755)
+    .to(hzC, { x: X(1080), y: Y(660), duration: 71 }, 755);
   // quick fade to black, then a black hold before Metrics
   const tail = { f: 0 };
   tl.to(tail, { f: 1, duration: 26, ease: 'power2.out', onUpdate: () => { fade.style.opacity = tail.f; } }, 826);
@@ -405,8 +415,8 @@ export function initStory({ reduced, smooth }) {
   };
   ScrollTrigger.create({ trigger: section, start: 'top 200%', once: true, onEnter: warm });
 
-  // card steps: each one is a 0.95 s cubic ease-out move, whichever way the scroll crosses it
-  const stepTo = (n) => gsap.to(deck, { s: n, duration: 0.95, ease: 'power2.out', overwrite: true, onUpdate: layoutCards });
+  // card steps: each one is a 0.95 s quartic ease-out move, whichever way the scroll crosses it
+  const stepTo = (n) => gsap.to(deck, { s: n, duration: 0.95, ease: 'power3.out', overwrite: true, onUpdate: layoutCards });
   STEPS.forEach((unit, i) => ScrollTrigger.create({
     trigger: section,
     start: () => st.start + ((LEAD + unit) * vp.h) / 100,
