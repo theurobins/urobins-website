@@ -114,7 +114,7 @@ export function initStory({ reduced, smooth }) {
   // starts tilted, rising to the right, and flattens by `flat` of its growth. The last line moves as
   // one group on its own measured curve.
   const groups = [
-    { chars: splitChars(line1.querySelector('.split')), from: 12, to: 59.5, ty: 59.5, c: (j) => -0.57 * Math.sin(Math.PI * j), tilt: 1.15, flat: 0.78, bend: 0.37 },
+    { chars: splitChars(line1.querySelector('.split')), from: 12, to: 59.5, ty: 59.5, c: (j) => -0.57 * Math.sin(Math.PI * j), tilt: 1.22, flat: 0.78, bend: 0.37 },
     { chars: splitChars(line2.querySelectorAll('.split')[0]), from: 19.5, to: 60, ty: 60, c: (j) => -0.28 * Math.sin(Math.PI * j), tilt: 0.32, flat: 0.9 },
     { chars: splitChars(line2.querySelectorAll('.split')[1]), from: 26.5, to: 59.5, ty: 63, c: (j) => 0.25 * Math.pow(1 - j, 3) - 0.45 * Math.sin(Math.PI * j), tilt: 0.95, flat: 0.85 },
     { chars: splitChars(line3.querySelector('.split')), from: 29.5, to: 60, ty: 60, line3: true },
@@ -333,7 +333,9 @@ export function initStory({ reduced, smooth }) {
     applyLine();
   };
   measureLine();
-  tl.to(lineDraw, { f: 0.145, duration: 7, ease: (t) => 1.79 * t - 0.79 * t * t, onUpdate: applyLine }, 5)
+  // the hook's tip shows as a short stub first, then the hook and spike draw
+  tl.to(lineDraw, { f: 0.021, duration: 0.6, ease: 'none', onUpdate: applyLine }, 0)
+    .to(lineDraw, { f: 0.145, duration: 7, ease: (t) => 1.79 * t - 0.79 * t * t, onUpdate: applyLine }, 5)
     .to(lineDraw, { f: 1, duration: 200, onUpdate: applyLine }, 12);
 
   // the pill scales open from its centre in step with the line while the words part

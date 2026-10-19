@@ -243,7 +243,7 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
   position: absolute;
   inset: 0;
   background: url("../assets/texture/about-smoke.webp") 50% 50% / cover no-repeat;
-  opacity: 0.15;
+  opacity: 0.16;
   will-change: transform;
   animation: smoke-a 28s ease-in-out infinite alternate;
 }
