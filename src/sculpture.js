@@ -2,8 +2,7 @@
 // One prop per service (laptop, phone, gear, cloud, magnifier, megaphone) plus an orbit-ring
 // sculpture, big scribbled paper sheets that sweep past right in front of the camera, small
 // papers, and a few white flakes.
-// Two canvases share one scene: props far from the camera draw behind the cards, props close
-// to it (z > FRONT_Z) draw on a second canvas above the cards and the title.
+// One canvas behind the title and the cards: as in the reference, everything passes behind them.
 import {
   WebGLRenderer, Scene, PerspectiveCamera, Group, Mesh, TorusGeometry, TorusKnotGeometry, SphereGeometry,
   PlaneGeometry, CylinderGeometry, ConeGeometry, ExtrudeGeometry, Shape, Path, BufferGeometry,
@@ -12,7 +11,6 @@ import {
 } from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 
-const FRONT_Z = 1.2;
 const LIGHT = new Vector3(-3, 5, 6).normalize(); // upper-left key light (the camera never rotates)
 
 // flat tones picked by the light angle (rim, lit, mid, shade): no gradients, no outlines. Faces
@@ -127,23 +125,17 @@ function flakeGeometry() {
   return g;
 }
 
-const setLayer = (obj, n) => obj.traverse((o) => o.layers.set(n));
-
 export class Sculpture {
-  constructor(back, front) {
-    this.canvas = back;
+  constructor(canvas) {
+    this.canvas = canvas;
     this.progress = 0;
     this.visible = false;
-    const make = (canvas) => {
+    try {
       const r = new WebGLRenderer({ canvas, antialias: (window.devicePixelRatio || 1) < 1.5, alpha: true, powerPreference: 'high-performance' });
       // don't stall the main thread on a synchronous link-status check for every program
       r.debug.checkShaderErrors = false;
       r.setClearColor(0x000000, 0);
-      return r;
-    };
-    try {
-      this.renderer = make(back);
-      this.front = front ? make(front) : null;
+      this.renderer = r;
     } catch (e) {
       console.warn('[services] WebGL unavailable', e);
       this.failed = true;
@@ -168,7 +160,7 @@ export class Sculpture {
     const add = (obj, cfg) => {
       scene.add(obj);
       obj.visible = false;
-      props.push({ obj, layer: 0, ...cfg });
+      props.push({ obj, ...cfg });
       return obj;
     };
 
@@ -189,7 +181,7 @@ export class Sculpture {
       orbit.add(end);
     }
     this.rings = [g1, g2, g3, knot];
-    add(orbit, { c0: 0.56, c1: 0.9, from: [-8.8, 5.1, -2], via: [0.4, 0.2, 5.4], to: [8.3, -4.3, -1], scale: 0.72, spin: [0.5, 1.6, 0.4], base: [0.4, -0.5, 0.2] });
+    add(orbit, { c0: 0.615, c1: 0.895, from: [-8.8, 5.1, -2], via: [0.4, 0.2, 5.4], to: [8.3, -4.3, -1], scale: 0.9, spin: [0.5, 1.6, 0.4], base: [0.4, -0.5, 0.2] });
 
     // phone: the small first arrival, drifting down from beside the title
     const phone = new Group();
@@ -211,10 +203,10 @@ export class Sculpture {
     lid.position.set(0, 0.04, -0.5);
     lid.rotation.x = -0.35;
     laptop.add(lb, lid);
-    add(laptop, { c0: 0.42, c1: 0.63, from: [7.1, -4.3, -1.5], to: [-7.7, 4.3, -2.5], scale: 1.15, spin: [0.9, 1.3, 0.4], base: [0.5, 0.6, 0] });
+    add(laptop, { c0: 0.47, c1: 0.68, from: [7.1, -4.3, -1.5], to: [-7.7, 4.3, -2.5], scale: 1.15, spin: [0.9, 1.3, 0.4], base: [0.5, 0.6, 0] });
 
     // gear (CRM workflows)
-    add(new Mesh(gearGeometry(), blue), { c0: 0.47, c1: 0.68, from: [-7.3, -1.2, -2.0], to: [6.1, 2.6, 0.0], scale: 1.05, spin: [0.4, 0.8, 2.2], base: [0.6, 0.4, 0] });
+    add(new Mesh(gearGeometry(), blue), { c0: 0.53, c1: 0.74, from: [-7.3, -1.2, -2.0], to: [6.1, 2.6, 0.0], scale: 1.05, spin: [0.4, 0.8, 2.2], base: [0.6, 0.4, 0] });
 
     // cloud (infrastructure)
     const cloud = new Group();
@@ -246,30 +238,37 @@ export class Sculpture {
     const grip = new Mesh(new CylinderGeometry(0.08, 0.08, 0.45, 10), deep);
     grip.position.set(-0.25, -0.3, 0);
     mega.add(grip);
-    add(mega, { c0: 0.86, c1: 1.08, from: [6.5, 0.87, -1.0], to: [-4.0, -4.4, 0.5], scale: 1.1, spin: [0.8, 1.5, 0.6], base: [0.3, 0.8, 0] });
+    add(mega, { c0: 0.835, c1: 1.055, from: [6.5, 0.87, -1.0], to: [-4.0, -4.4, 0.5], scale: 1.1, spin: [0.8, 1.5, 0.6], base: [0.3, 0.8, 0] });
 
     // papers: two big sheets sweep fast across the screen right in front of the camera (top-right to
-    // bottom-left), late flurries of mid-size sheets near the cards, two small ones far back
+    // bottom-left), late flurries of mid-size sheets near the cards, two small ones far back. Every
+    // sheet enters and leaves across a frame edge. The big sweeps (`sweep`) tumble with the scroll
+    // only, so each one faces the camera at its key moment however long the visitor took to get there.
     const paperMat = (i) => celMaterial({ rim: '#fbfaf7', lit: '#fbfaf7', mid: '#fbfaf7', shade: '#e6e4de', cut: [0.9, 0.5, -0.4], map: scribbleTexture(i), side: DoubleSide });
     const sheet = crumpledSheet(0.62, 0.82);
     add(new Mesh(sheet, paperMat(1)), {
-      c0: 0.4373, c1: 0.4644, from: [1.22, 0.38, 7.44], via: [-0.27, 0.35, 5.57], to: [-2.8, -1.0, 5.41], scale: 1.2, spin: [1.6, 2.2, 0.9], base: [0.3, 0.6, 0.2], paper: true,
+      c0: 0.4373, c1: 0.4644, from: [1.22, 0.38, 7.44], via: [-0.27, 0.35, 5.57], to: [-2.8, -1.0, 5.41], scale: 1.2, spin: [1.6, 2.2, 0.9], base: [-0.99, -1.36, -0.33], paper: true, sweep: true,
     });
     add(new Mesh(sheet, paperMat(2)), {
-      c0: 0.6169, c1: 0.661, from: [2.16, 0.86, 5.3], via: [0.46, 0.9, 6.47], to: [-2.72, -0.18, 5.13], scale: 1.2, spin: [1.2, 1.8, 1.4], base: [1.2, 0.2, 0.8], paper: true,
+      c0: 0.6104, c1: 0.661, from: [2.75, 0.95, 5.3], via: [0.46, 0.9, 6.47], to: [-2.72, -0.18, 5.13], scale: 1.2, spin: [1.2, 1.8, 1.4], base: [-0.52, -0.78, -0.36], paper: true, sweep: true,
     });
     [
-      { c0: 0.775, len: 0.07, from: [-0.6, -4.2, 1.8], to: [0.4, -0.2, 2.2], scale: 0.9 },
-      { c0: 0.875, len: 0.06, from: [3.0, -0.6, 1.6], to: [-1.0, 0.2, 2.0], scale: 0.8 },
-      { c0: 0.905, len: 0.07, from: [-2.0, -1.4, 2.0], to: [-3.8, -3.2, 1.6], scale: 1.0 },
-      { c0: 0.97, len: 0.08, from: [-0.4, 0.0, 1.8], to: [4.6, 0.4, 1.6], scale: 0.85 },
+      { c0: 0.775, len: 0.1155, from: [-0.6, -4.2, 1.8], to: [1.05, 2.4, 2.46], scale: 0.9 },
+      { c0: 0.851, len: 0.1302, from: [4.6, -0.92, 1.44], to: [-4.08, 0.82, 2.31], scale: 0.8 },
+      { c0: 0.758, len: 0.217, from: [1.78, 2.38, 2.84], to: [-3.8, -3.2, 1.6], scale: 1.0 },
+      { c0: 0.91, len: 0.14, from: [-4.15, -0.3, 1.95], to: [4.6, 0.4, 1.6], scale: 0.85 },
       // a second sheet right behind the first, rising from below the frame
-      { c0: 0.455, len: 0.0314, from: [0.4, -2.4, 4.6], via: [-1.39, -0.73, 4.52], to: [-3.3, -1.36, 4.28], scale: 1.2 },
-      { c0: 0.7, len: 0.3, from: [-6.2, -3.0, -2.4], to: [5.8, 2.8, -1.8], scale: 0.6 },
+      { c0: 0.455, len: 0.0314, from: [0.4, -2.4, 4.6], via: [-1.39, -0.73, 4.52], to: [-3.3, -1.36, 4.28], scale: 1.2, base: [-2.17, -1.22, -0.94], sweep: true },
+      { c0: 0.675, len: 0.35, from: [-7.2, -3.5, -2.4], to: [6.8, 3.3, -1.8], scale: 0.6 },
     ].forEach((p, i) => add(new Mesh(sheet, paperMat(i + 3)), {
       c0: p.c0, c1: p.c0 + p.len, from: p.from, via: p.via, to: p.to, scale: p.scale,
-      spin: [2.4 + i * 0.2, 1.8, 2.9 - i * 0.15], base: [i, i * 2, i * 0.5], paper: true,
+      spin: [2.4 + i * 0.2, 1.8, 2.9 - i * 0.15], base: p.base || [i, i * 2, i * 0.5], paper: true, sweep: !!p.sweep,
     }));
+    // thin white speed streaks alongside the paper passes
+    const streak = new PlaneGeometry(4.2, 0.012);
+    const streakMat = new MeshBasicMaterial({ color: 0xe6eef0, side: DoubleSide });
+    add(new Mesh(streak, streakMat), { c0: 0.41, c1: 0.485, from: [6.6, -1.6, 1.0], to: [-6.8, 1.0, 1.0], scale: 1, spin: [0, 0, 0], base: [0, 0, 0.27], sweep: true });
+    add(new Mesh(streak, streakMat), { c0: 0.55, c1: 0.62, from: [-7.2, -0.6, 0.5], to: [7.2, 0.6, 0.5], scale: 1, spin: [0, 0, 0], base: [0, 0, 0.27], sweep: true });
     this.props = props;
 
     // white flakes: irregular chips tumbling slowly through the stage
@@ -287,7 +286,6 @@ export class Sculpture {
     this.dummy = new Object3D();
     scene.add(flakes);
 
-    this.frontUsed = false;
     this.resize();
   }
 
@@ -296,11 +294,8 @@ export class Sculpture {
     const w = this.canvas.clientWidth || window.innerWidth;
     const h = this.canvas.clientHeight || window.innerHeight;
     const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
-    for (const r of [this.renderer, this.front]) {
-      if (!r) continue;
-      r.setPixelRatio(dpr);
-      r.setSize(w, h, false);
-    }
+    this.renderer.setPixelRatio(dpr);
+    this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.narrow = w / h < 0.9;
@@ -309,32 +304,26 @@ export class Sculpture {
   setProgress(p) { this.progress = p; }
 
   // upload textures and compile every program off the scroll path (parallel compile where supported),
-  // then draw one hidden frame so the first visible one costs no more than any other
-  // `pause` (optional) resolves when the browser is idle: each renderer's texture uploads, compile
-  // and first draw then run in their own slices instead of one long task
+  // then draw one hidden frame so the first visible one costs no more than any other. `pause`
+  // (optional) resolves when the browser is idle: the uploads, the compile and the first draw then
+  // run in their own slices instead of one long task.
   async warm(pause = () => Promise.resolve()) {
     if (this.failed) return;
-    const { scene, camera, props } = this;
-    const show = (on) => {
-      props.forEach((p) => { p.obj.visible = on; });
-      if (on) camera.layers.enableAll(); else camera.layers.set(0);
-    };
+    const { scene, camera, props, renderer: r } = this;
+    const show = (on) => props.forEach((p) => { p.obj.visible = on; });
     try {
-      for (const r of [this.renderer, this.front].filter(Boolean)) {
-        await pause();
-        scene.traverse((o) => {
-          const u = o.material && o.material.uniforms;
-          if (u && u.uMap && u.uMap.value) r.initTexture(u.uMap.value);
-        });
-        await pause();
-        show(true);
-        try { await r.compileAsync(scene, camera); } catch (e) { /* compile on first draw instead */ }
-        await pause();
-        show(true);
-        r.render(scene, camera);
-        show(false);
-        r.clear();
-      }
+      await pause();
+      scene.traverse((o) => {
+        const u = o.material && o.material.uniforms;
+        if (u && u.uMap && u.uMap.value) r.initTexture(u.uMap.value);
+      });
+      await pause();
+      show(true);
+      try { await r.compileAsync(scene, camera); } catch (e) { /* compile on first draw instead */ }
+      await pause();
+      show(true);
+      r.render(scene, camera);
+      r.clear();
     } finally {
       show(false);
     }
@@ -344,7 +333,6 @@ export class Sculpture {
     if (this.failed || !this.visible) return;
     const p = this.progress;
     const xs = this.narrow ? 0.55 : 1;
-    let anyFront = false;
     for (const pr of this.props) {
       const k = (p - pr.c0) / (pr.c1 - pr.c0);
       const on = k > -0.02 && k < 1.02;
@@ -360,13 +348,9 @@ export class Sculpture {
       const y = u * u * a[1] + 2 * u * k * v1 + k * k * b[1] + Math.sin(time * 0.6 + pr.base[0]) * 0.05;
       const z = u * u * a[2] + 2 * u * k * v2 + k * k * b[2];
       pr.obj.position.set(x * xs, y, z);
-      const tt = pr.paper ? time * 0.25 : time * 0.1;
+      const tt = pr.sweep ? 0 : pr.paper ? time * 0.25 : time * 0.1;
       pr.obj.rotation.set(pr.base[0] + pr.spin[0] * (k + tt), pr.base[1] + pr.spin[1] * (k + tt), pr.base[2] + pr.spin[2] * (k + tt) * 0.6);
       pr.obj.scale.setScalar(pr.scale * (this.narrow ? 0.75 : 1));
-      // close to the camera: draw above the cards and the title
-      const layer = this.front && z > FRONT_Z ? 1 : 0;
-      if (layer !== pr.layer) { pr.layer = layer; setLayer(pr.obj, layer); }
-      if (layer) anyFront = true;
     }
     const [g1, g2, g3, knot] = this.rings;
     g1.rotation.y = p * Math.PI * 1.6 + time * 0.18;
@@ -387,19 +371,6 @@ export class Sculpture {
     }
     flakes.instanceMatrix.needsUpdate = true;
 
-    const { scene, camera } = this;
-    camera.layers.set(0);
-    this.renderer.render(scene, camera);
-    if (this.front) {
-      if (anyFront) {
-        camera.layers.set(1);
-        this.front.render(scene, camera);
-        camera.layers.set(0);
-        this.frontUsed = true;
-      } else if (this.frontUsed) {
-        this.front.clear();
-        this.frontUsed = false;
-      }
-    }
+    this.renderer.render(this.scene, this.camera);
   }
 }

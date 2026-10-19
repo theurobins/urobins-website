@@ -29,7 +29,7 @@ video and fonts behave like production. Use `npm run watch` while editing `src/`
 | `src/hero-gl.js` | WebGL ribbed-glass gradient (orange to lavender) that also paints the stepped funnel bars of transition 1 |
 | `src/funnel.js` | Stepped-bar geometry for transition 1 (the hero funnel) |
 | `src/story.js` | About + Services sticky stage: 3D letter assembly, line draw, video pill split, portal into Services, curved card carousel |
-| `src/sculpture.js` | Three.js cel-shaded cobalt props (orbit rings, laptop, phone, gear, papers…) and white flakes for the Services stage. Two canvases share one scene: props near the camera draw above the cards. Built as its own bundle |
+| `src/sculpture.js` | Three.js cel-shaded cobalt props (orbit rings, laptop, phone, gear, papers…) and white flakes for the Services stage. One canvas behind the title and the cards (everything passes behind them, as in the reference). Built as its own bundle |
 | `src/metrics.js` | `$11.2 Billion` counter and the striped bar charts |
 | `src/team.js` | Transition 2 (a page-attached stepped funnel drawn on one overlay canvas) and the team reveal/counters |
 | `src/lines.js` | Splits a paragraph into rendered lines for line-by-line reveals |

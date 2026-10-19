@@ -400,11 +400,11 @@ export function initStory({ reduced, smooth }) {
     .to(hzA, { x: X(565), y: Y(241), rotation: 7, duration: 39 }, 517)
     .to(hzA, { x: X(591), y: Y(211), rotation: 22, duration: 39 }, 556)
     .to(hzA, { x: X(687), y: Y(192), rotation: 12, duration: 40 }, 595)
-    .to(hzA, { x: X(720), y: Y(300), duration: 39 }, 635)
-    .to(hzA, { opacity: 0, duration: 46 }, 674);
-  tl.fromTo(hzB, { x: X(600), y: 0, rotation: 35, opacity: 0 }, { opacity: 1, duration: 33 }, 680)
-    .to(hzB, { x: X(600), duration: 77 }, 713)
-    .to(hzB, { x: X(700), duration: 36 }, 790);
+    .to(hzA, { x: X(690), y: Y(215), duration: 39 }, 635)
+    .to(hzA, { opacity: 0, duration: 60 }, 620);
+  tl.fromTo(hzB, { x: X(490), y: 0, rotation: 35, opacity: 0 }, { opacity: 1, duration: 33 }, 680)
+    .to(hzB, { x: X(490), duration: 77 }, 713)
+    .to(hzB, { x: X(590), duration: 36 }, 790);
   tl.fromTo(hzC, { x: X(1180), y: Y(640), opacity: 0 }, { opacity: 0.9, duration: 40 }, 755)
     .to(hzC, { x: X(1080), y: Y(660), duration: 71 }, 755);
   // quick fade to black, then a black hold before Metrics
@@ -456,7 +456,7 @@ export function initStory({ reduced, smooth }) {
     if (!warming) {
       warming = loadSculpture().then(async ({ Sculpture }) => {
         await idle();
-        sculpture = new Sculpture(services.querySelector('.services__gl'), services.querySelector('.services__gl--front'));
+        sculpture = new Sculpture(services.querySelector('.services__gl'));
         sculpture.setProgress(flow.c);
         await idle();
         return sculpture.warm(idle);
