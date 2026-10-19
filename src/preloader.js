@@ -511,7 +511,7 @@ export function runPreloader({ el, reduced, onReveal, onDone }) {
   };
   // once the red field covers the scene there's nothing left to redraw
   const tick = () => {
-    if (st.tau < DIVE + 0.13) draw(st.tau);
+    if (st.tau < DIVE + 0.27) draw(st.tau);
     setCount();
   };
 
@@ -547,8 +547,8 @@ export function runPreloader({ el, reduced, onReveal, onDone }) {
     .add(() => { gsap.to(count, { scale: 6, opacity: 0, transformOrigin: diveOrigin(), duration: 0.12, ease: 'power2.in' }); }, DIVE)
     // red field after the dive: dark first, then ramps to the hero red underneath
     // the blurred dive dissolves into dark red, which warms to the glass's starting red
-    .fromTo(flash, { opacity: 0, backgroundColor: '#7f2b1f' }, { opacity: 1, duration: 0.05, ease: 'none' }, 4.8)
-    .to(flash, { backgroundColor: '#97311f', duration: 0.05, ease: 'power1.in' }, 4.85)
+    .fromTo(flash, { opacity: 0, backgroundColor: '#7f2b1f' }, { opacity: 0.85, duration: 0.04, ease: 'none' }, 4.83)
+    .to(flash, { opacity: 1, backgroundColor: '#97311f', duration: 0.07, ease: 'power1.in' }, 4.87)
     .add(() => { onReveal && onReveal(); }, 4.78)
     // the whole preloader fades off the hero glass, which starts on the same red and brightens
     .to(el, { opacity: 0, duration: 0.07, ease: 'none' }, 4.9)

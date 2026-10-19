@@ -47,6 +47,15 @@ const hs = { y: 0, e: 0, out: 0 };
 const auto = { mix: 0 };
 const rects = [];
 let vw = vp.w, vh = vp.h;
+// funnel phase advance while the stage scrolls off (bars vanish bottom-up), measured from the reference
+const PH = [[0, 0], [0.08, 0.27], [0.14, 0.63], [0.196, 1.28], [0.238, 2.36], [0.274, 3.98], [0.3, 7], [0.33, 15]];
+const phaseOut = (o) => {
+  if (o <= 0) return 0;
+  for (let i = 1; i < PH.length; i++) {
+    if (o <= PH[i][0]) { const [a0, b0] = PH[i - 1], [a1, b1] = PH[i]; return b0 + ((o - a0) / (a1 - a0)) * (b1 - b0); }
+  }
+  return 15;
+};
 const smooth01 = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
 const applyHero = () => {
@@ -66,7 +75,7 @@ const applyHero = () => {
   if (hs.e > 0) {
     const D = 15.25 + 33 * (1 - smooth01(0.3, 0.8, hs.e));
     // on the way out the funnel collapses from the bottom up (its phase runs on), top bar last
-    const phiOut = 15 * Math.pow(Math.min(1, hs.out / 0.33), 3);
+    const phiOut = phaseOut(hs.out);
     hero.setBars(heroFunnel(edgeY, phi + phiOut, D, 1, hs.out * vh, vw, vh, rects));
   } else {
     hero.setBars([]);
@@ -221,10 +230,10 @@ function heroIntro() {
   const tl = gsap.timeline();
   // the glass starts drawing just before the preloader's red field fades off it
   tl.add(() => { heroLive = true; }, 0.08);
-  // pill pop: grow straight through to a small overshoot, then settle
-  const pop = (el, at, ov, dur, origin) => {
+  // pill pop: grow linearly to full size, ease into a small overshoot, then settle
+  const pop = (el, at, ov, origin) => {
     tl.set(el, { scale: 0, opacity: 1, transformOrigin: origin }, at)
-      .to(el, { keyframes: [{ scale: ov, duration: dur, ease: 'none' }, { scale: 1, duration: 0.23, ease: 'sine.inOut' }] }, at);
+      .to(el, { keyframes: [{ scale: 1, duration: 0.25, ease: 'none' }, { scale: ov, duration: 0.09, ease: 'sine.out' }, { scale: 1, duration: 0.2, ease: 'sine.inOut' }] }, at);
   };
 
   // glass: dark red hand-off, a peach flash, then an X of ribs zooming out to straight ribs
@@ -238,29 +247,30 @@ function heroIntro() {
     .to(hero.state, { flash: 0, duration: 0.23, ease: 'none' }, 0.275)
     // one rib per side forms an X, then relaxes to straight ribs
     .to(hero.state, { hyp: 0.95, duration: 0.03, ease: 'none' }, 0.205)
-    .to(hero.state, { hyp: 0, duration: 0.6, ease: 'expo.out' }, 0.3)
+    // ...and holds that hourglass until ~5.33 s before relaxing
+    .to(hero.state, { hyp: 0, duration: 0.58, ease: 'power2.out' }, 0.545)
     // the rib grid zooms out from the centre: spacing grows geometrically outward and evens out
     // as lambda doubles every 0.075 s; the top and bottom wedges fill with ribs
-    .to(hero.state, { lg: 14.3, duration: 0.955, ease: 'none' }, 0.245)
-    .set(hero.state, { lg: 30 }, 1.2)
+    .to(hero.state, { lg: 14.3, duration: 0.81, ease: 'none' }, 0.245)
+    .set(hero.state, { lg: 30 }, 1.06)
     .to(hero.state, { pitch: () => hero.restPitch, duration: 0.35, ease: 'power1.inOut' }, 0.3)
     .to(hero.state, { wedge: 0, duration: 0.1, ease: 'none' }, 0.33);
 
-  pop(T.logo, 1.0, 1.08, 0.32, '8px -16px');
+  pop(T.logo, 0.98, 1.09, '8px -16px');
   tl.to(T.logoParts, { opacity: 1, duration: 0.15, stagger: 0.045 }, 1.12);
   if (desktopNav) {
-    pop(T.menu, 1.15, 1.065, 0.33, '50% 50%');
+    pop(T.menu, 1.15, 1.065, '50% 50%');
     tl.to(T.menu, { width: menuFull, duration: 1.0, ease: 'menuOpen' }, 1.65)
       .to(T.menuLinks.slice(1), { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out', stagger: 0.2 }, 1.93)
       .add(() => gsap.set(T.menu, { clearProps: 'width,overflow,justifyContent' }), 2.7);
   }
-  pop(T.cta, 1.35, 1.09, 0.3, '50% 50%');
-  if (!desktopNav) pop(T.toggle, 1.4, 1.08, 0.3, '50% 50%');
+  pop(T.cta, 1.315, 1.09, '50% 50%');
+  if (!desktopNav) pop(T.toggle, 1.315, 1.08, '50% 50%');
 
   // blur-ins drop their filter when done so the text goes back to plain, crisp layers
-  tl.to(T.words, { opacity: 1, filter: 'blur(0px)', y: 0, duration: 0.8, ease: 'power2.out', stagger: 0.13, clearProps: 'filter,willChange' }, 1.59)
-    .to(T.sub, { opacity: 1, filter: 'blur(0px)', y: 0, duration: 0.8, ease: 'power2.out', clearProps: 'filter,willChange' }, 2.32);
-  pop(T.heroCta, 2.72, 1.06, 0.35, '50% 50%');
+  tl.to(T.words, { opacity: 1, filter: 'blur(0px)', y: 0, duration: 0.8, ease: 'power2.out', stagger: 0.13, clearProps: 'filter,willChange' }, 1.5)
+    .to(T.sub, { opacity: 1, filter: 'blur(0px)', y: 0, duration: 0.8, ease: 'power2.out', clearProps: 'filter,willChange' }, 2.28);
+  pop(T.heroCta, 2.715, 1.08, '50% 50%');
   // hand the pills back to CSS once they have settled (the menu keeps its centring transform)
   tl.add(() => gsap.set([T.logo, T.cta, T.heroCta], { clearProps: 'transform' }), 3.4);
   tl.add(() => {

@@ -16,20 +16,20 @@ const BLOBS = [
   // wide white dome with a crisp rim (lavender only), under the violet corners
   [0.64, 0.36, 0.64, 0.36, 0.5, 0.40, 0.40, [0.93, 0.93, 0.98], [0.93, 0.93, 0.98], 0, 0.97, 1.35, 2.4],
   // deep crimson core (upper middle only) / top-left violet
-  [0.43, 0.30, 0.27, 0.0, 1, 0.30, 0.26, [0.75, 0.20, 0.16], [0.36, 0.25, 0.76], 0.9, 0.95, 1, 1],
+  [0.43, 0.30, 0.27, 0.0, 1, 0.30, 0.30, [0.75, 0.20, 0.16], [0.36, 0.25, 0.76], 0.9, 1.0, 1, 1],
   // orange only: rose lower middle, salmon top centre
   [0.50, 0.86, 0.50, 0.86, 0, 0.32, 0.32, [0.76, 0.34, 0.27], [0.76, 0.34, 0.27], 0.8, 0, 1, 1],
   [0.55, 0.0, 0.55, 0.0, 0, 0.20, 0.20, [0.78, 0.40, 0.33], [0.78, 0.40, 0.33], 0.75, 0, 1, 1],
   // violet diagonal running down from the top-left (lavender only)
   [0.18, 0.36, 0.18, 0.36, 0, 0.22, 0.22, [0.50, 0.42, 0.80], [0.50, 0.42, 0.80], 0, 0.7, 1, 1],
   // top-right: muted rose / violet
-  [0.88, 0.22, 0.86, 0.0, -1, 0.34, 0.22, [0.76, 0.36, 0.30], [0.40, 0.33, 0.80], 0.85, 0.95, 1, 1],
+  [0.88, 0.22, 0.86, 0.0, -1, 0.34, 0.22, [0.76, 0.36, 0.30], [0.40, 0.33, 0.80], 0.85, 1.0, 1, 1],
   // right edge violet (lavender only)
   [1.0, 0.32, 1.0, 0.32, 0, 0.22, 0.22, [0.47, 0.40, 0.79], [0.47, 0.40, 0.79], 0, 0.7, 1, 1],
   // right side: orange-red low / lilac
   [1.0, 0.78, 0.92, 0.80, 0, 0.20, 0.32, [0.84, 0.36, 0.17], [0.78, 0.68, 0.95], 0.9, 0.95, 1, 1],
   // mid-right accent (lavender only)
-  [0.82, 0.55, 0.82, 0.55, 0, 0.22, 0.22, [0.74, 0.70, 0.95], [0.74, 0.70, 0.95], 0, 0.6, 1, 1],
+  [0.82, 0.55, 0.82, 0.55, 0, 0.22, 0.22, [0.74, 0.70, 0.95], [0.74, 0.70, 0.95], 0, 0.3, 1, 1],
   // orange-only corners: brown-rose top-right, salmon top-left
   [1.0, 0.0, 1.0, 0.0, 0, 0.12, 0.12, [0.57, 0.29, 0.25], [0.57, 0.29, 0.25], 0.8, 0, 1, 1],
   [0.0, 0.0, 0.0, 0.0, 0, 0.10, 0.10, [0.80, 0.42, 0.35], [0.80, 0.42, 0.35], 0.6, 0, 1, 1],
@@ -110,12 +110,15 @@ void main() {
   float lam = exp2(uLg) * W / 1392.0;
   float n = lam > 1e5 ? R / uPitch : (lam / uPitch) * log(1.0 + R / lam);
   float u = fract(n);
-  float hl = exp(-pow(u - 0.5, 2.0) / (2.0 * 0.11 * 0.11));
+  // keep each rib a thin line of its resting width while the zoom spreads them apart
+  float spread = lam > 1e5 ? 1.0 : 1.0 + R / lam;
+  float sig = max(0.11 / spread, 0.6 / (uPitch * spread));
+  float hl = exp(-pow(u - 0.5, 2.0) / (2.0 * sig * sig));
 
   vec3 col = field(vec2(frag.x / W, (ypx + uShift) / H));
   float l = dot(col, vec3(0.299, 0.587, 0.114));
   col += hl * 0.042 * (1.0 - smoothstep(0.55, 0.95, l)) * (1.0 - wedge * uWedge) * (1.0 + 1.5 * uFlash);
-  col = 1.0 - (1.0 - col) * (1.0 - uFlash * vec3(0.83, 0.38, 0.25));
+  col = 1.0 - (1.0 - col) * (1.0 - uFlash * vec3(0.83, 0.4, 0.31));
   col = mix(vec3(0.592, 0.192, 0.125), col, uReveal);
   gl_FragColor = vec4(col * cover, cover);
 }
@@ -205,7 +208,15 @@ export class HeroGL {
     let n = 0;
     for (let i = 0; i < MAX_BLOBS; i++) {
       const b = BLOBS[i];
-      const a = lerp(b[9], b[10], m);
+      let a = lerp(b[9], b[10], m);
+      // the change washes through a light mauve: the core dips mid-way and the right-hand violets
+      // arrive last
+      if (i === 3) a *= 1 - 3.6 * m * (1 - m);
+      if (i === 7 || i === 8) {
+        // only the lavender share is delayed; the orange state's corner is untouched
+        const x = Math.min(1, Math.max(0, (m - 0.93) / 0.07));
+        a = b[9] * (1 - m) + b[10] * m * x * x * (3 - 2 * x);
+      }
       if (a <= 0.002) continue;
       const r = lerp(b[5], b[6], m);
       fC[n * 2] = (lerp(b[0], b[2], m) + b[4] * dx) * aspect;
