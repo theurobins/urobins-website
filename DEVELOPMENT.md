@@ -37,6 +37,8 @@ video and fonts behave like production. Use `npm run watch` while editing `src/`
 ## Scroll lengths
 
 Each stage is a tall section with a `position: sticky` inner frame; its timeline is scrubbed by scroll.
+A few moments run on their own clock once reached, as they do in the reference: the About block's
+glide and its text reveals, and the Metrics reveal.
 
 - Hero + transition 1: `.hero { height: 300vh; margin-bottom: -226.5vh }`. The hero overlaps the
   About stage, which pins underneath it from 73.5vh of scroll, so the stepped funnel opens straight
@@ -44,7 +46,9 @@ Each stage is a tall section with a `position: sticky` inner frame; its timeline
 - About + Services: `.story { height: 1096vh }`; timeline units in `story.js` are vh of scroll.
   The first `LEAD` (116) units idle while the hero funnel plays over the stage; `STORY_MARKS` sets
   where the About/Services nav links land.
-- Metrics: `.metrics { height: 190vh }` with a sticky frame; the bars play once as it settles.
+- Metrics: `.metrics { height: 115vh; margin-top: -128vh }` with a sticky frame. It slides up over
+  the story's closing black hold (transparent until it reveals), so it pins the moment the Services
+  fade completes; the reveal then plays in place on its own clock (about 3 s).
 - Transition 2 + Team: `.team { height: 280vh }` with a sticky frame (funnel, then title and cards).
 - Below 981px wide, Metrics and Team scroll normally (no sticky frame).
 
