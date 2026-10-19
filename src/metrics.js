@@ -5,6 +5,7 @@
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { vp } from './viewport.js';
+import { splitLines } from './lines.js';
 
 const formatters = {};
 const fmt = (v, min, max = min) => {
@@ -25,31 +26,6 @@ const land = (x, x1) => {
   return x <= x1 ? k * x : 1 - (k / (2 * (1 - x1))) * (1 - x) * (1 - x);
 };
 const COUNT = [{ at: 0.27, dur: 0.93, x1: 0.65 }, null, { at: 0.3, dur: 2.3, x1: 0.85 }, { at: 0.34, dur: 2.4, x1: 0.85 }];
-
-// wrap each rendered line of a paragraph in its own block span
-function splitLines(p) {
-  const text = p.dataset.text || (p.dataset.text = p.textContent.trim());
-  p.textContent = '';
-  const words = text.split(/\s+/).map((w, i) => {
-    if (i) p.appendChild(document.createTextNode(' '));
-    const s = document.createElement('span');
-    s.textContent = w;
-    return p.appendChild(s);
-  });
-  const lines = [];
-  let top = null;
-  words.forEach((w) => {
-    if (w.offsetTop !== top) { top = w.offsetTop; lines.push([]); }
-    lines[lines.length - 1].push(w.textContent);
-  });
-  p.textContent = '';
-  return lines.map((l) => {
-    const s = document.createElement('span');
-    s.className = 'm-line';
-    s.textContent = l.join(' ');
-    return p.appendChild(s);
-  });
-}
 
 export function initMetrics({ reduced }) {
   const section = document.querySelector('.metrics');
@@ -107,11 +83,11 @@ export function initMetrics({ reduced }) {
     if (s !== c.shown) { c.shown = s; c.num.textContent = s; }
   };
 
-  let lines = splitLines(asideP);
+  let lines = splitLines(asideP, 'm-line');
   measure();
   if (reduced) {
     cols.forEach((c) => { c.t = 2; c.p = 1; render(c); });
-    return { resize() { lines = splitLines(asideP); measure(); cols.forEach(render); } };
+    return { resize() { lines = splitLines(asideP, 'm-line'); measure(); cols.forEach(render); } };
   }
 
   // hidden until the reveal
@@ -131,7 +107,7 @@ export function initMetrics({ reduced }) {
   // line breaks depend on the web font: split again once it is in
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(() => {
-      if (!played) { lines = splitLines(asideP); gsap.set(lines, { opacity: 0, y: 20 }); }
+      if (!played) { lines = splitLines(asideP, 'm-line'); gsap.set(lines, { opacity: 0, y: 20 }); }
       measure();
       cols.forEach(render);
     });
@@ -174,7 +150,7 @@ export function initMetrics({ reduced }) {
 
   return {
     resize() {
-      lines = splitLines(asideP);
+      lines = splitLines(asideP, 'm-line');
       gsap.set(lines, played ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 });
       measure();
       cols.forEach(render);
