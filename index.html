@@ -195,11 +195,11 @@
 
   <!-- G. Transition 2 (black stepped bars) + Team -->
   <section class="team" id="team" aria-label="Meet the team">
-    <div class="team__pin">
-    <div class="team__bars" aria-hidden="true"></div>
+    <!-- transition 2: the stepped funnel is drawn here while the section scrolls in -->
+    <canvas class="team__fx" aria-hidden="true"></canvas>
     <div class="team__inner">
       <header class="team__head">
-        <h2 class="team__title">Meet <em>the Team</em></h2>
+        <h2 class="team__title" aria-label="Meet the Team"><span class="tw">Meet</span> <em><span class="tw">the</span> <span class="tw">Team</span></em></h2>
         <p class="team__sub">Behind every deployment is a team committed to engineering excellence and scalable growth.</p>
       </header>
       <div class="team__grid">
@@ -240,7 +240,6 @@
           </div>
         </article>
       </div>
-    </div>
     </div>
   </section>
 

@@ -7,7 +7,7 @@ import gsap from 'gsap';
 
 const DW = 1600, DH = 900;
 const END = 4.97;         // preloader length
-const DIVE = 4.63;        // counter hits 100% and the camera dives
+const DIVE = 4.705;       // counter hits 100% and the camera dives
 const CUT = 4.37;         // hard cut to the wide shot
 const BACK_O = { x: 858, y: 200 };  // zoom origin of the wall/desk layer
 const DIVE_O = { x: 805, y: 500 };  // dive origin
@@ -119,7 +119,7 @@ export function runPreloader({ el, reduced, onReveal, onDone }) {
   const ctx = canvas.getContext('2d', { alpha: false });
   el.style.setProperty('--grain', `url(${makeGrain().toDataURL()})`);
 
-  let W = 0, H = 0, dpr = 1, s = 1, ox = 0, oy = 0;
+  let W = 0, H = 0, dpr = 1, s = 1, ox = 0, oy = 0, lastBlur = 0;
   const sprites = {};
 
   function resize() {
@@ -428,6 +428,9 @@ export function runPreloader({ el, reduced, onReveal, onDone }) {
   function draw(t) {
     // dive zoom (0.12s) with per-layer depth
     const zc = t <= DIVE ? 1 : 1 + 5 * ease.in2(Math.min(1, (t - DIVE) / 0.12));
+    // the dive smears into a motion blur as it zooms
+    const blur = t <= DIVE ? 0 : Math.round(14 * ease.in2(Math.min(1, (t - DIVE) / 0.12)));
+    if (blur !== lastBlur) { lastBlur = blur; canvas.style.filter = blur ? `blur(${blur}px)` : ''; }
     const zWall = 1 + (zc - 1) * 0.6, zDesk = zc, zFront = 1 + (zc - 1) * 1.6;
     const sd = kf(DESK_S, t, ease.out3);
 
@@ -508,7 +511,7 @@ export function runPreloader({ el, reduced, onReveal, onDone }) {
   };
   // once the red field covers the scene there's nothing left to redraw
   const tick = () => {
-    if (st.tau < DIVE + 0.12) draw(st.tau);
+    if (st.tau < DIVE + 0.13) draw(st.tau);
     setCount();
   };
 
@@ -543,8 +546,9 @@ export function runPreloader({ el, reduced, onReveal, onDone }) {
     .to(st, { tau: END, duration: END, ease: 'none' }, 0)
     .add(() => { gsap.to(count, { scale: 6, opacity: 0, transformOrigin: diveOrigin(), duration: 0.12, ease: 'power2.in' }); }, DIVE)
     // red field after the dive: dark first, then ramps to the hero red underneath
-    .set(flash, { opacity: 1 }, DIVE + 0.12)
-    .to(flash, { backgroundColor: '#97311f', duration: 0.15, ease: 'power1.in' }, DIVE + 0.12)
+    // the blurred dive dissolves into dark red, which warms to the glass's starting red
+    .fromTo(flash, { opacity: 0, backgroundColor: '#7f2b1f' }, { opacity: 1, duration: 0.05, ease: 'none' }, 4.8)
+    .to(flash, { backgroundColor: '#97311f', duration: 0.05, ease: 'power1.in' }, 4.85)
     .add(() => { onReveal && onReveal(); }, 4.78)
     // the whole preloader fades off the hero glass, which starts on the same red and brightens
     .to(el, { opacity: 0, duration: 0.07, ease: 'none' }, 4.9)

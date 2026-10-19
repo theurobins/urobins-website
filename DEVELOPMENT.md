@@ -27,11 +27,12 @@ video and fonts behave like production. Use `npm run watch` while editing `src/`
 | `src/viewport.js` | Cached CSS viewport size (what `100vh` resolves to), so phone toolbars can't shift the scroll maths |
 | `src/preloader.js` | Canvas preloader (spotlights, desk figure, silhouettes, 1% to 99% counter, zoom hand-off) |
 | `src/hero-gl.js` | WebGL ribbed-glass gradient (orange to lavender) that also paints the stepped funnel bars of transition 1 |
-| `src/funnel.js` | Shared geometry for both stepped-bar transitions |
+| `src/funnel.js` | Stepped-bar geometry for transition 1 (the hero funnel) |
 | `src/story.js` | About + Services sticky stage: 3D letter assembly, line draw, video pill split, portal into Services, curved card carousel |
 | `src/sculpture.js` | Three.js cel-shaded cobalt props (orbit rings, laptop, phone, gear, papers…) and white flakes for the Services stage. Two canvases share one scene: props near the camera draw above the cards. Built as its own bundle |
 | `src/metrics.js` | `$11.2 Billion` counter and the striped bar charts |
-| `src/team.js` | Transition 2 (black bars into white) and team reveal/counters |
+| `src/team.js` | Transition 2 (a page-attached stepped funnel drawn on one overlay canvas) and the team reveal/counters |
+| `src/lines.js` | Splits a paragraph into rendered lines for line-by-line reveals |
 | `assets/` | Team portraits, founder avatar, About video loop (MP4 + WebM) and poster, Services dust texture |
 
 ## Scroll lengths
@@ -49,8 +50,11 @@ glide and its text reveals, and the Metrics reveal.
 - Metrics: `.metrics { height: 115vh; margin-top: -128vh }` with a sticky frame. It slides up over
   the story's closing black hold (transparent until it reveals), so it pins the moment the Services
   fade completes; the reveal then plays in place on its own clock (about 3 s).
-- Transition 2 + Team: `.team { height: 280vh }` with a sticky frame (funnel, then title and cards).
-- Below 981px wide, Metrics and Team scroll normally (no sticky frame).
+- Transition 2 + Team: `.team` scrolls normally (no pin). While its top scrolls in, `team.js` draws the
+  transition on a fixed canvas: black below Metrics for 472px of scroll (at a 782px-tall viewport),
+  then a stepped edge climbing to the top over 169px with a funnel of bars that rides up with the
+  page, narrows and is gone by 882px. The team reveal is time-based, fired when the title is mid-screen.
+- Below 981px wide, Metrics scrolls normally (no sticky frame).
 
 ## Replacing placeholder content
 

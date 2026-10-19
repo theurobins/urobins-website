@@ -65,13 +65,14 @@ em { font-style: italic; }
   letter-spacing: -0.005em;
   white-space: nowrap;
   cursor: pointer;
-  transition: transform 0.4s cubic-bezier(.2,.8,.2,1), background-color 0.3s, color 0.3s, box-shadow 0.3s;
+  /* hover lifts with the independent `translate` property, so it never fights GSAP's scale pops */
+  transition: translate 0.4s cubic-bezier(.2,.8,.2,1), background-color 0.3s, color 0.3s, box-shadow 0.3s;
 }
 .pill--white { background: var(--paper); color: var(--ink); }
 .pill--black { background: var(--ink); color: var(--paper); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04); }
 .arr { display: inline-block; width: 1em; height: 1em; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .pill .arr { transition: transform 0.45s cubic-bezier(.2,.8,.2,1); }
-a.pill:hover { transform: translateY(-2px); }
+a.pill:hover { translate: 0 -2px; }
 a.pill:hover .arr { transform: translate(2px, -2px); }
 .pill--black:hover { background: #1c1c1f; }
 
@@ -208,8 +209,9 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
   align-items: flex-end;
   justify-content: center;
   padding: 0 var(--gutter) calc(5.4vh + env(safe-area-inset-bottom, 0px));
-  will-change: transform;
 }
+/* the content is what moves each scroll frame, so it gets the layer */
+.hero__content { will-change: transform; }
 .hero__content { display: flex; flex-direction: column; align-items: center; text-align: center; color: var(--ink); }
 .hero__title {
   font: 400 clamp(46px, 7.4vw, 150px)/0.91 var(--serif);
@@ -434,26 +436,25 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
 .stat__bars canvas { display: block; width: 100%; height: 100%; }
 
 /* ---------- Team ---------- */
-.team { position: relative; height: 280vh; background: var(--paper); color: var(--ink); }
-.team__pin { position: sticky; top: 0; height: 100vh; overflow: hidden; }
-.team__bars { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
-.team__bars i { position: absolute; left: 0; top: 0; display: block; width: 100px; height: 100px; background: var(--ink); transform-origin: 0 0; will-change: transform; }
+.team { position: relative; background: var(--paper); color: var(--ink); }
+/* transition 2 overlay (team.js): fixed over Metrics and the top of this section while it scrolls in */
+.team__fx { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; visibility: hidden; }
 .team__inner {
-  position: absolute;
-  inset: 0;
-  padding-top: max(8vh, 56px);
-  padding-left: max(16px, 4.3vw, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, 4.3vw, env(safe-area-inset-right, 0px));
+  /* the title's glyph tops sit half a viewport below the section's top, as in the reference */
+  padding-top: calc(50vh - 4px);
+  padding-bottom: 40vh;
+  padding-left: max(16px, 4.1vw, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, 4.1vw, env(safe-area-inset-right, 0px));
 }
 .team__head { margin-left: 50.5%; }
-.team__title { font: 400 clamp(54px, 6.6vw, 132px)/0.9 var(--serif); letter-spacing: -0.015em; }
-.team__sub { margin-top: 14px; font: 400 13.5px/1.4 var(--sans); max-width: 40em; color: #1b1b1e; }
+.team__title { font: 400 clamp(54px, 6.1vw, 122px)/0.9 var(--serif); letter-spacing: -0.02em; }
+.team__title .tw { display: inline-block; }
+.team__sub { margin-top: 20px; font: 400 13.5px/1.4 var(--sans); color: #1b1b1e; white-space: nowrap; }
 .team__grid {
-  --col: min(calc((100% - 3 * 0.6vw) / 4), calc((100vh - 400px) * 0.78));
   display: grid;
-  grid-template-columns: repeat(4, var(--col));
-  justify-content: space-between;
-  margin-top: 4.6vh;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: 0.62vw;
+  margin-top: 7.1vh;
   align-items: start;
 }
 .member { min-width: 0; }
@@ -461,11 +462,11 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
 .member:nth-child(even) .member__img { aspect-ratio: 313 / 400; }
 .member__img img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 28%; transform: scale(1.04); transition: transform 1.2s cubic-bezier(.2,.8,.2,1); }
 .member:hover .member__img img { transform: scale(1.08); }
-.member__name { margin-top: 18px; font: 600 15px/1.2 var(--sans); }
-.member__role { margin-top: 4px; font: 400 14px/1.2 var(--sans); color: var(--grey); }
-.member__stat { display: flex; align-items: flex-start; gap: 16px; margin-top: 20px; }
-.member__num { flex: none; display: inline-block; font: 400 clamp(32px, 2.6vw, 48px)/0.9 var(--serif); letter-spacing: -0.015em; white-space: nowrap; contain: layout style; }
-.member__label { display: grid; gap: 3px; font: 400 13.5px/1.2 var(--sans); padding-top: 2px; }
+.member__name { margin-top: 16px; font: 600 15px/1.2 var(--sans); }
+.member__role { margin-top: 1px; font: 400 14px/1.2 var(--sans); color: var(--grey); }
+.member__stat { display: flex; align-items: flex-start; gap: 10px; margin-top: 18px; }
+.member__num { flex: none; display: inline-block; font: 400 clamp(30px, 2.44vw, 46px)/0.9 var(--serif); letter-spacing: -0.015em; white-space: nowrap; contain: layout style; }
+.member__label { display: grid; gap: 0; font: 400 13.5px/1.2 var(--sans); padding-top: 1px; }
 .member__label b { font-weight: 600; }
 .member__label span { color: var(--grey); }
 
@@ -562,11 +563,8 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
   .metrics__aside { width: min(310px, 100%); }
   .metrics__pin { position: relative; height: auto; padding-top: 12vh; padding-bottom: 14vh; }
   .metrics__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 7vh; gap: 4vw; margin-top: 6vh; --barmax: min(30vh, 300px); }
-  .team { height: auto; }
-  .team__pin { position: relative; height: auto; overflow: visible; }
-  .team__bars { position: relative; height: 80vh; }
-  .team__inner { position: relative; padding-bottom: 14vh; }
   .team__head { margin-left: 0; }
+  .team__sub { white-space: normal; max-width: 40em; }
   .team__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; row-gap: 36px; }
   .contact__cols { grid-template-columns: 1fr; }
 }

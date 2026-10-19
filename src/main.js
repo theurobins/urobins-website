@@ -14,7 +14,7 @@ gsap.registerPlugin(ScrollTrigger, CustomEase);
 // mobile toolbars resize the viewport height constantly; don't recompute every trigger for that.
 // Window resizes go through the debounced handler below (canvases first, then one refresh).
 ScrollTrigger.config({ ignoreMobileResize: true, autoRefreshEvents: 'visibilitychange,DOMContentLoaded,load' });
-CustomEase.create('menuOpen', '0.45,0,0.15,1');
+CustomEase.create('menuOpen', '0.3,0,0.1,1');
 
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 document.documentElement.classList.add('js');
@@ -58,14 +58,16 @@ const applyHero = () => {
   let edgeY = vh, phi = 0;
   if (hs.e > 0) {
     const ec = vh - hs.e * vh;
-    if (ec <= 5 * P) edgeY = 5 * P;
+    // while the edge holds at 5 slots the funnel keeps narrowing a little
+    if (ec <= 5 * P) { edgeY = 5 * P; phi = 0.22 * smooth01(0, 3.3 * P, 5 * P - ec); }
     else { edgeY = P * Math.floor(ec / P); phi = (edgeY + P - ec) / P; }
   }
   hero.state.heroBottom = (edgeY - hs.out * vh) / vh;
   if (hs.e > 0) {
     const D = 15.25 + 33 * (1 - smooth01(0.3, 0.8, hs.e));
-    const g = 1 - Math.pow(Math.min(1, hs.out / 0.33), 3);
-    hero.setBars(heroFunnel(edgeY, phi, D, g, hs.out * vh, vw, vh, rects));
+    // on the way out the funnel collapses from the bottom up (its phase runs on), top bar last
+    const phiOut = 15 * Math.pow(Math.min(1, hs.out / 0.33), 3);
+    hero.setBars(heroFunnel(edgeY, phi + phiOut, D, 1, hs.out * vh, vw, vh, rects));
   } else {
     hero.setBars([]);
   }
@@ -226,24 +228,30 @@ function heroIntro() {
   };
 
   // glass: dark red hand-off, a peach flash, then an X of ribs zooming out to straight ribs
-  // (the preloader's red field ends on the same #97311f the glass starts from, then fades off it)
-  tl.set(hero.state, { reveal: 0, pitch: 1400, hyp: 12, flash: 0 }, 0)
+  // (the preloader's red field ends on the same #97311f the glass starts from, then fades off it;
+  // the extreme hourglass shows through it as a faint cross)
+  tl.set(hero.state, { reveal: 0.15, hyp: 12, flash: 0, lg: 1.6, wedge: 1, pitch: () => hero.restPitch * 1.34 }, 0)
     .to(hero.state, { reveal: 0.5, duration: 0.07, ease: 'none' }, 0.12)
     .to(hero.state, { reveal: 1, duration: 0.03, ease: 'none' }, 0.22)
+    // peach flash: holds a beat, then fades out linearly
     .set(hero.state, { flash: 1 }, 0.24)
-    .to(hero.state, { flash: 0, duration: 0.5, ease: 'power3.out' }, 0.25)
-    .to(hero.state, { pitch: () => hero.restPitch, duration: 0.75, ease: 'expo.out' }, 0.17)
-    .to(hero.state, {
-      keyframes: [{ hyp: 0.64, duration: 0.15 }, { hyp: 0.08, duration: 0.18 }, { hyp: -0.12, duration: 0.22 }, { hyp: 0, duration: 0.4 }],
-      ease: 'sine.inOut',
-    }, 0.12);
+    .to(hero.state, { flash: 0, duration: 0.23, ease: 'none' }, 0.275)
+    // one rib per side forms an X, then relaxes to straight ribs
+    .to(hero.state, { hyp: 0.95, duration: 0.03, ease: 'none' }, 0.205)
+    .to(hero.state, { hyp: 0, duration: 0.6, ease: 'expo.out' }, 0.3)
+    // the rib grid zooms out from the centre: spacing grows geometrically outward and evens out
+    // as lambda doubles every 0.075 s; the top and bottom wedges fill with ribs
+    .to(hero.state, { lg: 14.3, duration: 0.955, ease: 'none' }, 0.245)
+    .set(hero.state, { lg: 30 }, 1.2)
+    .to(hero.state, { pitch: () => hero.restPitch, duration: 0.35, ease: 'power1.inOut' }, 0.3)
+    .to(hero.state, { wedge: 0, duration: 0.1, ease: 'none' }, 0.33);
 
   pop(T.logo, 1.0, 1.08, 0.32, '8px -16px');
-  tl.to(T.logoParts, { opacity: 1, duration: 0.15, stagger: 0.07 }, 1.12);
+  tl.to(T.logoParts, { opacity: 1, duration: 0.15, stagger: 0.045 }, 1.12);
   if (desktopNav) {
-    pop(T.menu, 1.22, 1.06, 0.23, '50% 50%');
-    tl.to(T.menu, { width: menuFull, duration: 0.93, ease: 'menuOpen' }, 1.69)
-      .to(T.menuLinks.slice(1), { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out', stagger: 0.15 }, 1.95)
+    pop(T.menu, 1.15, 1.065, 0.33, '50% 50%');
+    tl.to(T.menu, { width: menuFull, duration: 1.0, ease: 'menuOpen' }, 1.65)
+      .to(T.menuLinks.slice(1), { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out', stagger: 0.2 }, 1.93)
       .add(() => gsap.set(T.menu, { clearProps: 'width,overflow,justifyContent' }), 2.7);
   }
   pop(T.cta, 1.35, 1.09, 0.3, '50% 50%');
@@ -253,6 +261,8 @@ function heroIntro() {
   tl.to(T.words, { opacity: 1, filter: 'blur(0px)', y: 0, duration: 0.8, ease: 'power2.out', stagger: 0.13, clearProps: 'filter,willChange' }, 1.59)
     .to(T.sub, { opacity: 1, filter: 'blur(0px)', y: 0, duration: 0.8, ease: 'power2.out', clearProps: 'filter,willChange' }, 2.32);
   pop(T.heroCta, 2.72, 1.06, 0.35, '50% 50%');
+  // hand the pills back to CSS once they have settled (the menu keeps its centring transform)
+  tl.add(() => gsap.set([T.logo, T.cta, T.heroCta], { clearProps: 'transform' }), 3.4);
   tl.add(() => {
     document.body.classList.remove('is-loading');
     if (lenis) lenis.start();
@@ -267,7 +277,7 @@ function heroIntro() {
 
 if (reduced) {
   heroLive = true;
-  Object.assign(hero.state, { reveal: 1, hyp: 0, flash: 0, pitch: hero.restPitch });
+  Object.assign(hero.state, { reveal: 1, hyp: 0, flash: 0, lg: 30, wedge: 0, pitch: hero.restPitch });
   auto.mix = 1;
   applyHero();
   runPreloader({
@@ -286,7 +296,7 @@ if (reduced) {
     gsap.set(T.menu, { xPercent: -50, x: 0, scale: 0 });
     const aboutW = T.menuLinks[0].offsetWidth + 16;
     gsap.set(T.menu, { width: aboutW, overflow: 'hidden', justifyContent: 'flex-start' });
-    gsap.set(T.menuLinks.slice(1), { opacity: 0, y: 6 });
+    gsap.set(T.menuLinks.slice(1), { opacity: 0, y: 12 });
   }
   runPreloader({
     el: document.getElementById('preloader'),

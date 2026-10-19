@@ -4,33 +4,39 @@
 // stage pinned underneath shows through.
 import { BAR_COUNT } from './funnel.js';
 
-// palette blobs, orange (mix 0) -> lavender (mix 1):
-// [c0x, c0y, c1x, c1y, drift, r0, r1, col0, col1, a0, a1, stretchX]
-// drift scales the shared slow wander; stretchX widens a blob horizontally
+// palette blobs, orange (mix 0) -> lavender (mix 1), painted in order:
+// [c0x, c0y, c1x, c1y, drift, r0, r1, col0, col1, a0, a1, stretchX, hardness]
+// drift scales the shared slow wander; stretchX widens a blob horizontally; hardness > 1 gives a
+// crisper rim (exp(-d^2k))
 const BLOBS = [
   // left band: saturated orange / lilac
-  [0.03, 0.45, 0.0, 0.45, 1, 0.30, 0.35, [0.84, 0.30, 0.13], [0.67, 0.60, 0.88], 0.9, 0.8, 1],
+  [0.03, 0.45, 0.0, 0.45, 1, 0.30, 0.35, [0.84, 0.30, 0.13], [0.67, 0.60, 0.88], 0.9, 0.8, 1, 1],
   // bottom-left: light orange rising diagonally / periwinkle
-  [0.08, 0.97, 0.20, 0.90, -1, 0.45, 0.40, [0.87, 0.52, 0.30], [0.78, 0.79, 0.96], 0.95, 0.85, 1],
-  // deep crimson core / top-left violet
-  [0.45, 0.33, 0.27, 0.02, 1, 0.42, 0.30, [0.75, 0.20, 0.16], [0.33, 0.24, 0.73], 0.9, 0.95, 1],
+  [0.08, 0.97, 0.20, 0.90, -1, 0.45, 0.40, [0.87, 0.52, 0.30], [0.78, 0.79, 0.96], 0.95, 0.85, 1, 1],
+  // wide white dome with a crisp rim (lavender only), under the violet corners
+  [0.64, 0.36, 0.64, 0.36, 0.5, 0.40, 0.40, [0.93, 0.93, 0.98], [0.93, 0.93, 0.98], 0, 0.97, 1.35, 2.4],
+  // deep crimson core (upper middle only) / top-left violet
+  [0.43, 0.30, 0.27, 0.0, 1, 0.30, 0.26, [0.75, 0.20, 0.16], [0.36, 0.25, 0.76], 0.9, 0.95, 1, 1],
+  // orange only: rose lower middle, salmon top centre
+  [0.50, 0.86, 0.50, 0.86, 0, 0.32, 0.32, [0.76, 0.34, 0.27], [0.76, 0.34, 0.27], 0.8, 0, 1, 1],
+  [0.55, 0.0, 0.55, 0.0, 0, 0.20, 0.20, [0.78, 0.40, 0.33], [0.78, 0.40, 0.33], 0.75, 0, 1, 1],
   // violet diagonal running down from the top-left (lavender only)
-  [0.18, 0.36, 0.18, 0.36, 0, 0.22, 0.22, [0.50, 0.42, 0.80], [0.50, 0.42, 0.80], 0, 0.7, 1],
-  // top-right: muted rose / grey violet
-  [0.88, 0.22, 0.88, 0.04, -1, 0.34, 0.22, [0.76, 0.36, 0.30], [0.36, 0.30, 0.62], 0.85, 0.9, 1],
+  [0.18, 0.36, 0.18, 0.36, 0, 0.22, 0.22, [0.50, 0.42, 0.80], [0.50, 0.42, 0.80], 0, 0.7, 1, 1],
+  // top-right: muted rose / violet
+  [0.88, 0.22, 0.86, 0.0, -1, 0.34, 0.22, [0.76, 0.36, 0.30], [0.40, 0.33, 0.80], 0.85, 0.95, 1, 1],
   // right edge violet (lavender only)
-  [1.0, 0.32, 1.0, 0.32, 0, 0.22, 0.22, [0.47, 0.40, 0.79], [0.47, 0.40, 0.79], 0, 0.7, 1],
-  // wide white dome (lavender only)
-  [0.64, 0.33, 0.64, 0.33, 0.5, 0.40, 0.40, [0.93, 0.93, 0.98], [0.93, 0.93, 0.98], 0, 0.97, 1.3],
+  [1.0, 0.32, 1.0, 0.32, 0, 0.22, 0.22, [0.47, 0.40, 0.79], [0.47, 0.40, 0.79], 0, 0.7, 1, 1],
   // right side: orange-red low / lilac
-  [1.0, 0.78, 0.92, 0.80, 0, 0.20, 0.32, [0.84, 0.36, 0.17], [0.78, 0.68, 0.95], 0.9, 0.95, 1],
+  [1.0, 0.78, 0.92, 0.80, 0, 0.20, 0.32, [0.84, 0.36, 0.17], [0.78, 0.68, 0.95], 0.9, 0.95, 1, 1],
   // mid-right accent (lavender only)
-  [0.82, 0.55, 0.82, 0.55, 0, 0.22, 0.22, [0.74, 0.70, 0.95], [0.74, 0.70, 0.95], 0, 0.6, 1],
+  [0.82, 0.55, 0.82, 0.55, 0, 0.22, 0.22, [0.74, 0.70, 0.95], [0.74, 0.70, 0.95], 0, 0.6, 1, 1],
   // orange-only corners: brown-rose top-right, salmon top-left
-  [1.0, 0.0, 1.0, 0.0, 0, 0.12, 0.12, [0.57, 0.29, 0.25], [0.57, 0.29, 0.25], 0.8, 0, 1],
-  [0.0, 0.0, 0.0, 0.0, 0, 0.10, 0.10, [0.80, 0.42, 0.35], [0.80, 0.42, 0.35], 0.6, 0, 1],
+  [1.0, 0.0, 1.0, 0.0, 0, 0.12, 0.12, [0.57, 0.29, 0.25], [0.57, 0.29, 0.25], 0.8, 0, 1, 1],
+  [0.0, 0.0, 0.0, 0.0, 0, 0.10, 0.10, [0.80, 0.42, 0.35], [0.80, 0.42, 0.35], 0.6, 0, 1, 1],
   // lower glass (only seen once it scrolls up): faint grey-blue curve at the right
-  [1.0, 1.25, 1.0, 1.25, 0, 0.25, 0.25, [0.62, 0.64, 0.80], [0.62, 0.64, 0.80], 0, 0.5, 1],
+  [1.0, 1.25, 1.0, 1.25, 0, 0.25, 0.25, [0.62, 0.64, 0.80], [0.62, 0.64, 0.80], 0, 0.5, 1, 1],
+  // darker lilac lower left (lavender only)
+  [0.17, 0.62, 0.17, 0.62, 0, 0.18, 0.18, [0.60, 0.56, 0.84], [0.60, 0.56, 0.84], 0, 0.75, 1, 1],
 ];
 const MAX_BLOBS = BLOBS.length;
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -44,16 +50,15 @@ const FRAG = `
 precision highp float;
 uniform vec2 uRes;          // css px
 uniform float uDpr;
-uniform float uTime;
 uniform float uHeroBottom;  // css px from top
 uniform float uShift;       // css px the glass has scrolled up
 uniform float uPitch;       // rib pitch, css px
 uniform float uHyp;         // intro hourglass strength (0 = straight ribs)
 uniform float uFlash;       // intro peach flash 0..1
 uniform float uReveal;      // 0 dark red hand-off colour -> 1 full glass
+uniform float uLg;          // log2 of the rib zoom length: small = spacing grows fast away from the centre
+uniform float uWedge;       // 1 = no ribs in the hourglass's top/bottom wedges
 uniform vec4 uBars[${BAR_COUNT}];
-
-float hash2(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
 
 // the colour field is a stack of soft blobs; their centres, radii, colours and weights depend only
 // on time and the palette mix, so they're worked out once per frame in JS (see BLOBS above)
@@ -63,6 +68,7 @@ uniform vec2 uC[${MAX_BLOBS}];
 uniform vec2 uK[${MAX_BLOBS}];
 uniform vec3 uBC[${MAX_BLOBS}];
 uniform float uA[${MAX_BLOBS}];
+uniform float uP[${MAX_BLOBS}];
 
 vec3 field(vec2 p) {
   vec2 q = vec2(p.x * uRes.x / uRes.y, p.y);
@@ -70,7 +76,7 @@ vec3 field(vec2 p) {
   for (int i = 0; i < ${MAX_BLOBS}; i++) {
     if (i >= uN) break;
     vec2 d = q - uC[i];
-    col = mix(col, uBC[i], clamp(exp(-dot(d * d, uK[i])) * uA[i], 0.0, 1.0));
+    col = mix(col, uBC[i], clamp(exp(-pow(dot(d * d, uK[i]), uP[i])) * uA[i], 0.0, 1.0));
   }
   return col;
 }
@@ -99,16 +105,18 @@ void main() {
   vec2 c = vec2(frag.x - W * 0.5, ypx - H * 0.5);
   float d2 = c.x * c.x - uHyp * c.y * c.y;
   float wedge = d2 < 0.0 ? 1.0 : 0.0;
-  float xr = W * 0.5 + sign(c.x) * sqrt(abs(d2));
-  float u = fract(xr / uPitch + 0.5);
+  // ribs counted out from the centre; during the intro their spacing grows geometrically outward
+  float R = sqrt(abs(d2));
+  float lam = exp2(uLg) * W / 1392.0;
+  float n = lam > 1e5 ? R / uPitch : (lam / uPitch) * log(1.0 + R / lam);
+  float u = fract(n);
   float hl = exp(-pow(u - 0.5, 2.0) / (2.0 * 0.11 * 0.11));
 
   vec3 col = field(vec2(frag.x / W, (ypx + uShift) / H));
   float l = dot(col, vec3(0.299, 0.587, 0.114));
-  col += hl * 0.042 * (1.0 - smoothstep(0.55, 0.95, l)) * (1.0 - wedge) * (1.0 + 1.5 * uFlash);
+  col += hl * 0.042 * (1.0 - smoothstep(0.55, 0.95, l)) * (1.0 - wedge * uWedge) * (1.0 + 1.5 * uFlash);
   col = 1.0 - (1.0 - col) * (1.0 - uFlash * vec3(0.83, 0.38, 0.25));
   col = mix(vec3(0.592, 0.192, 0.125), col, uReveal);
-  col += (hash2(gl_FragCoord.xy + fract(uTime * 13.0) * 91.0) - 0.5) * 0.006;
   gl_FragColor = vec4(col * cover, cover);
 }
 `;
@@ -116,7 +124,7 @@ void main() {
 export class HeroGL {
   constructor(canvas) {
     this.canvas = canvas;
-    this.state = { mix: 0, heroBottom: 1, shift: 0, pitch: 1400, hyp: 12, flash: 0, reveal: 0 };
+    this.state = { mix: 0, heroBottom: 1, shift: 0, pitch: 1400, hyp: 12, flash: 0, reveal: 0, lg: 30, wedge: 0 };
     this.bars = new Float32Array(BAR_COUNT * 4);
     const gl = canvas.getContext('webgl', { antialias: false, alpha: true, premultipliedAlpha: true, depth: false, stencil: false, powerPreference: 'high-performance' });
     if (!gl) { this.failed = true; canvas.classList.add('is-fallback'); return; }
@@ -150,14 +158,16 @@ export class HeroGL {
     gl.clearColor(0, 0, 0, 0);
     const u = (n) => gl.getUniformLocation(prog, n);
     this.u = {
-      res: u('uRes'), dpr: u('uDpr'), time: u('uTime'), heroBottom: u('uHeroBottom'),
+      res: u('uRes'), dpr: u('uDpr'), heroBottom: u('uHeroBottom'),
       shift: u('uShift'), pitch: u('uPitch'), hyp: u('uHyp'), flash: u('uFlash'), reveal: u('uReveal'), bars: u('uBars'),
-      base: u('uBase'), n: u('uN'), C: u('uC'), K: u('uK'), BC: u('uBC'), A: u('uA'),
+      lg: u('uLg'), wedge: u('uWedge'),
+      base: u('uBase'), n: u('uN'), C: u('uC'), K: u('uK'), BC: u('uBC'), A: u('uA'), P: u('uP'),
     };
     this.fC = new Float32Array(MAX_BLOBS * 2);
     this.fK = new Float32Array(MAX_BLOBS * 2);
     this.fBC = new Float32Array(MAX_BLOBS * 3);
     this.fA = new Float32Array(MAX_BLOBS);
+    this.fP = new Float32Array(MAX_BLOBS);
     this.resize();
   }
 
@@ -189,7 +199,7 @@ export class HeroGL {
 
   // per-frame blob parameters; blobs with no weight at this mix are dropped
   setField(t, m) {
-    const { gl, u, fC, fK, fBC, fA } = this;
+    const { gl, u, fC, fK, fBC, fA, fP } = this;
     const aspect = this.w / this.h;
     const dx = 0.015 * Math.sin(t * 0.21), dy = 0.015 * Math.cos(t * 0.17);
     let n = 0;
@@ -204,6 +214,7 @@ export class HeroGL {
       fK[n * 2 + 1] = 1 / (r * r);
       for (let j = 0; j < 3; j++) fBC[n * 3 + j] = lerp(b[7][j], b[8][j], m);
       fA[n] = a;
+      fP[n] = b[12];
       n++;
     }
     gl.uniform3f(u.base, lerp(0.76, 0.79, m), lerp(0.24, 0.77, m), lerp(0.19, 0.94, m));
@@ -212,6 +223,7 @@ export class HeroGL {
     gl.uniform2fv(u.K, fK);
     gl.uniform3fv(u.BC, fBC);
     gl.uniform1fv(u.A, fA);
+    gl.uniform1fv(u.P, fP);
   }
 
   render(time) {
@@ -220,7 +232,6 @@ export class HeroGL {
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.uniform2f(u.res, this.canvas.width / this.dpr, this.canvas.height / this.dpr);
     gl.uniform1f(u.dpr, this.dpr);
-    gl.uniform1f(u.time, time);
     this.setField(time, state.mix);
     gl.uniform1f(u.heroBottom, state.heroBottom * this.h);
     gl.uniform1f(u.shift, state.shift);
@@ -228,6 +239,8 @@ export class HeroGL {
     gl.uniform1f(u.hyp, state.hyp);
     gl.uniform1f(u.flash, state.flash);
     gl.uniform1f(u.reveal, state.reveal);
+    gl.uniform1f(u.lg, state.lg);
+    gl.uniform1f(u.wedge, state.wedge);
     gl.uniform4fv(u.bars, this.bars);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
