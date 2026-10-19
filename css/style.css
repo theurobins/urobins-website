@@ -182,8 +182,9 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
   position: relative;
   z-index: 2;
   height: 300vh;
-  /* the About stage pins underneath from 73.5vh of scroll and shows through below the glass */
-  margin-bottom: -226.5vh;
+  /* the About stage pins underneath from 69.5vh of scroll (still under the glass until 73.5vh)
+     and shows through below it once the funnel starts */
+  margin-bottom: -230.5vh;
   pointer-events: none;
 }
 .hero__pin { position: sticky; top: 0; height: 100vh; overflow: hidden; }
@@ -242,11 +243,11 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
   position: absolute;
   inset: 0;
   background: url("../assets/texture/about-smoke.webp") 50% 50% / cover no-repeat;
-  opacity: 0.13;
+  opacity: 0.15;
   will-change: transform;
   animation: smoke-a 28s ease-in-out infinite alternate;
 }
-.about__smoke::after { opacity: 0.08; background-position: 46% 54%; animation: smoke-b 36s ease-in-out infinite alternate; }
+.about__smoke::after { opacity: 0.05; background-position: 46% 54%; animation: smoke-b 36s ease-in-out infinite alternate; }
 /* off screen, or hidden under the fully open Services stage: stop painting About */
 .story:not(.is-live) .about__smoke::before,
 .story:not(.is-live) .about__smoke::after,

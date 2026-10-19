@@ -7,8 +7,8 @@ import { CustomEase } from 'gsap/CustomEase';
 import { vp } from './viewport.js';
 import { splitLines } from './lines.js';
 
-// The stage pins under the hero from 73.5vh of scroll, so it idles for LEAD units while the
-// hero's funnel plays over it; the blue line starts as the last bars collapse.
+// The stage pins under the hero from 69.5vh of scroll, so it idles for LEAD units while the
+// hero's funnel plays over it; the blue line's hook and spike draw while the last bars collapse.
 const LEAD = 116;
 
 // three.js and the Services scene ship as a separate script (js/sculpture.js), fetched after the
@@ -114,13 +114,13 @@ export function initStory({ reduced, smooth }) {
   // starts tilted, rising to the right, and flattens by `flat` of its growth. The last line moves as
   // one group on its own measured curve.
   const groups = [
-    { chars: splitChars(line1.querySelector('.split')), from: 10, to: 59.5, ty: 59.5, c: (j) => -0.57 * Math.sin(Math.PI * j), tilt: 1.0, flat: 0.8 },
+    { chars: splitChars(line1.querySelector('.split')), from: 12, to: 59.5, ty: 59.5, c: (j) => -0.57 * Math.sin(Math.PI * j), tilt: 1.15, flat: 0.78, bend: 0.37 },
     { chars: splitChars(line2.querySelectorAll('.split')[0]), from: 19.5, to: 60, ty: 60, c: (j) => -0.28 * Math.sin(Math.PI * j), tilt: 0.32, flat: 0.9 },
     { chars: splitChars(line2.querySelectorAll('.split')[1]), from: 26.5, to: 59.5, ty: 63, c: (j) => 0.25 * Math.pow(1 - j, 3) - 0.45 * Math.sin(Math.PI * j), tilt: 0.95, flat: 0.85 },
     { chars: splitChars(line3.querySelector('.split')), from: 29.5, to: 60, ty: 60, line3: true },
   ];
   const letterData = [];
-  groups.forEach((g) => g.chars.forEach((el) => letterData.push({ el, g, xe: 0, on: false, done: false })));
+  groups.forEach((g) => g.chars.forEach((el) => letterData.push({ el, g, xe: 0, xw: 0, on: false, done: false })));
   const measureLetters = () => {
     em = fs();
     groups.forEach((g) => {
@@ -130,9 +130,18 @@ export function initStory({ reduced, smooth }) {
       const first = g.chars[0], last = g.chars[g.chars.length - 1];
       g.hw = Math.max(0.5, ((last.offsetLeft + last.offsetWidth / 2) - (first.offsetLeft + first.offsetWidth / 2)) / 2 / em);
     });
+    const wordCentre = new Map();
+    letterData.forEach((d) => {
+      const w = d.el.parentNode;
+      if (wordCentre.has(w)) return;
+      let lo = Infinity, hi = -Infinity;
+      for (const c of w.children) { lo = Math.min(lo, c.offsetLeft); hi = Math.max(hi, c.offsetLeft + c.offsetWidth); }
+      wordCentre.set(w, (lo + hi) / 2);
+    });
     letterData.forEach((d) => {
       const c = d.el;
       d.xe = (c.offsetLeft + c.offsetWidth / 2 - d.g.centre) / em;
+      d.xw = (c.offsetLeft + c.offsetWidth / 2 - wordCentre.get(c.parentNode)) / em;
       d.done = false;
     });
   };
@@ -152,7 +161,9 @@ export function initStory({ reduced, smooth }) {
         const xn = d.xe / g.hw;
         y = Math.max(0, 1 - k / 0.7) * (-0.578 * xn * xn + 0.237 * xn) + 0.15 * Math.sin(Math.PI * k) * (1 - 0.83 * xn * xn);
       } else {
+        // the word rides a tilted line that flattens as it grows; "Clear" also arches (ends low)
         y = g.c(j) - d.xe * g.tilt * Math.max(0, 1 - k / g.flat);
+        if (g.bend) y += g.bend * Math.min(1, Math.max(0, (0.9 - k) / 0.5)) * d.xw * d.xw;
       }
       d.el.style.transform = `translate(0px, ${(y * em).toFixed(2)}px) scale(${k.toFixed(4)})`;
     }
@@ -388,8 +399,10 @@ export function initStory({ reduced, smooth }) {
   });
 
   // the block glides up 24.3vh as the pill starts opening. In the reference this runs on its own
-  // clock (it keeps easing in while the scroll is paused), so it is fired here, not scrubbed.
-  glide = gsap.to(lift, { k: 1, duration: 2.7, ease: 'power3.out', delay: 0.08, paused: true, onUpdate: applyLift });
+  // clock (it keeps easing in while the scroll is paused), so it is fired here, not scrubbed. It
+  // eases in over ~0.45 s rather than starting at full speed.
+  const glideEase = CustomEase.create('aboutGlide', '0.3,0,0.1,1');
+  glide = gsap.to(lift, { k: 1, duration: 2.5, ease: glideEase, paused: true, onUpdate: applyLift });
   if (reduced) glide.progress(1);
   else {
     ScrollTrigger.create({
