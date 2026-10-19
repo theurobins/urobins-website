@@ -373,7 +373,7 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
 }
 .services__haze { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 .hz { position: absolute; left: 0; top: 0; opacity: 0; will-change: transform, opacity; }
-.hz--a { width: 96vw; height: 80vh; margin: -40vh 0 0 -48vw; background: radial-gradient(closest-side, rgba(12, 60, 90, 0.5), rgba(12, 60, 90, 0.36) 40%, rgba(12, 60, 90, 0.14) 75%, transparent); }
+.hz--a { width: 96vw; height: 80vh; margin: -40vh 0 0 -48vw; background: radial-gradient(closest-side, rgba(12, 60, 90, 0.34), rgba(12, 60, 90, 0.24) 40%, rgba(12, 60, 90, 0.08) 75%, transparent); }
 .hz--b { width: 23vw; height: 110vh; margin-left: -11.5vw; background: radial-gradient(50% 60% at 50% 25%, rgba(12, 60, 90, 0.4), rgba(12, 60, 90, 0.18) 60%, transparent); }
 .hz--c { width: 24.4vw; height: 53.7vh; margin: -26.85vh 0 0 -12.2vw; background: radial-gradient(closest-side, rgba(12, 60, 90, 0.45), transparent); }
 /* everything that scales up while the portal grows (title cap height stays put) */

@@ -46,7 +46,7 @@ const PATH = [
   { x: -25, y: -110, z: -1900, ry: -185, rz: 0, s: 1, o: 0 },
 ];
 // the cards step one slot at a time on their own clock at these story units, resting between steps
-const STEPS = [360, 456, 554, 652, 754, 815];
+const STEPS = [355, 453, 551, 649, 747, 813];
 const KEYS = Object.keys(PATH[0]);
 
 function cr(p0, p1, p2, p3, t) {

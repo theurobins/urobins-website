@@ -14,16 +14,17 @@ const NF = new Intl.NumberFormat('en-US');
 // .team meets the bottom of the viewport. The funnel lives on a page-fixed grid of 36px slots:
 // line j sits ANCHOR + 36j below that point, and the funnel's tail is always slot 16.
 const ANCHOR = 653;
-const HOLD = 474;        // black hold while Metrics scrolls away
+const HOLD = 473;        // black hold while Metrics scrolls away
 const RIDE = 621;        // the edge has reached the top; from here the funnel rides with the page
 const END = 920;         // funnel gone
 const TAIL = 16;
-// the edge's slot by scroll offset, after a quick self-building burst up to slot 9
-const CLIMB = [[489, 8], [508, 7], [522, 6], [540, 5], [561, 4], [584, 3], [606, 2], [621, 0]];
+// the edge's slot by scroll offset, after a quick self-building burst up to slot 9 (each step sits
+// inside the pair of reference frames that brackets it)
+const CLIMB = [[491, 8], [504, 7], [526, 6], [535, 5], [556, 4], [578, 3], [601, 2], [621, 0]];
+const BURST = 0.25;      // s: the burst's bars settle from edge-indexed to page-slot widths
 const slotAt = (sk) => { let j = 9; for (const [a, jj] of CLIMB) if (sk >= a) j = jj; return j; };
 // bar widths (fraction of the viewport width) per page slot, from slot j0 down, keyed by scroll
 const KEYS = [
-  { s: 474, j0: 16, w: [0.971] },
   { s: 479, j0: 9, w: [0.981, 0.95, 0.917, 0.882, 0.846, 0.812, 0.78, 0.75] },
   { s: 501, j0: 8, w: [0.968, 0.935, 0.898, 0.861, 0.822, 0.784, 0.749, 0.716, 0.685] },
   { s: 530, j0: 6, w: [0.976, 0.941, 0.902, 0.861, 0.818, 0.776, 0.734, 0.695, 0.659, 0.628, 0.599] },
@@ -38,13 +39,16 @@ const KEYS = [
   { s: 902, j0: 7, w: [0.106, 0.069, 0.039] },
   { s: 920, j0: 7, w: [] },
 ];
-// width of page slot j in one key; slots above its first listed bar continue its taper upward, so
-// the top bar is always the widest
+// width of page slot j (may be fractional) in one key; slots above its first listed bar continue
+// its taper upward, so the top bar is always the widest
 const pick = (key, j) => {
   const i = j - key.j0, w = key.w;
   if (!w.length) return 0;
   if (i < 0) return Math.min(0.985, w[0] + (w.length > 1 ? w[0] - w[1] : 0) * -i);
-  return i < w.length ? w[i] : 0;
+  const i0 = Math.floor(i), f = i - i0;
+  const a = i0 < w.length ? w[i0] : 0;
+  if (!f) return a;
+  return a + ((i0 + 1 < w.length ? w[i0 + 1] : 0) - a) * f;
 };
 const widthAt = (j, sk) => {
   let a = KEYS[0], b = KEYS[0];
@@ -86,19 +90,23 @@ export function initTeam({ reduced }) {
   const lineY = (j, s) => Math.round((ANCHOR + 36 * j) * k - s);
   // the edge's slot: it builds up from the tail one slot every 1/30 s when the hold ends (even if
   // the scroll stops), then follows the scroll; going back it follows straight away
-  let cur = TAIL + 1, target = TAIL + 1, acc = 0;
+  // While it builds, the bars are indexed from the edge (the top one always widest) and slide
+  // into their page slots over BURST seconds.
+  let cur = TAIL + 1, target = TAIL + 1, acc = 0, burst0 = -1;
+  const burstShift = () => (burst0 < 0 ? 0 : 7.5 * Math.max(0, 1 - (gsap.ticker.time - burst0) / BURST));
   const stepper = (time, dt) => {
     acc += dt / 1000;
-    let moved = false;
-    while (acc >= 1 / 30 && cur > target) { acc -= 1 / 30; cur--; moved = true; }
-    if (cur <= target) { gsap.ticker.remove(stepper); acc = 0; }
-    if (moved) draw(last);
+    while (acc >= 1 / 30 && cur > target) { acc -= 1 / 30; cur--; }
+    if (cur <= target) acc = 0;
+    if (cur <= target && burstShift() === 0) gsap.ticker.remove(stepper);
+    draw(last);
   };
   const setTarget = (sk) => {
     target = sk < HOLD ? TAIL + 1 : slotAt(sk);
+    if (target > TAIL) burst0 = -1;
     if (target >= cur) { cur = target; return; }
-    if (cur === TAIL + 1) cur = TAIL; // the first bar appears at once
-    if (cur > target) { gsap.ticker.remove(stepper); gsap.ticker.add(stepper); }
+    if (cur === TAIL + 1) { cur = TAIL; burst0 = gsap.ticker.time; } // the first bar appears at once
+    if (cur > target || burstShift() > 0) { gsap.ticker.remove(stepper); gsap.ticker.add(stepper); }
   };
   const roundRect = (x, y, w, h) => {
     if (ctx.roundRect) ctx.roundRect(x, y, w, h, Math.min(2, h / 2));
@@ -124,10 +132,11 @@ export function initTeam({ reduced }) {
     // reaches up to the edge so no hairline opens under the panel
     const bars = [];
     if (cur <= TAIL) {
+      const o = burstShift(), skw = Math.max(sk, KEYS[0].s);
       for (let j = cur; j <= TAIL; j++) {
         const y0 = lineY(j, s);
         if (y0 > H) break;
-        const w = Math.round(widthAt(j, sk) * W);
+        const w = Math.round(widthAt(j - o, skw) * W);
         if (w < 12 || lineY(j + 1, s) < 0) continue;
         const h = Math.max(1, Math.round(w / 40));
         let y = y0 + Math.round((lineY(j + 1, s) - y0 - h) / 2);
