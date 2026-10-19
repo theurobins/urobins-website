@@ -103,65 +103,52 @@ export function initStory({ reduced, smooth }) {
   // arc onto the baseline, word by word in reading order ----
   const fs = () => parseFloat(getComputedStyle(title).fontSize) || 100;
   const [line1, line2, line3] = [...title.querySelectorAll('.aline')];
-  const tan = (d) => Math.tan((d * Math.PI) / 180);
-  // dy(xe): start offset in em for a letter xe em from its word's centre (+ = down); hump: extra lift
-  // at 35% of the way; settle: offset at `at` (62%: the tilt has flattened by then)
+  // per word: k scales its letters up, linearly with scroll, each letter at its final x; c(j) is how
+  // far the word rides above its baseline (em, - = up) as it swings up and drops into place; the word
+  // starts tilted, rising to the right, and flattens by `flat` of its growth. The last line moves as
+  // one group on its own measured curve.
   const groups = [
-    { chars: splitChars(line1.querySelector('.split')), from: 12, to: 54, dy: (xe) => -(xe - 0.3) * tan(45), hump: -0.4, settle: -0.12 },
-    { chars: splitChars(line2.querySelectorAll('.split')[0]), from: 17.6, to: 54, dy: (xe) => -xe * tan(16), hump: -0.05, settle: -0.015 },
-    { chars: splitChars(line2.querySelectorAll('.split')[1]), from: 28.6, to: 54, dy: (xe) => 0.55 - (xe + 0.45) * tan(40), hump: -0.15, settle: -0.045 },
-    // last line: one sagging curve across the whole line (shape measured on a 4.3em line, so xe is
-    // normalised to that), the first word leading the rest by 2.6 units, overshooting down at 75%
-    {
-      chars: splitChars(line3.querySelector('.split')), from: 31.4, lag: 2.6, to: 55.5,
-      dy: (xe, hw) => { const x = (xe * 2.15) / hw; return 0.5 - (0.62 * (x - 0.5) * (x - 0.5)) / (2.3 * 2.3) + 0.05 * x; },
-      hump: 0, settle: 0.1, at: 0.75,
-    },
+    { chars: splitChars(line1.querySelector('.split')), from: 10, to: 59.5, ty: 59.5, c: (j) => -0.57 * Math.sin(Math.PI * j), tilt: 1.0, flat: 0.8 },
+    { chars: splitChars(line2.querySelectorAll('.split')[0]), from: 19.5, to: 60, ty: 60, c: (j) => -0.28 * Math.sin(Math.PI * j), tilt: 0.32, flat: 0.9 },
+    { chars: splitChars(line2.querySelectorAll('.split')[1]), from: 26.5, to: 59.5, ty: 63, c: (j) => 0.25 * Math.pow(1 - j, 3) - 0.45 * Math.sin(Math.PI * j), tilt: 0.95, flat: 0.85 },
+    { chars: splitChars(line3.querySelector('.split')), from: 29.5, to: 60, ty: 60, line3: true },
   ];
   const letterData = [];
-  groups.forEach((g) => g.chars.forEach((el) => letterData.push({ el, g, xe: 0, y0: 0, on: false })));
+  groups.forEach((g) => g.chars.forEach((el) => letterData.push({ el, g, xe: 0, on: false, done: false })));
   const measureLetters = () => {
     em = fs();
     groups.forEach((g) => {
       let lo = Infinity, hi = -Infinity;
       g.chars.forEach((c) => { lo = Math.min(lo, c.offsetLeft); hi = Math.max(hi, c.offsetLeft + c.offsetWidth); });
       g.centre = (lo + hi) / 2;
-      g.hw = Math.max(0.5, (hi - lo) / 2 / em);
+      const first = g.chars[0], last = g.chars[g.chars.length - 1];
+      g.hw = Math.max(0.5, ((last.offsetLeft + last.offsetWidth / 2) - (first.offsetLeft + first.offsetWidth / 2)) / 2 / em);
     });
-    const firstWord = groups[3].chars[0].parentNode;
     letterData.forEach((d) => {
       const c = d.el;
       d.xe = (c.offsetLeft + c.offsetWidth / 2 - d.g.centre) / em;
-      d.y0 = d.g.dy(d.xe, d.g.hw);
-      d.from = d.g.from + (d.g.lag && c.parentNode !== firstWord ? d.g.lag : 0);
+      d.done = false;
     });
-  };
-  // smooth path through (0, y0) (0.35, y0*0.38 + hump) (at, settle) (1, 0), ending at rest
-  const hermite = (p0, p1, m0, m1, t) => {
-    const t2 = t * t, t3 = t2 * t;
-    return (2 * t3 - 3 * t2 + 1) * p0 + (t3 - 2 * t2 + t) * m0 + (-2 * t3 + 3 * t2) * p1 + (t3 - t2) * m1;
-  };
-  const yAt = (d, k) => {
-    const KT = [0, 0.35, d.g.at || 0.62, 1];
-    const v = [d.y0, d.y0 * 0.38 + d.g.hump, d.g.settle, 0];
-    const m = [(v[1] - v[0]) / KT[1], (v[2] - v[0]) / KT[2], (v[3] - v[1]) / (1 - KT[1]), 0];
-    const i = k < KT[1] ? 0 : k < KT[2] ? 1 : 2;
-    const h = KT[i + 1] - KT[i];
-    return hermite(v[i], v[i + 1], m[i] * h, m[i + 1] * h, (k - KT[i]) / h);
   };
   const letters = { u: 0 };
   const renderLetters = () => {
     for (let i = 0; i < letterData.length; i++) {
-      const d = letterData[i];
-      const k = Math.min(1, Math.max(0, (letters.u - d.from) / (d.g.to - d.from)));
+      const d = letterData[i], g = d.g;
+      const k = Math.min(1, Math.max(0, (letters.u - g.from) / (g.to - g.from)));
+      const j = Math.min(1, Math.max(0, (letters.u - g.from) / (g.ty - g.from)));
       const on = k > 0;
       if (on !== d.on) { d.on = on; d.el.style.opacity = on ? '1' : ''; }
       if (!on) continue;
-      if (k >= 1) { if (d.done) continue; d.done = true; d.el.style.transform = 'none'; continue; }
+      if (k >= 1 && j >= 1) { if (!d.done) { d.done = true; d.el.style.transform = 'none'; } continue; }
       d.done = false;
-      const x = 0.08 * Math.max(0, d.xe) * (1 - k) * em;
-      const y = yAt(d, k) * em;
-      d.el.style.transform = `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px) scale(${k.toFixed(4)})`;
+      let y;
+      if (g.line3) {
+        const xn = d.xe / g.hw;
+        y = Math.max(0, 1 - k / 0.7) * (-0.578 * xn * xn + 0.237 * xn) + 0.15 * Math.sin(Math.PI * k) * (1 - 0.83 * xn * xn);
+      } else {
+        y = g.c(j) - d.xe * g.tilt * Math.max(0, 1 - k / g.flat);
+      }
+      d.el.style.transform = `translate(0px, ${(y * em).toFixed(2)}px) scale(${k.toFixed(4)})`;
     }
   };
 
@@ -172,7 +159,7 @@ export function initStory({ reduced, smooth }) {
   const pillOpen = { k: 0 };
   // "Path" arrives slanted like an italic and straightens once its letters have landed
   const pathWord = midWords[1].querySelector('.word');
-  let pillW = 0, em = 100, parting = false, playing = false;
+  let pillW = 0, em = 100, playing = false;
   const sizePill = () => {
     em = fs();
     pillW = pillWidth();
@@ -185,13 +172,12 @@ export function initStory({ reduced, smooth }) {
     midWords[0].style.transform = `translate(${shift.toFixed(2)}px, 0)`;
     midWords[1].style.transform = `translate(${(-shift).toFixed(2)}px, 0)`;
     pill.style.transform = `scale(${k.toFixed(4)})`;
-    const p = k > 0.001 && k < 0.999;
-    if (p !== parting) { parting = p; title.classList.toggle('is-parting', p); }
     syncVideo();
   };
-  // the video only decodes while its pill is open and not covered by the Services stage
+  // the video only decodes while its pill is open (starting a little before, while it is still at
+  // scale 0, so the first decode is not in the frame the glide starts) and not under Services
   function syncVideo() {
-    const want = !reduced && pillOpen.k > 0.001 && !covered;
+    const want = !reduced && !covered && (pillOpen.k > 0.001 || letters.u > 50);
     if (want === playing) return;
     playing = want;
     if (want) video.play().catch(() => {});
@@ -304,14 +290,31 @@ export function initStory({ reduced, smooth }) {
   const master = gsap.timeline({ defaults: { ease: 'none' } });
   const tl = gsap.timeline({ defaults: { ease: 'none' } });
 
-  tl.to(letters, { u: 60, duration: 60, onUpdate: renderLetters }, 0);
+  tl.to(letters, { u: 64, duration: 64, onUpdate: () => { renderLetters(); syncVideo(); } }, 0);
 
   // the line hooks and spikes while the hero's last bars clear (easing into its main speed), then
-  // draws at one constant rate to its tail under the last line, just before the Services wipe
-  const L = path.getTotalLength();
-  gsap.set(path, { strokeDasharray: L, strokeDashoffset: L });
-  tl.to(path, { strokeDashoffset: L * (1 - 0.145), duration: 10, ease: (t) => 1.705 * t - 0.705 * t * t }, 2)
-    .to(path, { strokeDashoffset: 0, duration: 200 }, 12);
+  // draws at one constant rate to its tail under the last line, just before the Services wipe.
+  // With a non-scaling stroke the dash is laid out in screen pixels, so measure the on-screen length.
+  const lineSvg = path.ownerSVGElement;
+  const lineDraw = { f: 0 };
+  let lineLen = 1;
+  const applyLine = () => { path.style.strokeDashoffset = ((lineLen + 2) * (1 - lineDraw.f)).toFixed(1); };
+  const measureLine = () => {
+    const sx = lineSvg.clientWidth / 1440, sy = lineSvg.clientHeight / 900, Lu = path.getTotalLength();
+    let px = 0, py = 0;
+    lineLen = 0;
+    for (let i = 0; i <= 600; i++) {
+      const p = path.getPointAtLength((Lu * i) / 600);
+      const x = p.x * sx, y = p.y * sy;
+      if (i) lineLen += Math.hypot(x - px, y - py);
+      px = x; py = y;
+    }
+    path.style.strokeDasharray = `${(lineLen + 2).toFixed(1)} ${(lineLen + 2).toFixed(1)}`;
+    applyLine();
+  };
+  measureLine();
+  tl.to(lineDraw, { f: 0.145, duration: 7, ease: (t) => 1.79 * t - 0.79 * t * t, onUpdate: applyLine }, 5)
+    .to(lineDraw, { f: 1, duration: 200, onUpdate: applyLine }, 12);
 
   // the pill scales open from its centre in step with the line while the words part
   tl.to(pillOpen, { k: 1, duration: 98, onUpdate: applyPill }, 62);
@@ -366,7 +369,7 @@ export function initStory({ reduced, smooth }) {
     onRefreshInit: () => { sizePill(); fitTitles(); },
     // measure once layout has settled, never in the middle of a scrub
     onRefresh: (self) => {
-      measureLetters(); renderLetters(); measurePill(); applyLift(); applyPill();
+      measureLine(); measureLetters(); renderLetters(); measurePill(); applyLift(); applyPill();
       // the deck rests on however many steps are already behind the scroll position
       gsap.killTweensOf(deck);
       deck.s = STEPS.filter((u) => self.scroll() > self.start + ((LEAD + u) * vp.h) / 100).length;
@@ -475,6 +478,7 @@ export function initStory({ reduced, smooth }) {
     },
     warm,
     resize() {
+      measureLine();
       if (!reduced) buildBeats();
       if (sculpture) sculpture.resize();
       sizePill();

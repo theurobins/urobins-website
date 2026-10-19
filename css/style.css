@@ -242,11 +242,11 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
   position: absolute;
   inset: 0;
   background: url("../assets/texture/about-smoke.webp") 50% 50% / cover no-repeat;
-  opacity: 0.16;
+  opacity: 0.13;
   will-change: transform;
   animation: smoke-a 28s ease-in-out infinite alternate;
 }
-.about__smoke::after { opacity: 0.1; background-position: 46% 54%; animation: smoke-b 36s ease-in-out infinite alternate; }
+.about__smoke::after { opacity: 0.08; background-position: 46% 54%; animation: smoke-b 36s ease-in-out infinite alternate; }
 /* off screen, or hidden under the fully open Services stage: stop painting About */
 .story:not(.is-live) .about__smoke::before,
 .story:not(.is-live) .about__smoke::after,
@@ -270,7 +270,7 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
   stroke: #0d639e;
   stroke-width: 1.4;
   vector-effect: non-scaling-stroke;
-  opacity: 0.95;
+  opacity: 0.75;
   /* its own layer: drawing the dash only repaints the thin line, not the whole About block */
   will-change: transform;
 }
@@ -310,8 +310,10 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
   transform: scale(0);
 }
 .about__title .split { display: inline-block; }
-.about__title.is-parting .split,
-.about__title.is-parting .about__video { will-change: transform; }
+/* the parting words and the pill get their layers once, when the stage comes on screen, not in the
+   frame the pill starts opening */
+.story.is-live .aline--mid > .split,
+.story.is-live .about__video { will-change: transform; }
 .about__video video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 
 .about__grid {
@@ -328,7 +330,7 @@ a.pill:hover .arr { transform: translate(2px, -2px); }
 }
 .about__col { min-width: 0; }
 .about__col--mid { display: flex; flex-direction: column; justify-content: space-between; }
-.about__copy { display: grid; align-content: start; gap: 16px; padding-top: 1.4em; }
+.about__copy { display: grid; align-content: start; gap: 16px; padding-top: 1.4em; padding-left: 0.65vw; }
 .about__copy p { font: 400 14px/1.24 var(--sans); color: rgba(255, 255, 255, 0.86); text-indent: 1.85em; max-width: 22em; }
 .about__copy .a-line { display: block; text-indent: 0; }
 .about__copy .a-line:first-child { text-indent: 1.85em; }
