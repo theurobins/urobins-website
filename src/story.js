@@ -32,17 +32,21 @@ export const STORY_MARKS = { about: 125 + LEAD, services: 350 + LEAD };
 // card path keyframes at u = -1 .. 7 (x: vw, y: vh, z: px, ry/rz: deg; perspective 1400px from the
 // viewport centre). Cards come in from the bottom-right, sit at the centre (u = 1), recede up the
 // left edge, then turn past edge-on and drift back across the top-left mirrored.
+// (rotations and scales solved through the off-axis perspective, so each rest pose projects to the
+// reference's card box)
 const PATH = [
-  { x: 63.2, y: 61.4, z: 0, ry: 40, rz: -2, s: 0.95, o: 1 },
-  { x: 32.4, y: 41.6, z: 0, ry: 34, rz: -1, s: 0.96, o: 1 },
+  { x: 63.2, y: 61.4, z: 0, ry: 20, rz: -2, s: 0.85, o: 1 },
+  { x: 34.0, y: 40.6, z: 0, ry: 17, rz: -1, s: 0.86, o: 1 },
   { x: 1.8, y: 21.9, z: 0, ry: 0, rz: 0, s: 1, o: 1 },
-  { x: -30.2, y: 0, z: 0, ry: -36, rz: 0.5, s: 0.97, o: 1 },
-  { x: -71.4, y: -25.2, z: -787, ry: -75, rz: 1, s: 1, o: 1 },
-  { x: -92.8, y: -61.6, z: -1400, ry: -100, rz: 1, s: 1, o: 1 },
-  { x: -90, y: -88.6, z: -1933, ry: -150, rz: 0, s: 1, o: 0.95 },
+  { x: -29.8, y: 0.6, z: 0, ry: -23, rz: 0.5, s: 0.9, o: 1 },
+  { x: -62.5, y: -21.5, z: -500, ry: -49, rz: 1, s: 1, o: 1 },
+  { x: -92.8, y: -61.6, z: -1400, ry: -66, rz: 1, s: 1, o: 1 },
+  { x: -90, y: -88.6, z: -1933, ry: -150, rz: 0, s: 0.78, o: 0.95 },
   { x: -58.5, y: -99.6, z: -1856, ry: -175, rz: 0, s: 1, o: 0.9 },
   { x: -25, y: -110, z: -1900, ry: -185, rz: 0, s: 1, o: 0 },
 ];
+// the cards step one slot at a time on their own clock at these story units, resting between steps
+const STEPS = [389, 496, 602, 709, 815];
 const KEYS = Object.keys(PATH[0]);
 
 function cr(p0, p1, p2, p3, t) {
@@ -199,7 +203,9 @@ export function initStory({ reduced, smooth }) {
   // screen with everything inside it scaling up from 0.3 + 0.7 * (rect width / stage width)
   const portal = { wipe: 0, t: 0 };
   let glide = null;
-  const deck = { c: 0 };
+  // flow runs continuously with the scroll (props, haze); deck counts completed card steps
+  const flow = { c: 0 };
+  const deck = { s: 0 };
   let sculpture = null;
   const inner = services.querySelector('.services__inner');
   const PILL_R = 0;
@@ -230,9 +236,10 @@ export function initStory({ reduced, smooth }) {
     // the clip starts from the pill's resting box: never let a late glide leave them apart
     if (glide && glide.progress() < 1) glide.progress(1);
     const k = portal.t;
-    // the content layer only holds a composited layer while it is actually scaling
-    const g = k > 0.001 && k < 0.999;
+    // the content keeps its own layer for the whole opening (never toggled mid-motion)
+    const g = !full;
     if (g !== growing) { growing = g; inner.classList.toggle('is-growing', g); }
+    layoutCards();
     if (full) {
       services.style.clipPath = 'none';
       inner.style.transform = '';
@@ -273,8 +280,9 @@ export function initStory({ reduced, smooth }) {
   const layoutCards = () => {
     const narrow = window.innerWidth < 760;
     cards.forEach((card, i) => {
-      // 110 scroll units per slot; card 0 reaches the centre as the portal finishes opening
-      const u = -0.05 + deck.c * 5.35 - i;
+      // card 0 rides in with the growth and lands on the centre slot as it completes; after that
+      // every card moves only when the deck steps
+      const u = -0.6 + 1.6 * portal.t + deck.s - i;
       const on = u >= -1 && u <= 7;
       if (card._on !== on) {
         card._on = on;
@@ -289,7 +297,7 @@ export function initStory({ reduced, smooth }) {
       card.style.transform = `translate(-50%, -50%) translate3d(${x.toFixed(2)}vw, ${y.toFixed(2)}vh, ${pt.z.toFixed(1)}px) ` +
         `rotateY(${pt.ry.toFixed(2)}deg) rotateZ(${pt.rz.toFixed(2)}deg) scale(${pt.s.toFixed(4)})`;
     });
-    if (sculpture) sculpture.setProgress(deck.c);
+    if (sculpture) sculpture.setProgress(flow.c);
   };
 
   // ---- build the timeline (positions below are relative to the end of the lead-in) ----
@@ -313,7 +321,34 @@ export function initStory({ reduced, smooth }) {
   tl.to(portal, { wipe: 1, duration: 13, onUpdate: applyPortal }, 213);
   tl.to(portal, { t: 1, duration: 111, ease: portalEase, onUpdate: applyPortal }, 236);
   tl.fromTo(svcTitle, { opacity: 0 }, { opacity: 1, duration: 52, ease: 'power1.out' }, 256);
-  tl.to(deck, { c: 1, duration: 590, onUpdate: layoutCards }, 236);
+  tl.to(flow, { c: 1, duration: 590, onUpdate: layoutCards }, 236);
+
+  // the flat teal veil clears in a diagonal sweep (top-left first) onto a darker base, then soft
+  // cobalt haze drifts across it. Transform and opacity only, so nothing repaints.
+  const veil = services.querySelector('.services__veil');
+  const VEIL_A = (25 * Math.PI) / 180;
+  const veilReach = () => 0.5 * (Math.cos(VEIL_A) * vp.w + Math.sin(VEIL_A) * vp.h) + 290;
+  const sweep = { p: 0 };
+  const applyVeil = () => {
+    const t = (2 * sweep.p - 1) * veilReach();
+    veil.style.transform = `translate(${(t * Math.cos(VEIL_A)).toFixed(1)}px, ${(t * Math.sin(VEIL_A)).toFixed(1)}px) rotate(25deg) scale(13.75)`;
+  };
+  tl.to(sweep, { p: 1, duration: 83, onUpdate: applyVeil }, 375);
+  const [hzA, hzB, hzC] = services.querySelectorAll('.services__haze .hz');
+  const X = (px) => () => (px / 1392) * vp.w;
+  const Y = (px) => () => (px / 782) * vp.h;
+  tl.fromTo(hzA, { x: X(1000), y: Y(60), opacity: 0, rotation: 0 }, { x: X(900), y: Y(80), opacity: 1, duration: 38 }, 440)
+    .to(hzA, { x: X(560), y: Y(250), rotation: -6, duration: 39 }, 478)
+    .to(hzA, { x: X(640), y: Y(230), rotation: -9, duration: 39 }, 517)
+    .to(hzA, { x: X(450), y: Y(170), rotation: -12, duration: 39 }, 556)
+    .to(hzA, { x: X(600), y: Y(60), rotation: 0, duration: 40 }, 595)
+    .to(hzA, { x: X(650), y: Y(30), duration: 39 }, 635)
+    .to(hzA, { opacity: 0, duration: 46 }, 674);
+  tl.fromTo(hzB, { x: X(640), y: 0, opacity: 0 }, { opacity: 1, duration: 33 }, 680)
+    .to(hzB, { x: X(600), duration: 77 }, 713)
+    .to(hzB, { x: X(700), duration: 36 }, 790);
+  tl.fromTo(hzC, { x: X(1180), y: Y(640), opacity: 0 }, { opacity: 0.9, duration: 52 }, 700)
+    .to(hzC, { x: X(1080), y: Y(660), duration: 74 }, 752);
   // quick fade to black, then a black hold before Metrics
   const tail = { f: 0 };
   tl.to(tail, { f: 1, duration: 26, ease: 'power2.out', onUpdate: () => { fade.style.opacity = tail.f; } }, 826);
@@ -330,7 +365,13 @@ export function initStory({ reduced, smooth }) {
     invalidateOnRefresh: true,
     onRefreshInit: () => { sizePill(); fitTitles(); },
     // measure once layout has settled, never in the middle of a scrub
-    onRefresh: () => { measureLetters(); renderLetters(); measurePill(); applyLift(); applyPill(); applyPortal(); layoutCards(); },
+    onRefresh: (self) => {
+      measureLetters(); renderLetters(); measurePill(); applyLift(); applyPill();
+      // the deck rests on however many steps are already behind the scroll position
+      gsap.killTweensOf(deck);
+      deck.s = STEPS.filter((u) => self.scroll() > self.start + ((LEAD + u) * vp.h) / 100).length;
+      applyPortal(); layoutCards(); applyVeil();
+    },
   });
 
   // the block glides up 24.3vh as the pill starts opening. In the reference this runs on its own
@@ -353,13 +394,22 @@ export function initStory({ reduced, smooth }) {
     if (!warming) {
       warming = loadSculpture().then(({ Sculpture }) => {
         sculpture = new Sculpture(services.querySelector('.services__gl'), services.querySelector('.services__gl--front'));
-        sculpture.setProgress(deck.c);
+        sculpture.setProgress(flow.c);
         return sculpture.warm();
       }).catch((e) => console.warn('[services] 3D scene unavailable', e));
     }
     return warming;
   };
   ScrollTrigger.create({ trigger: section, start: 'top 200%', once: true, onEnter: warm });
+
+  // card steps: each one is a 0.95 s power3.out move, whichever way the scroll crosses it
+  const stepTo = (n) => gsap.to(deck, { s: n, duration: 0.95, ease: 'power3.out', overwrite: true, onUpdate: layoutCards });
+  STEPS.forEach((unit, i) => ScrollTrigger.create({
+    trigger: section,
+    start: () => st.start + ((LEAD + unit) * vp.h) / 100,
+    onEnter: () => stepTo(i + 1),
+    onLeaveBack: () => stepTo(i),
+  }));
 
   // the grid text reveals in two timed beats (like the reference, they finish even if scrolling
   // pauses): the first paragraph line by line with the labels as the letters land, then the second

@@ -154,11 +154,13 @@ export class Sculpture {
     this.camera = new PerspectiveCamera(34, 1, 0.1, 100);
     this.camera.position.set(0, 0, 9);
 
-    const COBALT = { rim: '#62c1d4', lit: '#1b67a5', mid: '#134a7c', shade: '#0a335e' };
+    // about half of each prop lands on the mid and shade tones; the cyan rim only catches the faces
+    // turned right up into the light
+    const COBALT = { rim: '#62c1d4', lit: '#1b67a5', mid: '#11396a', shade: '#082f4b', cut: [0.96, 0.62, 0.22] };
     const blue = celMaterial(COBALT);
     const blueTwoSided = celMaterial({ ...COBALT, side: DoubleSide });
     const deep = celMaterial({ rim: '#155284', lit: '#124472', mid: '#0e3a66', shade: '#082848' });
-    const bright = celMaterial({ rim: '#62c1d4', lit: '#2f86b8', mid: '#1b67a5', shade: '#124472', cut: [0.8, 0.4, 0.0] });
+    const bright = celMaterial({ rim: '#62c1d4', lit: '#2f86b8', mid: '#1b67a5', shade: '#124472', cut: [0.9, 0.5, 0.1] });
     const screenMat = new MeshBasicMaterial({ color: 0x082848 });
 
     // ---- props: each travels from -> via -> to while the deck runs from c0 to c1 ----
@@ -187,7 +189,7 @@ export class Sculpture {
       orbit.add(end);
     }
     this.rings = [g1, g2, g3, knot];
-    add(orbit, { c0: 0.5, c1: 0.86, from: [-5.5, 3.2, -2], via: [0.4, 0.2, 3.0], to: [5.8, -3.0, -1], scale: 0.9, spin: [0.5, 1.6, 0.4], base: [0.4, -0.5, 0.2] });
+    add(orbit, { c0: 0.56, c1: 0.92, from: [-5.5, 3.2, -2], via: [0.4, 0.2, 3.0], to: [5.8, -3.0, -1], scale: 0.8, spin: [0.5, 1.6, 0.4], base: [0.4, -0.5, 0.2] });
 
     // phone: the small first arrival, drifting down from beside the title
     const phone = new Group();
@@ -195,7 +197,7 @@ export class Sculpture {
     const ps = new Mesh(new PlaneGeometry(0.52, 1.08), screenMat);
     ps.position.z = 0.045;
     phone.add(ps);
-    add(phone, { c0: 0.18, c1: 0.55, from: [-0.9, 2.9, 0.5], to: [2.2, -0.6, 0.8], scale: 0.55, spin: [0.4, 1.5, 0.5], base: [0.3, 0.2, 0.6] });
+    add(phone, { c0: 0.25, c1: 0.72, from: [-0.9, 2.9, 0.5], to: [2.0, -1.2, 0.8], scale: 0.55, spin: [0.4, 1.5, 0.5], base: [0.3, 0.2, 0.6] });
 
     // laptop (web)
     const laptop = new Group();
@@ -209,10 +211,10 @@ export class Sculpture {
     lid.position.set(0, 0.04, -0.5);
     lid.rotation.x = -0.35;
     laptop.add(lb, lid);
-    add(laptop, { c0: 0.4, c1: 0.7, from: [5.6, -3.4, -1.5], to: [-5.0, 2.8, -2.5], scale: 0.85, spin: [0.9, 1.3, 0.4], base: [0.5, 0.6, 0] });
+    add(laptop, { c0: 0.47, c1: 0.77, from: [5.6, -3.4, -1.5], to: [-5.0, 2.8, -2.5], scale: 0.85, spin: [0.9, 1.3, 0.4], base: [0.5, 0.6, 0] });
 
     // gear (CRM workflows)
-    add(new Mesh(gearGeometry(), blue), { c0: 0.48, c1: 0.78, from: [-6.0, -1.0, -2.0], to: [5.6, 2.4, 0.0], scale: 0.8, spin: [0.4, 0.8, 2.2], base: [0.6, 0.4, 0] });
+    add(new Mesh(gearGeometry(), blue), { c0: 0.52, c1: 0.82, from: [-6.0, -1.0, -2.0], to: [5.6, 2.4, 0.0], scale: 0.8, spin: [0.4, 0.8, 2.2], base: [0.6, 0.4, 0] });
 
     // cloud (infrastructure)
     const cloud = new Group();
@@ -222,7 +224,7 @@ export class Sculpture {
       m.scale.z = 0.7;
       cloud.add(m);
     }
-    add(cloud, { c0: 0.58, c1: 0.88, from: [5.8, 2.6, -2.5], to: [-5.6, -2.8, -1.0], scale: 0.95, spin: [0.2, 0.9, 0.3], base: [0, 0, 0] });
+    add(cloud, { c0: 0.62, c1: 0.92, from: [5.8, 2.6, -2.5], to: [-5.6, -2.8, -1.0], scale: 0.95, spin: [0.2, 0.9, 0.3], base: [0, 0, 0] });
 
     // magnifier (SEO)
     const mag = new Group();
@@ -234,7 +236,7 @@ export class Sculpture {
     handle.position.set(0.52, -0.52, 0);
     handle.rotation.z = Math.PI / 4;
     mag.add(handle);
-    add(mag, { c0: 0.66, c1: 0.96, from: [-4.8, -3.8, 0.3], to: [3.8, 3.8, -1.2], scale: 0.9, spin: [1.1, 0.7, 1.4], base: [0.2, 0.5, 0.3] });
+    add(mag, { c0: 0.7, c1: 1.0, from: [-4.8, -3.8, 0.3], to: [3.8, 3.8, -1.2], scale: 0.9, spin: [1.1, 0.7, 1.4], base: [0.2, 0.5, 0.3] });
 
     // megaphone (performance marketing)
     const mega = new Group();
@@ -244,28 +246,29 @@ export class Sculpture {
     const grip = new Mesh(new CylinderGeometry(0.08, 0.08, 0.45, 10), deep);
     grip.position.set(-0.25, -0.3, 0);
     mega.add(grip);
-    add(mega, { c0: 0.74, c1: 1.04, from: [6.0, 0.8, -1.0], to: [-4.0, -4.4, 0.5], scale: 0.85, spin: [0.8, 1.5, 0.6], base: [0.3, 0.8, 0] });
+    add(mega, { c0: 0.76, c1: 1.06, from: [6.0, 0.8, -1.0], to: [-4.0, -4.4, 0.5], scale: 0.85, spin: [0.8, 1.5, 0.6], base: [0.3, 0.8, 0] });
 
-    // papers: two big sheets sweep past right in front of the camera, a few small ones further back
+    // papers: two big sheets sweep fast across the screen right in front of the camera (top-right to
+    // bottom-left), late flurries of mid-size sheets near the cards, two small ones far back
     const paperMat = (i) => celMaterial({ rim: '#efede6', lit: '#efede6', mid: '#efede6', shade: '#cfccc4', cut: [0.9, 0.5, 0.2], map: scribbleTexture(i), side: DoubleSide });
-    const big = crumpledSheet(0.62, 0.82);
-    add(new Mesh(big, paperMat(1)), {
-      c0: 0.3, c1: 0.44, from: [-4.2, -2.6, 3.5], via: [-0.2, -0.4, 4.8], to: [3.8, 1.4, 3.0], scale: 1.2, spin: [1.6, 2.2, 0.9], base: [0.3, 0.6, 0.2], paper: true,
+    const sheet = crumpledSheet(0.62, 0.82);
+    add(new Mesh(sheet, paperMat(1)), {
+      c0: 0.437, c1: 0.49, from: [4.0, 2.6, 3.2], via: [0.6, 0.2, 5.2], to: [-4.6, -3.0, 3.4], scale: 1.2, spin: [1.6, 2.2, 0.9], base: [0.3, 0.6, 0.2], paper: true,
     });
-    add(new Mesh(big, paperMat(2)), {
-      c0: 0.46, c1: 0.58, from: [4.6, 3.6, 2.5], via: [2.8, 2.6, 4.0], to: [1.4, 2.2, 4.6], scale: 1.1, spin: [1.2, 1.8, 1.4], base: [1.2, 0.2, 0.8], paper: true,
+    add(new Mesh(sheet, paperMat(2)), {
+      c0: 0.62, c1: 0.665, from: [4.4, 3.4, 2.6], via: [0.8, 2.6, 4.4], to: [-3.6, 0.4, 3.2], scale: 1.1, spin: [1.2, 1.8, 1.4], base: [1.2, 0.2, 0.8], paper: true,
     });
-    const small = crumpledSheet(0.62, 0.82);
-    for (let i = 0; i < 5; i++) {
-      const c0 = 0.35 + i * 0.12;
-      const lane = (i / 4) * 2 - 1;
-      add(new Mesh(small, paperMat(i + 3)), {
-        c0, c1: c0 + 0.3,
-        from: [6.2 - (i % 3), -4.2 + lane * 1.2, -2 + (i % 3) * 1.0],
-        to: [-6.2 + (i % 2) * 2, 4.0 + lane * 1.0, -1.5 + (i % 3) * 0.9],
-        scale: 0.5 + (i % 3) * 0.1, spin: [2.4 + i * 0.2, 1.8, 2.9 - i * 0.15], base: [i, i * 2, i * 0.5], paper: true,
-      });
-    }
+    [
+      { c0: 0.775, len: 0.07, from: [-0.6, -4.2, 1.8], to: [0.4, -0.2, 2.2], scale: 0.9 },
+      { c0: 0.875, len: 0.06, from: [3.0, -0.6, 1.6], to: [-1.0, 0.2, 2.0], scale: 0.8 },
+      { c0: 0.905, len: 0.07, from: [-2.0, -1.4, 2.0], to: [-3.8, -3.2, 1.6], scale: 1.0 },
+      { c0: 0.97, len: 0.08, from: [-0.4, 0.0, 1.8], to: [4.6, 0.4, 1.6], scale: 0.85 },
+      { c0: 0.55, len: 0.3, from: [6.2, -2.4, -2.2], to: [-6.0, 3.6, -1.6], scale: 0.55 },
+      { c0: 0.7, len: 0.3, from: [-6.2, -3.0, -2.4], to: [5.8, 2.8, -1.8], scale: 0.6 },
+    ].forEach((p, i) => add(new Mesh(sheet, paperMat(i + 3)), {
+      c0: p.c0, c1: p.c0 + p.len, from: p.from, to: p.to, scale: p.scale,
+      spin: [2.4 + i * 0.2, 1.8, 2.9 - i * 0.15], base: [i, i * 2, i * 0.5], paper: true,
+    }));
     this.props = props;
 
     // white flakes: irregular chips tumbling slowly through the stage
