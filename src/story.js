@@ -215,13 +215,13 @@ export function initStory({ reduced, smooth }) {
 
   // pill position inside the stage, measured on refresh (the stage is sticky, so it never moves while stuck)
   let pillBox = null;
-  let pinW = 1;
+  let pinW = 1, pinH = 1;
   const measurePill = () => {
     // layout offsets ignore transforms, so this is the pill's resting box at full size
     let x = 0, y = 0;
     for (let el = pill; el && el !== pin; el = el.offsetParent) { x += el.offsetLeft; y += el.offsetTop; }
     pinW = pin.clientWidth || 1;
-    const pinH = pin.clientHeight || 1;
+    pinH = pin.clientHeight || 1;
     pillBox = { top: y, left: x, right: pinW - x - pill.offsetWidth, bottom: pinH - y - pill.offsetHeight };
   };
   let covered = false, growing = false, masked = false;
@@ -251,14 +251,22 @@ export function initStory({ reduced, smooth }) {
     const pw = pinW - pillBox.left - pillBox.right;
     const top = pillBox.top * (1 - k);
     const left = pillBox.left * (1 - k);
-    const right = pillBox.right * (1 - k) + (1 - portal.wipe) * pw;
+    const right = pillBox.right * (1 - k);
     const bottom = pillBox.bottom * (1 - k);
     const round = PILL_R ? ` round ${(PILL_R * (1 - k)).toFixed(2)}px` : '';
     services.style.clipPath = `inset(${top.toFixed(1)}px ${right.toFixed(1)}px ${bottom.toFixed(1)}px ${left.toFixed(1)}px${round})`;
-    // soft leading edge while the wipe crosses the pill
+    // the wipe crosses the pill with a soft edge slanted 20deg, its bottom leading (the mask alone
+    // forms the moving edge; the growth only starts once it is done)
     if (portal.wipe < 0.999) {
-      const x = pillBox.left + portal.wipe * pw;
-      setMask(`linear-gradient(90deg, #000 ${(x - 26).toFixed(1)}px, transparent ${x.toFixed(1)}px)`);
+      const pillH = pinH - pillBox.top - pillBox.bottom;
+      const A = (70 * Math.PI) / 180, sA = Math.sin(A), cA = Math.cos(A);
+      const soft = 26 / sA, half = 0.182 * pillH;
+      // where the edge's transparent end crosses the pill's middle row
+      const xe = pillBox.left - half + portal.wipe * (pw + 2 * half + soft);
+      const ym = pillBox.top + pillH / 2;
+      // ...projected onto the CSS gradient line (centred on the stage box)
+      const p = (xe - pinW / 2) * sA - (ym - pinH / 2) * cA + (pinW * sA + pinH * cA) / 2;
+      setMask(`linear-gradient(70deg, #000 ${(p - 26).toFixed(1)}px, transparent ${p.toFixed(1)}px)`);
       masked = true;
     } else if (masked) {
       setMask('');
