@@ -1,309 +1,617 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Urobins</title>
-<meta name="description" content="Urobins is a digital technology agency. We build custom websites, mobile apps, CRM workflows, and secure cloud infrastructure, paired with strategic SEO and performance marketing.">
-<meta name="theme-color" content="#090909">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="css/style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Urobins — Digital Technology Agency</title>
+  <meta name="description"
+    content="Urobins is a digital technology agency. We build custom websites, mobile apps, CRM workflows, and secure cloud infrastructure, paired with strategic SEO and performance marketing.">
+  <meta name="theme-color" content="#09090b">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Urobins — Digital Technology Agency">
+  <meta property="og:description"
+    content="Custom websites, mobile apps, CRM workflows and secure cloud infrastructure, paired with strategic SEO and performance marketing.">
+  <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/fonts/instrument-serif-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/instrument-serif-italic-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/inter-tight-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body class="is-loading">
 
-<!-- A. Preloader -->
-<div class="preloader" id="preloader" aria-hidden="true">
-  <canvas class="preloader__canvas"></canvas>
-  <div class="preloader__flash"></div>
-  <div class="preloader__count"><span class="preloader__num">0</span>%</div>
-</div>
+  <!-- shared vector assets: the logo mark (six slanted pieces), the wordmark, the arrow -->
+  <svg class="defs" width="0" height="0" aria-hidden="true" focusable="false">
+    <symbol id="logo-mark" viewBox="0 0 340 303">
+      <path
+        d="M70 0h57l48 84h-58zM150 136l58-105h58l-58 105zM0 191l58-105h58l-58 105zM224 217l58-105h58l-58 105zM75 272l58-105h58l-58 105zM165 219h58l47 84h-57z" />
+    </symbol>
+    <symbol id="logo-word" viewBox="0 0 881 211">
+      <path fill-rule="evenodd"
+        d="M571 2L580 2.6L585.8 5L591 10L594.1 18L594.1 24L591 31.7L585 37.2L579 39.3L568 39.4L562 37.3L555.5 31L552.9 24L553 17L556.7 9L564 3.5ZM392.8 10L426.4 10L426 84.3L436.4 72L448 64L463 58.8L481 58.5L495 61.6L510 68.7L523.1 80L531.1 91L537.4 104L541.2 118L542.5 138L540.3 153L536.4 165L528.2 180L517 192.3L507 199.3L486 207.3L474 208.3L459 206.4L448 202.2L440 197.4L432.7 191L425 180.8L424 204L393 203.3ZM300 58L325 59.7L342 65.7L352 71.7L361.5 80L370.2 91L377.3 105L381.3 120L382.4 138L380.2 152L376.3 164L368.3 178L358 189.4L346 198.3L332 204.4L321 207.3L307 208.3L293 207.2L279 203.2L263 194.3L250.7 183L243.6 173L236.6 158L233.6 145L232.7 129L234.6 115L239.8 100L247.6 87L256 77.6L273 65.8L285 60.8ZM686.9 58L703 58.7L719 63.9L730.1 72L737.3 81L741.3 89L745.3 102L747.5 118L747.9 203L747 204L715 204L714.5 128L712.1 110L707.4 100L701 93.6L692 89.7L682 88.5L672 89.7L661 94.7L652.6 103L646.7 114L644.1 131L644 203.2L611 203.8L611 62.2L642 62.1L643 83.1L649.7 74L659 66.6L672 60.6ZM811.6 58L830 58.6L845 62.7L853 66.8L866.3 79L871.2 88L873.3 96L873 103.3L842 103L839.4 96L834 89.6L825 85.7L817 85L804 87.7L798.8 92L796.7 96L796.6 106L802 112.4L813 116.4L841 121.6L858 127.8L869.1 136L876.3 149L878.2 162L877.4 171L874.3 181L869.4 189L862 196.3L852 202.2L834 207.3L824 208.3L803 207.3L782 200.1L775 195.4L766.7 187L760.6 176L757.8 165L758 158.7L789 159L791.5 168L797 175.2L804 179.3L815 181.6L831 180.2L837 177.4L842.5 171L843.5 160L839 153L826 147.7L798 142.4L783 136.3L770.8 126L764.6 113L763.7 94L766.8 83L771.7 75L778 68.8L786 63.8L798 59.6ZM2 62L34 62L34.6 142L36.7 155L40.7 164L49 172.5L59 176.3L68 177.3L77 176.3L87 172.2L95.1 164L99.2 155L101.4 141L102 62L134 62L134.7 137L133.3 156L130.4 168L126.2 178L120.3 187L113 194.2L106 199.2L92 205.3L81 207.4L63 208.1L44 205.3L34 201.3L23 194.3L15.7 187L6.7 171L1.8 149ZM153 62L184 62.2L185 86L194.1 73L207 64.6L219 62L237 62L237.6 63L237 90.7L215 91.7L205 95.5L194.7 105L188.6 117L185.7 133L185 204L153 204L152.3 203ZM558 62L589 62L590.3 63L590.3 203L589 204L558 204L556.7 203L556.7 63ZM304 88.9L291 92L278 101L272.6 108L268.6 116L265.8 133L268.7 150L272.5 158L277.8 165L292 174.4L308 177.3L323 174.4L337.3 165L343.3 157L346.4 150L349.4 133L346.4 116L337 100.9L323 91.6L316 89.5ZM464 88.9L448 93.8L436.7 103L428.6 117L426 134L426.7 142L429.7 152L432.8 158L439.5 166L446 171.3L454 175.2L471 177.5L488 172.5L500.2 162L505.1 154L508.2 145L509.3 129L504.4 111L496 99.9L491 95.7L481 90.8Z" />
+    </symbol>
+    <symbol id="i-arrow" viewBox="0 0 16 16">
+      <path d="M4.5 11.5l7-7M6 4.5h5.5V10" />
+    </symbol>
+  </svg>
 
-<!-- Navbar: three floating elements -->
-<header class="nav" id="nav">
-  <a class="nav__logo pill pill--white" href="#top" aria-label="Urobins, back to top"><svg class="logo-u" viewBox="0 0 20 22" aria-hidden="true"><rect x="1.6" y="2" width="3.6" height="10.4" rx="0.6"/><rect x="14.8" y="2" width="3.6" height="10.4" rx="0.6"/><rect x="1.6" y="13.6" width="16.8" height="2" rx="1"/><rect x="2.6" y="16.7" width="14.8" height="1.9" rx=".95"/><rect x="4.8" y="19.7" width="10.4" height="1.8" rx=".9"/></svg>robins</a>
-  <nav class="nav__menu pill pill--white" id="nav-menu" aria-label="Primary">
-    <a href="#about">About</a>
-    <a href="#services">Services</a>
-    <a href="#faq">FAQ</a>
-    <a href="#resources">Resources</a>
-    <a href="#contact">Contact</a>
-  </nav>
-  <div class="nav__right">
-    <a class="nav__cta pill pill--black" href="#contact">Start a Project <svg class="arr" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.6 6.4H6.3a3.1 3.1 0 0 0 0 6.2h1.4"/><path d="M10.7 3.5l2.9 2.9-2.9 2.9"/></svg></a>
-    <button class="nav__toggle pill pill--white" type="button" id="nav-toggle" aria-expanded="false" aria-controls="nav-menu">Menu</button>
+  <!-- A. Preloader: a close-up on a lamp pulls back; two giants rise and light the logo, which assembles
+     as faint glass in the dark and takes its colours, its glints and its shadows from the beams; then a
+     dive into the light hands over -->
+  <div class="preloader" id="preloader" aria-hidden="true">
+    <canvas class="preloader__canvas"></canvas>
+    <div class="preloader__logo">
+      <!-- the logo as faint glass. logo-light.js stacks copies of this artwork over it, each lit by one
+        lamp (its real colours, then its glint) through a CSS mask drawn from that lamp's beam -->
+      <svg class="ldr-glass" viewBox="0 0 430 120" width="430" height="120" aria-hidden="true">
+        <defs>
+          <path id="ldr-p0" d="M70 0h57l48 84h-58z" />
+          <path id="ldr-p1" d="M150 136l58-105h58l-58 105z" />
+          <path id="ldr-p2" d="M0 191l58-105h58l-58 105z" />
+          <path id="ldr-p3" d="M224 217l58-105h58l-58 105z" />
+          <path id="ldr-p4" d="M75 272l58-105h58l-58 105z" />
+          <path id="ldr-p5" d="M165 219h58l47 84h-57z" />
+          <linearGradient id="glassGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#fff" stop-opacity=".09" />
+            <stop offset="1" stop-color="#fff" stop-opacity=".02" />
+          </linearGradient>
+          <clipPath id="wordClip">
+            <rect x="140" y="0" width="0" height="120" />
+          </clipPath>
+        </defs>
+        <g class="mark" transform="translate(0 5) scale(0.3636)">
+          <use class="piece" href="#ldr-p0" /><use class="piece" href="#ldr-p1" /><use class="piece" href="#ldr-p2" />
+          <use class="piece" href="#ldr-p3" /><use class="piece" href="#ldr-p4" /><use class="piece" href="#ldr-p5" />
+        </g>
+        <g class="word" clip-path="url(#wordClip)">
+          <g transform="translate(150 27) scale(0.3064)"><use href="#logo-word" width="881" height="211" /></g>
+        </g>
+      </svg>
+    </div>
+    <div class="preloader__bar"><i></i></div>
+    <div class="preloader__count"><span class="preloader__num">0</span>%</div>
   </div>
-</header>
 
-<main>
-
-  <!-- B. Hero + C. Transition 1 (stepped bars, drawn in WebGL) -->
-  <section class="hero" id="top" aria-label="Introduction">
-    <div class="hero__pin">
-      <canvas class="hero__gl" aria-hidden="true"></canvas>
-      <div class="hero__layer">
-        <div class="hero__content">
-          <h1 class="hero__title" aria-label="Scaling Brands, Digital Technology Agency">
-            <span class="hero__line" aria-hidden="true"><span class="w">Scaling</span> <em class="w">Brands</em></span>
-            <span class="hero__line" aria-hidden="true"><em class="w">Digital</em> <span class="w">Technology</span> <span class="w">Agency</span></span>
-          </h1>
-          <p class="hero__sub">We build custom websites, mobile applications, CRM workflows, and secure cloud infrastructure, paired with strategic SEO and performance marketing to scale your brand.</p>
-          <a class="pill pill--black hero__cta" href="#contact">Contact Us <svg class="arr" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.6 6.4H6.3a3.1 3.1 0 0 0 0 6.2h1.4"/><path d="M10.7 3.5l2.9 2.9-2.9 2.9"/></svg></a>
-        </div>
+  <!-- Navbar: one floating bar -->
+  <header class="nav" id="nav">
+    <div class="nav__bar">
+      <i class="nav__pool" aria-hidden="true"><i></i></i>
+      <a class="nav__logo" href="#top" aria-label="Urobins, back to top">
+        <!-- torch-lit logo (torch.js), one SVG so every layer shares one light space: the shadow it
+          casts on the glass, the solid white logo, then, only while a torch is near, a cool shade
+          masked away from the light, the white rim facing it and a white glint. Mark 21px and wordmark
+          14px tall, 9px apart, as before. The symbols keep their own viewBox size and are scaled by
+          transform: WebKit mis-sizes a resized <use> under a transform -->
+        <svg class="nav__torch" viewBox="0 0 91.02 21" width="91" height="21" aria-hidden="true" focusable="false">
+          <defs>
+            <g id="nt-logo">
+              <use href="#logo-mark" width="340" height="303" transform="scale(0.069307)" />
+              <use href="#logo-word" width="881" height="211" transform="translate(32.564 3.5) scale(0.066351)" />
+            </g>
+            <!-- light on the near side, the shade deepening away from it -->
+            <radialGradient id="nt-far" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="90">
+              <stop offset="0" stop-color="#fff" stop-opacity="0.2" />
+              <stop offset="0.45" stop-color="#fff" stop-opacity="0.6" />
+              <stop offset="1" stop-color="#fff" stop-opacity="0.9" />
+            </radialGradient>
+            <linearGradient id="nt-band" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="16" y2="0">
+              <stop offset="0" stop-color="#fff" stop-opacity="0" />
+              <stop offset="0.5" stop-color="#fff" />
+              <stop offset="1" stop-color="#fff" stop-opacity="0" />
+            </linearGradient>
+            <mask id="nt-cool" maskUnits="userSpaceOnUse" x="-12" y="-12" width="115" height="45">
+              <rect x="-12" y="-12" width="115" height="45" fill="url(#nt-far)" />
+            </mask>
+            <mask id="nt-glint" maskUnits="userSpaceOnUse" x="-12" y="-12" width="115" height="45">
+              <rect x="-12" y="-12" width="115" height="45" fill="url(#nt-band)" />
+            </mask>
+            <!-- the rim: the logo less a copy of itself nudged away from the torch leaves its edges that
+              face the light, which stay white over the shade like a bevel catching it -->
+            <mask id="nt-rim" maskUnits="userSpaceOnUse" x="-12" y="-12" width="115" height="45">
+              <rect x="-12" y="-12" width="115" height="45" fill="#fff" />
+              <use href="#nt-logo" fill="#000" />
+            </mask>
+            <!-- the shadow falls on the glass, never across the logo itself -->
+            <mask id="nt-cut" maskUnits="userSpaceOnUse" x="-12" y="-12" width="115" height="45">
+              <rect x="-12" y="-12" width="115" height="45" fill="#fff" />
+              <use href="#nt-logo" fill="#000" />
+            </mask>
+          </defs>
+          <g class="nav__shade" mask="url(#nt-cut)" opacity="0">
+            <use href="#nt-logo" opacity="0.6" />
+            <use href="#nt-logo" opacity="0.38" />
+            <use href="#nt-logo" opacity="0.24" />
+          </g>
+          <use class="nav__rest" href="#nt-logo" />
+          <g class="nav__lit" opacity="0">
+            <use class="nav__cool" href="#nt-logo" mask="url(#nt-cool)" />
+            <use class="nav__glint" href="#nt-logo" mask="url(#nt-rim)" />
+            <use class="nav__glint" href="#nt-logo" mask="url(#nt-glint)" />
+          </g>
+        </svg>
+      </a>
+      <nav class="nav__menu" id="nav-menu" aria-label="Primary">
+        <a href="#about">About</a>
+        <a href="#capabilities">Services</a>
+        <a href="#process">Process</a>
+        <a href="#team">Team</a>
+      </nav>
+      <div class="nav__right">
+        <a class="nav__cta pill pill--brand" href="#contact">Contact <svg class="arr" aria-hidden="true">
+            <use href="#i-arrow" />
+          </svg></a>
+        <button class="nav__toggle" type="button" id="nav-toggle" aria-expanded="false" aria-controls="nav-menu"
+          aria-label="Menu"><span></span><span></span></button>
       </div>
     </div>
-  </section>
+  </header>
 
-  <!-- D. About + E. Services (one sticky stage; the video pill opens into Services) -->
-  <section class="story" id="about" aria-label="About Urobins and services">
-    <div class="story__pin">
+  <main>
 
-      <div class="about">
-        <div class="about__smoke" aria-hidden="true"></div>
-        <svg class="about__line" viewBox="0 0 1440 900" preserveAspectRatio="none" aria-hidden="true">
-          <path d="M 277 162 L 304 189 L 296 181 C 293 178, 286 169, 281 163 C 277 157, 276 152, 271 145 C 267 138, 260 127, 254 120 C 249 112, 241 103, 238 100 C 242 105, 256 123, 265 132 C 273 142, 280 146, 290 155 C 299 165, 310 177, 321 190 C 332 202, 341 212, 356 230 C 371 248, 392 272, 413 299 C 434 326, 465 368, 481 391 C 497 414, 501 423, 507 437 C 513 452, 516 464, 517 478 C 519 491, 517 502, 515 518 C 513 534, 509 559, 507 575 C 505 592, 501 604, 502 616 C 502 627, 505 637, 509 643 C 513 649, 514 653, 524 651 C 535 650, 542 646, 571 633 C 600 620, 655 595, 699 575 C 744 556, 801 531, 839 518 C 877 505, 911 498, 930 496 C 949 494, 951 500, 956 504 C 961 508, 959 514, 958 520 C 957 526, 956 526, 948 541 C 939 556, 920 591, 909 610 C 898 629, 893 639, 882 656 C 872 673, 862 689, 847 714 C 832 738, 806 781, 793 806 C 781 830, 774 849, 771 861 C 768 872, 771 874, 776 875 C 780 875, 785 875, 798 863 C 810 852, 831 831, 850 806 C 870 781, 897 740, 914 714 C 932 687, 944 668, 958 645 C 972 621, 984 600, 997 575 C 1011 551, 1028 518, 1040 495 C 1051 472, 1060 455, 1068 437 C 1075 420, 1081 407, 1086 391 C 1091 376, 1095 360, 1098 345 C 1100 330, 1103 312, 1103 302 C 1102 291, 1099 284, 1094 281 C 1090 278, 1089 279, 1076 282 C 1062 285, 1037 291, 1014 302 C 991 312, 963 331, 936 345 C 909 360, 874 380, 850 389 C 827 398, 815 398, 797 398 C 778 399, 760 396, 740 391 C 719 387, 692 378, 672 371 C 653 363, 638 354, 625 345 C 612 336, 601 326, 595 316 C 588 307, 587 297, 587 288 C 586 278, 593 265, 594 260"/>
-        </svg>
-
-        <h2 class="about__title" aria-label="A Clear Digital Path To Scale Fast">
-          <span class="aline" aria-hidden="true"><span class="split">A Clear</span></span>
-          <span class="aline aline--mid" aria-hidden="true">
-            <span class="split">Digital</span>
-            <span class="about__video">
-              <video poster="assets/video/about-poster.jpg" muted loop playsinline preload="metadata">
-                <source src="assets/video/about-loop.mp4" type="video/mp4; codecs=avc1.64001F">
-                <source src="assets/video/about-loop.webm" type="video/webm; codecs=vp9">
-              </video>
-            </span>
-            <span class="split">Path</span>
-          </span>
-          <span class="aline" aria-hidden="true"><em class="split">To Scale Fast</em></span>
-        </h2>
-
-        <div class="about__grid">
-          <div class="about__col">
-            <p class="eyebrow">About us</p>
-          </div>
-          <div class="about__col about__col--mid">
-            <p class="eyebrow">Promises</p>
-            <div class="founder">
-              <img class="founder__img" src="assets/team/founder.jpg" alt="" width="48" height="48">
-              <div class="founder__text">
-                <p class="founder__name">Ethan Cole</p>
-                <p class="founder__role">Head of Engineering</p>
-              </div>
+    <!-- B. Hero + C. Transition 1 (stepped bars, drawn in WebGL) -->
+    <section class="hero" id="top" aria-label="Introduction">
+      <div class="hero__pin">
+        <canvas class="hero__gl" aria-hidden="true"></canvas>
+        <div class="hero__layer">
+          <div class="hero__content">
+            <p class="hero__eyebrow eyebrow"><span class="line"><span class="line__in">Web · Mobile · Cloud · Growth ·
+                  Marketing</span></span></p>
+            <h1 class="hero__title" aria-label="Scaling Brands, Digital Technology Agency">
+              <span class="line" aria-hidden="true"><span class="line__in">Scaling <em>Brands</em></span></span>
+              <span class="line" aria-hidden="true"><span class="line__in"><em>Digital</em> Technology
+                  Agency</span></span>
+            </h1>
+            <p class="hero__sub">We build custom websites, mobile applications, CRM workflows, and secure cloud
+              infrastructure, paired with strategic SEO and performance marketing to scale your brand.</p>
+            <div class="hero__actions">
+              <a class="pill pill--brand" href="#contact" data-magnet>Start a project <svg class="arr"
+                  aria-hidden="true">
+                  <use href="#i-arrow" />
+                </svg></a>
+              <a class="pill pill--glass" href="#capabilities" data-magnet>Our services</a>
             </div>
           </div>
-          <div class="about__col about__copy">
-            <p>Urobins is an engineering-led digital agency. We design, build, and ship custom websites, mobile apps, and CRM workflows end to end, from architecture and code through launch, monitoring, and iteration.</p>
-            <p>Every system runs on secure cloud infrastructure built for reliability, with 99.9% uptime as the baseline. Growth work is just as transparent: clear SEO and performance marketing plans, shared dashboards, and reporting tied to revenue.</p>
+          <div class="hero__scroll" aria-hidden="true"><span>Scroll</span><i></i></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- D. About (one sticky stage; the video pill opens into the Impact chapter) -->
+    <section class="story" id="about" aria-label="About Urobins">
+      <div class="story__pin">
+
+        <div class="about">
+          <div class="about__smoke" aria-hidden="true"></div>
+          <svg class="about__line" viewBox="0 0 1440 900" preserveAspectRatio="none" aria-hidden="true">
+            <path
+              d="M 277 162 L 304 189 L 296 181 C 293 178, 286 169, 281 163 C 277 157, 276 152, 271 145 C 267 138, 260 127, 254 120 C 249 112, 241 103, 238 100 C 242 105, 256 123, 265 132 C 273 142, 280 146, 290 155 C 299 165, 310 177, 321 190 C 332 202, 341 212, 356 230 C 371 248, 392 272, 413 299 C 434 326, 465 368, 481 391 C 497 414, 501 423, 507 437 C 513 452, 516 464, 517 478 C 519 491, 517 502, 515 518 C 513 534, 509 559, 507 575 C 505 592, 501 604, 502 616 C 502 627, 505 637, 509 643 C 513 649, 514 653, 524 651 C 535 650, 542 646, 571 633 C 600 620, 655 595, 699 575 C 744 556, 801 531, 839 518 C 877 505, 911 498, 930 496 C 949 494, 951 500, 956 504 C 961 508, 959 514, 958 520 C 957 526, 956 526, 948 541 C 939 556, 920 591, 909 610 C 898 629, 893 639, 882 656 C 872 673, 862 689, 847 714 C 832 738, 806 781, 793 806 C 781 830, 774 849, 771 861 C 768 872, 771 874, 776 875 C 780 875, 785 875, 798 863 C 810 852, 831 831, 850 806 C 870 781, 897 740, 914 714 C 932 687, 944 668, 958 645 C 972 621, 984 600, 997 575 C 1011 551, 1028 518, 1040 495 C 1051 472, 1060 455, 1068 437 C 1075 420, 1081 407, 1086 391 C 1091 376, 1095 360, 1098 345 C 1100 330, 1103 312, 1103 302 C 1102 291, 1099 284, 1094 281 C 1090 278, 1089 279, 1076 282 C 1062 285, 1037 291, 1014 302 C 991 312, 963 331, 936 345 C 909 360, 874 380, 850 389 C 827 398, 815 398, 797 398 C 778 399, 760 396, 740 391 C 719 387, 692 378, 672 371 C 653 363, 638 354, 625 345 C 612 336, 601 326, 595 316 C 588 307, 587 297, 587 288 C 586 278, 593 265, 594 260" />
+          </svg>
+
+          <h2 class="about__title" aria-label="A Clear Digital Path To Scale Fast">
+            <span class="aline" aria-hidden="true"><span class="split">A Clear</span></span>
+            <span class="aline aline--mid" aria-hidden="true">
+              <span class="split">Digital</span>
+              <span class="about__video">
+                <video poster="assets/video/about-poster.jpg" muted loop playsinline preload="none">
+                  <source src="assets/video/about-loop.mp4" type="video/mp4; codecs=avc1.64001F">
+                  <source src="assets/video/about-loop.webm" type="video/webm; codecs=vp9">
+                </video>
+              </span>
+              <span class="split">Path</span>
+            </span>
+            <span class="aline" aria-hidden="true"><em class="split">To Scale Fast</em></span>
+          </h2>
+
+          <div class="about__grid">
+            <div class="about__col">
+              <p class="eyebrow">About us</p>
+            </div>
+            <div class="about__col about__col--mid">
+              <p class="eyebrow">Promises</p>
+              <div class="founder">
+                <img class="founder__img" src="assets/team/team-1-sm.jpg" alt="Nikhil Chauhan" width="48" height="48">
+                <div class="founder__text">
+                  <p class="founder__name">Nikhil Chauhan</p>
+                  <p class="founder__role">CEO &amp; CTO</p>
+                </div>
+              </div>
+            </div>
+            <div class="about__col about__copy">
+              <p>Urobins is an engineering-led digital agency. We design, build, and ship custom websites, mobile apps,
+                and CRM workflows end to end, from architecture and code through launch, monitoring, and iteration.</p>
+              <p>Every system runs on secure cloud infrastructure with monitoring, backups, and uptime designed in from
+                day one. Growth work is just as transparent: clear SEO and performance marketing plans, shared
+                dashboards, and reporting tied to revenue.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- the pill grows into this panel: the header of the Impact chapter -->
+        <div class="portal">
+          <div class="portal__bg" aria-hidden="true"></div>
+          <div class="portal__inner">
+            <svg class="portal__mark" viewBox="0 0 340 303" aria-hidden="true">
+              <use href="#logo-mark" />
+            </svg>
+            <div class="portal__head section__head">
+              <p class="eyebrow">Our commitments</p>
+              <h2 class="section__title" aria-label="Numbers we stand behind">
+                <span class="line" aria-hidden="true"><span class="line__in">Numbers we</span></span>
+                <span class="line" aria-hidden="true"><span class="line__in"><em>stand behind</em></span></span>
+              </h2>
+              <p class="section__lede">No inflated case numbers. These are the standards we hold ourselves to on every
+                project, written down before we start.</p>
+            </div>
           </div>
         </div>
       </div>
+    </section>
 
-      <div class="services" id="services" aria-label="Our technology services">
-        <div class="services__bg" aria-hidden="true"></div>
-        <div class="services__veil" aria-hidden="true"></div>
-        <div class="services__haze" aria-hidden="true"><i class="hz hz--a"></i><i class="hz hz--b"></i><i class="hz hz--c"></i></div>
-        <div class="services__inner">
-          <canvas class="services__gl" aria-hidden="true"></canvas>
-          <h2 class="services__title">Our Technology <em>Services</em></h2>
-          <div class="services__track">
-            <article class="svc-card">
-              <p class="svc-card__num">01</p>
-              <h3 class="svc-card__title">Custom Web &amp; <em>Mobile Apps</em></h3>
-              <p class="svc-card__text">High-performance, scalable web platforms and native mobile experiences, engineered for speed and built to grow with your users.</p>
+    <!-- E. Impact: bento of commitments (slides up over the open portal) -->
+    <section class="metrics" id="impact" aria-label="Our commitments">
+      <div class="bento">
+        <article class="card card--hero">
+          <p class="tag"><i class="tag__ic"><svg class="ic-bolt" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M13 2 4 14h7l-1 8 9-12h-7z" />
+              </svg></i>Engineering-led delivery</p>
+          <div class="card__foot">
+            <p class="card__big"><span class="count" data-count="45" data-suffix=" days">45 days</span></p>
+            <div class="card__side">
+              <p class="card__text">from kickoff to a production-ready MVP for a typical product, with a working build
+                to review every two weeks along the way.</p>
+              <a class="pill pill--white" href="#contact" data-magnet>Start a project <svg class="arr"
+                  aria-hidden="true">
+                  <use href="#i-arrow" />
+                </svg></a>
+            </div>
+          </div>
+        </article>
+        <article class="card card--bars">
+          <p class="tag"><i class="tag__ic"><svg class="ic-ring" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 4a8 8 0 1 1-5.7 2.3" />
+              </svg><svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 8v4l3 2" />
+              </svg></i>Cloud uptime target</p>
+          <p class="card__big"><span class="count" data-count="99.9" data-decimals="1" data-suffix="%">99.9%</span></p>
+          <p class="card__text">uptime target for every environment we run, with monitoring, backups, and patching in
+            place before the first user signs in.</p>
+          <div class="card__bars" aria-hidden="true"></div>
+        </article>
+        <article class="card card--third">
+          <p class="tag"><i class="tag__ic"><svg class="ic-rocket" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 15c-2.6-2.6-2.6-7.6 0-11.2 2.6 3.6 2.6 8.6 0 11.2z" />
+                <path d="M9.6 12.4 7 14l1 3 2.2-1.6M14.4 12.4 17 14l-1 3-2.2-1.6M12 15v4.5" />
+              </svg></i>Release cadence</p>
+          <p class="card__big"><span class="count" data-count="2" data-suffix=" weeks" data-static>2 weeks</span></p>
+          <p class="card__text">between releases you can click through yourself. Progress is something you use, not
+            something we present.</p>
+        </article>
+        <article class="card card--third">
+          <p class="tag"><i class="tag__ic"><svg viewBox="0 0 24 24" aria-hidden="true">
+                <path class="ic-chart" d="M4 17l5-6 4 3 7-8" />
+                <path d="M15 6h5v5" />
+              </svg></i>Response time</p>
+          <p class="card__big"><span class="count" data-count="24" data-suffix="h">24h</span></p>
+          <p class="card__text">to answer every inquiry with next steps and a rough timeline. One business day, every
+            time.</p>
+        </article>
+        <article class="card card--third">
+          <p class="tag"><i class="tag__ic"><svg class="ic-gear" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1" />
+              </svg></i>In-house team</p>
+          <p class="card__big"><span class="count" data-count="100" data-suffix="%">100%</span></p>
+          <p class="card__text">of design and engineering is done by our own team. Nothing is outsourced, so nothing
+            gets lost in a hand-off.</p>
+        </article>
+      </div>
+      <!-- phones: the cards read as a ledger, with one CTA after the last row -->
+      <div class="metrics__cta">
+        <a class="pill pill--white" href="#contact">Start a project <svg class="arr" aria-hidden="true">
+            <use href="#i-arrow" />
+          </svg></a>
+      </div>
+    </section>
+
+    <!-- F. How we work: a pinned, scrolling column of stages beside a tilted wall of project mockups -->
+    <section class="process" id="process" aria-label="How we work">
+      <div class="process__pin">
+        <div class="process__left">
+          <p class="eyebrow process__eyebrow">How we work</p>
+          <!-- phones only: the stages read as a timeline under a heading -->
+          <h2 class="process__title" aria-label="Four steps, one team">
+            <span class="line" aria-hidden="true"><span class="line__in">Four steps,</span></span>
+            <span class="line" aria-hidden="true"><span class="line__in"><em>one team</em></span></span>
+          </h2>
+          <div class="process__scroller">
+            <article class="stage">
+              <p class="stage__num">01 / 04</p>
+              <h3 class="stage__title">Discover</h3>
+              <p class="stage__text">We start with a technical audit of your product, users, and systems, then design
+                the architecture and a roadmap you can hold us to.</p>
+              <p class="stage__stat"><b>A fixed-scope first sprint.</b> You see working software inside the first two
+                weeks, not a deck.</p>
             </article>
-            <article class="svc-card">
-              <p class="svc-card__num">02</p>
-              <h3 class="svc-card__title">CRM Workflows &amp; <em>Automation</em></h3>
-              <p class="svc-card__text">Custom pipelines and integrations that streamline operations, connecting sales, support, and billing into one reliable flow.</p>
+            <article class="stage">
+              <p class="stage__num">02 / 04</p>
+              <h3 class="stage__title">Build</h3>
+              <p class="stage__text">Design and engineering move together: UX, front end, back end, and QA, shipped in
+                two-week releases you can click through.</p>
+              <p class="stage__stat"><b>Production-ready in about 45 days</b> for a typical MVP, on a codebase built to
+                keep growing.</p>
             </article>
-            <article class="svc-card">
-              <p class="svc-card__num">03</p>
-              <h3 class="svc-card__title">Secure Cloud <em>Infrastructure</em></h3>
-              <p class="svc-card__text">Resilient cloud architecture built for speed, security, and zero downtime, with monitoring and backups from day one.</p>
+            <article class="stage">
+              <p class="stage__num">03 / 04</p>
+              <h3 class="stage__title">Launch</h3>
+              <p class="stage__text">Cloud infrastructure, monitoring, backups, and a go-live checklist, so launch day
+                is the quietest day of the project.</p>
+              <p class="stage__stat"><b>Monitoring, backups and alerts</b> are live before the first user signs in.</p>
             </article>
-            <article class="svc-card">
-              <p class="svc-card__num">04</p>
-              <h3 class="svc-card__title">Strategic <em>SEO</em></h3>
-              <p class="svc-card__text">Data-backed search optimization to capture high-intent organic traffic, from technical audits to content that ranks.</p>
+            <article class="stage">
+              <p class="stage__num">04 / 04</p>
+              <h3 class="stage__title">Scale</h3>
+              <p class="stage__text">SEO, performance marketing, and CRM automation turn a launched product into a
+                growing business, reported against revenue.</p>
+              <p class="stage__stat"><b>Reporting tied to revenue,</b> not vanity metrics: rankings, traffic,
+                conversions and spend in one dashboard.</p>
             </article>
-            <article class="svc-card">
-              <p class="svc-card__num">05</p>
-              <h3 class="svc-card__title">Performance <em>Marketing</em></h3>
-              <p class="svc-card__text">High-ROI paid acquisition campaigns engineered to scale revenue, measured against the numbers that matter to your business.</p>
-            </article>
+          </div>
+          <div class="process__rail" aria-hidden="true">
+            <span class="process__track"><i class="process__fill"></i></span>
+            <span class="process__dots"><i class="is-on"></i><i></i><i></i><i></i></span>
+          </div>
+        </div>
+        <div class="process__right" aria-hidden="true">
+          <div class="wall">
+            <div class="wall__col wall__col--a">
+              <div class="mock" data-kind="dash" style="--acc:#4b48ff"><span class="mock__label">Fintech
+                  dashboard</span></div>
+              <div class="mock" data-kind="phone" style="--acc:#38d996"><span class="mock__label">Healthcare app</span>
+              </div>
+              <div class="mock" data-kind="table" style="--acc:#f6c54a"><span class="mock__label">Logistics CRM</span>
+              </div>
+              <div class="mock" data-kind="site" style="--acc:#3fd1ff"><span class="mock__label">Insurance portal</span>
+              </div>
+              <div class="mock" data-kind="phone" style="--acc:#ff6a3d"><span class="mock__label">Travel booking
+                  app</span></div>
+            </div>
+            <div class="wall__col wall__col--b">
+              <div class="mock" data-kind="site" style="--acc:#7c5cff"><span class="mock__label">SaaS website</span>
+              </div>
+              <div class="mock" data-kind="shop" style="--acc:#ff6a3d"><span class="mock__label">E-commerce app</span>
+              </div>
+              <div class="mock" data-kind="crm" style="--acc:#3fd1ff"><span class="mock__label">Real-estate
+                  portal</span></div>
+              <div class="mock" data-kind="dash" style="--acc:#38d996"><span class="mock__label">Analytics
+                  platform</span></div>
+              <div class="mock" data-kind="shop" style="--acc:#f6c54a"><span class="mock__label">Restaurant
+                  ordering</span></div>
+            </div>
           </div>
         </div>
       </div>
+    </section>
 
-      <div class="story__fade" aria-hidden="true"></div>
-    </div>
-  </section>
+    <!-- G. What we build: capability cards with vector scenes -->
+    <section class="caps" id="capabilities" aria-label="What we build">
+      <div class="section__head">
+        <p class="eyebrow">What we build</p>
+        <h2 class="section__title rv" aria-label="Everything your product needs, under one roof">
+          <span class="line" aria-hidden="true"><span class="line__in">Everything your product needs,</span></span>
+          <span class="line" aria-hidden="true"><span class="line__in"><em>under one roof</em></span></span>
+        </h2>
+        <p class="section__lede rv-text">One accountable team from the first wireframe to the last deployment, so
+          nothing gets lost between agencies.</p>
+      </div>
+      <div class="caps__grid">
+        <article class="cap" data-cap="apps">
+          <div class="cap__body">
+            <p class="tag"><i class="tag__ic"><svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="7" y="2.5" width="10" height="19" rx="2.5" />
+                  <path d="M11 18h2" />
+                </svg></i>Web &amp; Mobile</p>
+            <h3 class="cap__title">Custom Web &amp; <em>Mobile Apps</em></h3>
+            <p class="cap__text">High-performance web platforms and native mobile experiences, engineered for speed and
+              built to grow with your users.</p>
+          </div>
+          <div class="cap__visual" aria-hidden="true"></div>
+        </article>
+        <article class="cap" data-cap="dev">
+          <div class="cap__body">
+            <p class="tag"><i class="tag__ic"><svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M8 8 4 12l4 4M16 8l4 4-4 4M13.5 5l-3 14" />
+                </svg></i>Engineering</p>
+            <h3 class="cap__title">Development &amp; <em>Cloud</em></h3>
+            <p class="cap__text">Modern stacks, secure cloud architecture, CI/CD, and DevOps, so every release is fast,
+              repeatable, and safe.</p>
+          </div>
+          <div class="cap__visual" aria-hidden="true"></div>
+        </article>
+        <article class="cap" data-cap="crm">
+          <div class="cap__body">
+            <p class="tag"><i class="tag__ic"><svg viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="5" cy="12" r="2.5" />
+                  <circle cx="19" cy="6" r="2.5" />
+                  <circle cx="19" cy="18" r="2.5" />
+                  <path d="M7.3 11 16.7 7M7.3 13l9.4 4" />
+                </svg></i>Automation</p>
+            <h3 class="cap__title">CRM Workflows &amp; <em>Automation</em></h3>
+            <p class="cap__text">Custom pipelines and integrations that connect sales, support, and billing into one
+              reliable flow your team actually uses.</p>
+          </div>
+          <div class="cap__visual" aria-hidden="true"></div>
+        </article>
+        <article class="cap" data-cap="seo">
+          <div class="cap__body">
+            <p class="tag"><i class="tag__ic"><svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 17l5-6 4 3 7-8M15 6h5v5" />
+                </svg></i>Growth</p>
+            <h3 class="cap__title">SEO &amp; Performance <em>Marketing</em></h3>
+            <p class="cap__text">Technical SEO, content that ranks, and paid acquisition measured against revenue rather
+              than vanity metrics.</p>
+          </div>
+          <div class="cap__visual" aria-hidden="true"></div>
+        </article>
+      </div>
+    </section>
 
-  <!-- F. Impact metrics -->
-  <section class="metrics" id="impact" aria-label="Impact">
-    <!-- vertical-only motion blur for the headline entrance -->
-    <svg class="metrics__fx" width="0" height="0" aria-hidden="true" focusable="false">
-      <filter id="mvb1" x="-5%" y="-60%" width="110%" height="220%"><feGaussianBlur stdDeviation="0 11"/></filter>
-      <filter id="mvb2" x="-5%" y="-60%" width="110%" height="220%"><feGaussianBlur stdDeviation="0 11"/></filter>
-    </svg>
-    <div class="metrics__pin">
-    <div class="metrics__top">
-      <p class="metrics__big" aria-label="$11.2 Billion"><span class="metrics__num" aria-hidden="true">$11.2</span> <em aria-hidden="true">Billion</em></p>
-      <div class="metrics__aside">
-        <p>in client value generated through the products, platforms, and growth campaigns we have engineered for our partners.</p>
-        <span class="metrics__cta"><a class="pill pill--white" href="#contact">Contact us <svg class="arr" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.6 6.4H6.3a3.1 3.1 0 0 0 0 6.2h1.4"/><path d="M10.7 3.5l2.9 2.9-2.9 2.9"/></svg></a></span>
+    <!-- H. Team -->
+    <section class="team" id="team" aria-label="Meet the team">
+      <div class="section__head">
+        <p class="eyebrow">The team</p>
+        <h2 class="section__title rv" aria-label="Meet the team">
+          <span class="line" aria-hidden="true"><span class="line__in">Meet the</span></span>
+          <span class="line" aria-hidden="true"><span class="line__in"><em>team</em></span></span>
+        </h2>
+        <p class="section__lede rv-text">A small senior team that designs, builds, and grows products together, with no
+          hand-offs between agencies.</p>
       </div>
-    </div>
-    <div class="metrics__grid">
-      <div class="stat" style="--h: .246; --tone: 1">
-        <div class="stat__text">
-        <p class="stat__value" data-count="99.9" data-decimals="1" data-suffix="%">99.9%</p>
-        <p class="stat__label">Cloud Uptime Rate</p>
-        <p class="stat__sub">Across managed infrastructure</p>
-        </div>
-        <div class="stat__bars" aria-hidden="true"></div>
-      </div>
-      <div class="stat" style="--h: .444; --tone: .575">
-        <div class="stat__text">
-        <p class="stat__value" data-count="45" data-suffix=" days">45 days</p>
-        <p class="stat__label">Average MVP Launch Time</p>
-        <p class="stat__sub">From kickoff to production</p>
-        </div>
-        <div class="stat__bars" aria-hidden="true"></div>
-      </div>
-      <div class="stat" style="--h: .751; --tone: .28">
-        <div class="stat__text">
-        <p class="stat__value" data-count="340" data-suffix="%">340%</p>
-        <p class="stat__label">Median Traffic Growth</p>
-        <p class="stat__sub">Organic search, first 12 months</p>
-        </div>
-        <div class="stat__bars" aria-hidden="true"></div>
-      </div>
-      <div class="stat" style="--h: 1; --tone: 1">
-        <div class="stat__text">
-        <p class="stat__value" data-count="1.2" data-decimals="1" data-suffix="M+">1.2M+</p>
-        <p class="stat__label">Automated CRM Workflows Run</p>
-        <p class="stat__sub">Across client pipelines</p>
-        </div>
-        <div class="stat__bars" aria-hidden="true"></div>
-      </div>
-    </div>
-    </div>
-  </section>
-
-  <!-- G. Transition 2 (black stepped bars) + Team -->
-  <section class="team" id="team" aria-label="Meet the team">
-    <!-- transition 2: the stepped funnel is drawn here while the section scrolls in -->
-    <canvas class="team__fx" aria-hidden="true"></canvas>
-    <div class="team__inner">
-      <header class="team__head">
-        <h2 class="team__title" aria-label="Meet the Team"><span class="tw">Meet</span> <em><span class="tw">the</span> <span class="tw">Team</span></em></h2>
-        <p class="team__sub">Behind every deployment is a team committed to engineering excellence and scalable growth.</p>
-      </header>
       <div class="team__grid">
         <article class="member">
-          <div class="member__img"><img src="assets/team/team-1.jpg" alt="Portrait of Ethan Cole" loading="lazy" width="800" height="1000"></div>
-          <p class="member__name">Ethan Cole</p>
-          <p class="member__role">Head of Engineering</p>
-          <div class="member__stat">
-            <p class="member__num" data-count="2400" data-suffix="+">2,400+</p>
-            <p class="member__label"><b>deployments</b><span>14 years of experience</span></p>
+          <div class="member__img"><img src="assets/team/team-1.jpg" alt="Portrait of Nikhil Chauhan" loading="lazy"
+              width="800" height="1000"></div>
+          <div class="member__meta">
+            <p class="member__name">Nikhil Chauhan</p>
+            <p class="member__role">CEO &amp; CTO</p>
           </div>
+          <p class="member__focus">Technology strategy, product vision and executive leadership</p>
         </article>
         <article class="member">
-          <div class="member__img"><img src="assets/team/team-2.jpg" alt="Portrait of Sofia Marin" loading="lazy" width="800" height="1000"></div>
-          <p class="member__name">Sofia Marin</p>
-          <p class="member__role">Performance Marketing Lead</p>
-          <div class="member__stat">
-            <p class="member__num" data-count="1800" data-suffix="+">1,800+</p>
-            <p class="member__label"><b>campaigns scaled</b><span>11 years of experience</span></p>
+          <div class="member__img"><img src="assets/team/team-2.jpg" alt="Portrait of Vansh Sharma" loading="lazy"
+              width="800" height="1000"></div>
+          <div class="member__meta">
+            <p class="member__name">Vansh Sharma</p>
+            <p class="member__role">Head of Engineering</p>
           </div>
+          <p class="member__focus">System architecture, engineering execution and technical delivery</p>
         </article>
         <article class="member">
-          <div class="member__img"><img src="assets/team/team-3.jpg" alt="Portrait of Priya Raman" loading="lazy" width="800" height="1000"></div>
-          <p class="member__name">Priya Raman</p>
-          <p class="member__role">CRM &amp; Automation Architect</p>
-          <div class="member__stat">
-            <p class="member__num" data-count="3500" data-suffix="+">3,500+</p>
-            <p class="member__label"><b>workflows built</b><span>9 years of experience</span></p>
+          <div class="member__img"><img src="assets/team/team-3.jpg" alt="Portrait of Priya Raman" loading="lazy"
+              width="800" height="1000"></div>
+          <div class="member__meta">
+            <p class="member__name">Priya Raman</p>
+            <p class="member__role">Product Designer</p>
           </div>
+          <p class="member__focus">UX research, interfaces and design systems</p>
         </article>
         <article class="member">
-          <div class="member__img"><img src="assets/team/team-4.jpg" alt="Portrait of Marcus Hale" loading="lazy" width="800" height="1000"></div>
-          <p class="member__name">Marcus Hale</p>
-          <p class="member__role">Cloud Infrastructure Lead</p>
-          <div class="member__stat">
-            <p class="member__num" data-count="1200" data-suffix="+">1,200+</p>
-            <p class="member__label"><b>cloud migrations</b><span>16 years of experience</span></p>
+          <div class="member__img"><img src="assets/team/team-4.jpg" alt="Portrait of Rohan Verma" loading="lazy"
+              width="800" height="1000"></div>
+          <div class="member__meta">
+            <p class="member__name">Rohan Verma</p>
+            <p class="member__role">Cloud &amp; DevOps Lead</p>
           </div>
+          <p class="member__focus">AWS, Kubernetes, CI/CD and security</p>
         </article>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Contact, FAQ, Resources -->
-  <footer class="contact" id="contact">
-    <div class="contact__cta">
-      <h2 class="contact__title">Have a product <em>to scale?</em></h2>
-      <div class="contact__actions">
-        <p>Tell us what you are building. We reply within one business day with next steps and a rough timeline.</p>
-        <a class="pill pill--black" href="mailto:hellourobins@gmail.com">Start a Project <svg class="arr" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.6 6.4H6.3a3.1 3.1 0 0 0 0 6.2h1.4"/><path d="M10.7 3.5l2.9 2.9-2.9 2.9"/></svg></a>
-        <dl class="contact__list">
-          <div>
-            <dt>General inquiries</dt>
-            <dd><a href="mailto:hellourobins@gmail.com">hellourobins@gmail.com</a></dd>
-          </div>
-          <div>
-            <dt>Client &amp; technical support</dt>
-            <dd><a href="mailto:support@urobins.com">support@urobins.com</a></dd>
-          </div>
-          <div>
-            <dt>Phone / WhatsApp</dt>
-            <dd><a href="tel:+919810942673">+91 9810942673</a> &middot; <a href="https://wa.me/919810942673">WhatsApp</a></dd>
-          </div>
-        </dl>
+    <!-- Contact, FAQ, Resources -->
+    <footer class="contact" id="contact">
+      <div class="marquee" aria-hidden="true">
+        <div class="marquee__track">
+          <span>Websites</span><i></i><span>Mobile apps</span><i></i><span>CRM workflows</span><i></i><span>Cloud
+            infrastructure</span><i></i><span>Technical SEO</span><i></i><span>Performance marketing</span><i></i>
+          <span>Websites</span><i></i><span>Mobile apps</span><i></i><span>CRM workflows</span><i></i><span>Cloud
+            infrastructure</span><i></i><span>Technical SEO</span><i></i><span>Performance marketing</span><i></i>
+        </div>
       </div>
-    </div>
-    <div class="contact__cols">
-      <div class="faq" id="faq">
-        <p class="eyebrow">FAQ</p>
-        <details>
-          <summary>How long does a typical project take?</summary>
-          <p>Most MVPs launch in about 45 days. Larger platforms ship in phased releases, with a working build to review every two weeks.</p>
-        </details>
-        <details>
-          <summary>Do you work with existing codebases?</summary>
-          <p>Yes. We start with a technical audit, then improve, migrate, or extend what you already have instead of rebuilding by default.</p>
-        </details>
-        <details>
-          <summary>What does cloud support include after launch?</summary>
-          <p>Monitoring, security patching, backups, and scaling, with a 99.9% uptime target and agreed response times.</p>
-        </details>
-        <details>
-          <summary>How do you report on SEO and marketing?</summary>
-          <p>You get a shared dashboard with rankings, traffic, conversions, and spend, plus a monthly review against your revenue goals.</p>
-        </details>
+      <div class="contact__cta">
+        <h2 class="contact__title rv" aria-label="Have a product to scale?">
+          <span class="line" aria-hidden="true"><span class="line__in">Have a product</span></span>
+          <span class="line" aria-hidden="true"><span class="line__in"><em>to scale?</em></span></span>
+        </h2>
+        <div class="contact__actions">
+          <p class="rv-text">Tell us what you are building. We reply within one business day with next steps and a rough
+            timeline.</p>
+          <a class="pill pill--brand pill--lg" href="mailto:hellourobins@gmail.com" data-magnet>Start a project <svg
+              class="arr" aria-hidden="true">
+              <use href="#i-arrow" />
+            </svg></a>
+          <dl class="contact__list">
+            <div>
+              <dt>General inquiries</dt>
+              <dd><a href="mailto:hellourobins@gmail.com">hellourobins@gmail.com</a></dd>
+            </div>
+            <div>
+              <dt>Client &amp; technical support</dt>
+              <dd><a href="mailto:support@urobins.com">support@urobins.com</a></dd>
+            </div>
+            <div>
+              <dt>Phone / WhatsApp</dt>
+              <dd><a href="tel:+919810942673">+91 9810942673</a> &middot; <a href="https://wa.me/919810942673"
+                  target="_blank" rel="noopener">WhatsApp</a></dd>
+            </div>
+          </dl>
+        </div>
       </div>
-      <div class="resources" id="resources">
-        <p class="eyebrow">Resources</p>
-        <ul>
-          <li><a href="#contact">Launch readiness checklist <svg class="arr" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.6 6.4H6.3a3.1 3.1 0 0 0 0 6.2h1.4"/><path d="M10.7 3.5l2.9 2.9-2.9 2.9"/></svg></a></li>
-          <li><a href="#contact">Technical SEO audit template <svg class="arr" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.6 6.4H6.3a3.1 3.1 0 0 0 0 6.2h1.4"/><path d="M10.7 3.5l2.9 2.9-2.9 2.9"/></svg></a></li>
-          <li><a href="#contact">Cloud cost planning guide <svg class="arr" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.6 6.4H6.3a3.1 3.1 0 0 0 0 6.2h1.4"/><path d="M10.7 3.5l2.9 2.9-2.9 2.9"/></svg></a></li>
-          <li><a href="#contact">CRM automation playbook <svg class="arr" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.6 6.4H6.3a3.1 3.1 0 0 0 0 6.2h1.4"/><path d="M10.7 3.5l2.9 2.9-2.9 2.9"/></svg></a></li>
-        </ul>
+      <div class="contact__cols">
+        <div class="faq" id="faq">
+          <p class="eyebrow">FAQ</p>
+          <details>
+            <summary>How long does a typical project take?</summary>
+            <p>Most MVPs launch in about 45 days. Larger platforms ship in phased releases, with a working build to
+              review every two weeks.</p>
+          </details>
+          <details>
+            <summary>Do you work with existing codebases?</summary>
+            <p>Yes. We start with a technical audit, then improve, migrate, or extend what you already have instead of
+              rebuilding by default.</p>
+          </details>
+          <details>
+            <summary>What does cloud support include after launch?</summary>
+            <p>Monitoring, security patching, backups, and scaling, with a 99.9% uptime target and agreed response
+              times.</p>
+          </details>
+          <details>
+            <summary>How do you report on SEO and marketing?</summary>
+            <p>You get a shared dashboard with rankings, traffic, conversions, and spend, plus a monthly review against
+              your revenue goals.</p>
+          </details>
+        </div>
+        <div class="resources" id="resources">
+          <p class="eyebrow">Resources</p>
+          <ul>
+            <li><a href="#contact">Launch readiness checklist <svg class="arr" aria-hidden="true">
+                  <use href="#i-arrow" />
+                </svg></a></li>
+            <li><a href="#contact">Technical SEO audit template <svg class="arr" aria-hidden="true">
+                  <use href="#i-arrow" />
+                </svg></a></li>
+            <li><a href="#contact">Cloud cost planning guide <svg class="arr" aria-hidden="true">
+                  <use href="#i-arrow" />
+                </svg></a></li>
+            <li><a href="#contact">CRM automation playbook <svg class="arr" aria-hidden="true">
+                  <use href="#i-arrow" />
+                </svg></a></li>
+          </ul>
+        </div>
       </div>
-    </div>
-    <div class="contact__base">
-      <p class="contact__mark"><svg class="logo-u" viewBox="0 0 20 22" aria-hidden="true"><rect x="1.6" y="2" width="3.6" height="10.4" rx="0.6"/><rect x="14.8" y="2" width="3.6" height="10.4" rx="0.6"/><rect x="1.6" y="13.6" width="16.8" height="2" rx="1"/><rect x="2.6" y="16.7" width="14.8" height="1.9" rx=".95"/><rect x="4.8" y="19.7" width="10.4" height="1.8" rx=".9"/></svg>robins</p>
-      <p>&copy; 2026 Urobins. Engineering and growth for ambitious brands.</p>
-    </div>
-  </footer>
-</main>
+      <div class="contact__base">
+        <p class="contact__mark" aria-label="Urobins">
+          <svg class="contact__mark-m" viewBox="0 0 340 303" aria-hidden="true">
+            <use href="#logo-mark" />
+          </svg>
+          <svg class="contact__mark-w" viewBox="0 0 881 211" aria-hidden="true">
+            <use href="#logo-word" />
+          </svg>
+        </p>
+        <p>&copy; 2026 Urobins. Engineering and growth for ambitious brands.</p>
+      </div>
+    </footer>
+  </main>
 
-<script src="js/app.js"></script>
+  <a class="book" id="book"
+    href="https://wa.me/919810942673?text=Hi%20Urobins%2C%20I%27d%20like%20to%20book%20a%20call." target="_blank"
+    rel="noopener"><svg class="book__ic" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3.5a8.5 8.5 0 0 0-7.4 12.7L3.5 20.5l4.4-1.1A8.5 8.5 0 1 0 12 3.5Z" />
+      <path d="M9.2 8.6c.3-.4.8-.4 1 0l.7 1.5c.1.3 0 .6-.2.8l-.5.5c.5 1.1 1.4 2 2.5 2.5l.5-.5c.2-.2.5-.3.8-.2l1.5.7c.4.2.4.7 0 1-1.2 1.1-2.8.9-4.6-.6-1.6-1.4-2.6-3.1-2.4-4.4.1-.5.4-1 .7-1.3Z" />
+    </svg><span class="book__label">Book a call</span> <svg class="arr" aria-hidden="true">
+      <use href="#i-arrow" />
+    </svg></a>
+
+  <script src="js/app.js"></script>
 </body>
+
 </html>

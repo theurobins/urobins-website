@@ -1,4 +1,4 @@
-// Stepped "venetian blind" funnel for transition 1 (the hero). Transition 2 draws its own in team.js.
+// Stepped "venetian blind" funnel for transition 1 (the hero).
 export const BAR_COUNT = 18;
 
 // Transition 1 (hero): bars sit centred in fixed 0.046H slots below the stepped hero edge.

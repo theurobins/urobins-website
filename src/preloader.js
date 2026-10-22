@@ -1,24 +1,36 @@
-// Preloader: one continuous camera shot drawn as a pure function of time (tau, seconds).
-// Close-up on the right lamp -> pull back -> two giants rise from below carrying lamps ->
-// the left lamp ignites -> they lean in, blink and re-pose -> hard cut to a wide shot ->
-// a 0.12s dive into the crossing beams hands over to the hero.
-// All coordinates are in a 1600x900 design space ("D") that is cover-fitted to the screen.
+// Loading screen, after the reference film: a hard close-up on the right lamp pulls back to reveal
+// a dark indigo stage; the right giant rises out of the dark and opens its eyes, the left lamp
+// ignites with a burst of sparks, and both beams swing onto the logo at the centre, which assembles
+// as faint glass in the dark and is lit by the beams: its colours, glints and shadows come from where
+// each lamp is and where it points (logo-light.js). The giants lean in for a closer look, blink,
+// settle back, and the camera dives into the crossing beams: the light fills the frame and the hero's
+// glass fades in from that same colour.
+// The scene is drawn on a canvas as a pure function of time in a 1600x900 design space; the logo
+// is DOM on top, mapped into the same space, so no light is ever painted behind or over it; its
+// shadows are painted on the wall, under it.
 import gsap from 'gsap';
+import { runMobilePreloader } from './preloader-mobile.js';
+import { createLogoLight } from './logo-light.js';
+import { isPhone } from './breakpoints.js';
 
 const DW = 1600, DH = 900;
-const END = 4.97;         // preloader length
-const DIVE = 4.705;       // counter hits 100% and the camera dives
-const CUT = 4.37;         // hard cut to the wide shot
-const BACK_O = { x: 858, y: 200 };  // zoom origin of the wall/desk layer
-const DIVE_O = { x: 805, y: 500 };  // dive origin
+const TS = 1.1;                       // the reference's beats, stretched a little
+const LOGO = { x: 800, y: 490 };      // the logo's centre
+const TARGET = { x: 800, y: 548 };    // where the beams cross: just under the logo, so the hot spot
+// is a pool below it, not a wash behind it
+const HOLD = 5.05;                    // reference seconds: the wide shot the scene holds until the fonts are in
+const DIVE_DUR = 0.95;                // seconds: the dive into the light
+export const WASH = [0.812, 0.8, 1.0];   // the light's colour at the end of the dive (#cfccff)
 
-// ---------- keyframe tables: [tau, value | [values]] ----------
 const ease = {
   io: (x) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2),
   out2: (x) => 1 - (1 - x) * (1 - x),
   out3: (x) => 1 - Math.pow(1 - x, 3),
   in2: (x) => x * x,
+  in3: (x) => x * x * x,
 };
+const clamp01 = (x) => Math.min(1, Math.max(0, x));
+const lerp = (a, b, k) => a + (b - a) * k;
 function kf(table, t, e = ease.io) {
   if (t <= table[0][0]) return table[0][1];
   for (let i = 1; i < table.length; i++) {
@@ -32,173 +44,181 @@ function kf(table, t, e = ease.io) {
   }
   return table[table.length - 1][1];
 }
+// Smooth motion through a table of poses: a cubic spline with tangents from the neighbouring keys,
+// flattened wherever a key is a turning point or a hold, so nothing overshoots. The reference's
+// poses were measured frame by frame; easing each segment on its own made the lamps pulse.
+function spline(table, t) {
+  const n = table.length;
+  if (t <= table[0][0]) return table[0][1].slice();
+  if (t >= table[n - 1][0]) return table[n - 1][1].slice();
+  let i = 0;
+  while (i < n - 2 && table[i + 1][0] <= t) i++;
+  const [t0, p0] = table[i], [t1, p1] = table[i + 1];
+  const h = t1 - t0, u = (t - t0) / h;
+  const tan = (j, k) => {
+    const [ta, a] = table[Math.max(0, j - 1)], [tb, b] = table[j], [tc, c] = table[Math.min(n - 1, j + 1)];
+    const d1 = tb === ta ? 0 : (b[k] - a[k]) / (tb - ta), d2 = tc === tb ? 0 : (c[k] - b[k]) / (tc - tb);
+    return d1 === 0 || d2 === 0 || d1 * d2 < 0 ? 0 : (d1 + d2) / 2;
+  };
+  const u2 = u * u, u3 = u2 * u;
+  const h00 = 2 * u3 - 3 * u2 + 1, h10 = u3 - 2 * u2 + u, h01 = -2 * u3 + 3 * u2, h11 = u3 - u2;
+  return p0.map((v, k) => h00 * v + h10 * h * tan(i, k) + h01 * p1[k] + h11 * h * tan(i + 1, k));
+}
 
-// wall/desk layer scale (zooms about BACK_O); slight dolly after the cut
-const DESK_S = [[0, 1.62], [0.08, 1.62], [2.4, 1.0], [CUT - 0.001, 1.0], [CUT, 1.09], [DIVE, 1.15]];
-
-// right lamp (x, y, diameter); before 1.03 the opening close-up drives it
-const LAMP_R = [
-  [1.03, [1374, 505, 58]], [1.23, [1378, 489, 58]], [1.43, [1383, 435, 59]], [1.63, [1387, 378, 60]],
-  [1.83, [1388, 342, 61]], [2.03, [1393, 318, 62]], [2.33, [1396, 310, 62]], [2.53, [1427, 309, 70]],
-  [2.63, [1422, 362, 98]], [2.73, [1410, 380, 102]], [3.03, [1399, 392, 105]], [3.23, [1393, 393, 113]],
-  [3.33, [1364, 396, 118]], [3.43, [1323, 394, 124]], [3.53, [1200, 394, 118]], [3.63, [1152, 393, 113]],
-  [3.83, [1122, 392, 103]], [3.93, [1114, 390, 90]], [4.23, [1114, 390, 90]], [CUT - 0.001, [1126, 396, 88]],
-  [CUT, [1236, 444, 72]], [4.43, [1243, 446, 70]], [4.53, [1259, 451, 69]], [DIVE, [1276, 452, 68]],
-];
-const LAMP_L = [
-  [1.9, [266, 475, 30]], [2.03, [272, 385, 46]], [2.13, [278, 334, 52]], [2.33, [280, 309, 56]],
-  [2.53, [270, 317, 58]], [2.63, [220, 367, 66]], [2.73, [165, 425, 90]], [3.03, [141, 452, 99]],
-  [3.23, [141, 452, 99]], [3.33, [155, 435, 74]], [3.43, [161, 425, 66]], [3.53, [166, 417, 59]],
-  [4.03, [170, 414, 57]], [4.13, [186, 419, 52]], [4.23, [240, 437, 46]], [CUT - 0.001, [259, 443, 41]],
-  [CUT, [270, 447, 40]], [4.53, [276, 450, 40]], [DIVE, [276, 450, 40]],
-];
-// beam aim (deg, clockwise from +x) and half-angle
-const BEAM_R = [
-  [0, [165, 13]], [0.35, [165, 13]], [0.43, [161, 13]], [0.63, [151, 12.8]], [0.83, [141, 12.5]],
-  [1.43, [140.5, 13.3]], [1.83, [148.5, 13.4]], [2.13, [151.5, 13.4]], [2.43, [151.5, 13.4]],
-  [3.03, [148, 23.9]], [3.43, [143, 24]], [3.83, [131, 20]], [4.23, [135.5, 16.6]], [CUT - 0.001, [137, 16]],
-  [CUT, [150, 8.5]], [4.43, [151.5, 8]], [DIVE, [164, 5.5]],
-];
-const BEAM_L = [
-  [1.93, [36, 8]], [2.03, [31, 12.7]], [2.23, [30, 13.4]], [2.43, [30, 13.4]], [3.03, [19.5, 24]],
-  [3.43, [24.5, 18]], [3.83, [26, 15]], [4.23, [22.5, 13]], [CUT - 0.001, [22, 12.5]], [CUT, [21, 11]],
-  [DIVE, [14.5, 10]],
-];
-// giants: eye-pair centre (x, y), eye separation k, tilt (deg)
+// ---------- keyframes (reference seconds): [t, value | [values]] ----------
+// giants: eye-pair centre (x, y), eye separation, tilt (deg). They rise from below the frame, lean
+// in close over the logo, then settle back a little.
 const GIANT_R = [
-  [1.2, [1300, 900, 181, 4]], [1.43, [1320, 480, 181, 5]], [1.63, [1328, 280, 181, 6]], [1.73, [1331, 178, 181, 6.6]],
-  [1.93, [1341, 145, 175, 9]], [2.33, [1351, 127, 177, 11]], [2.45, [1351, 127, 177, 11]], [2.63, [1403, 160, 238, 16]],
-  [2.9, [1395, 178, 258, 18.5]], [3.23, [1393, 181, 261, 18.8]], [3.33, [1343, 175, 259, 16]], [3.43, [1276, 172, 256, 12.8]],
-  [3.75, [1060, 200, 190, 0]], [3.93, [1039, 205, 176, -2]], [4.23, [1039, 205, 176, -2]], [CUT - 0.001, [1087, 211, 174, -3]],
-  [CUT, [1450, 326, 160, -4.7]], [4.43, [1454, 328, 160, -4.7]], [4.53, [1490, 350, 160, -4]], [DIVE, [1505, 356, 160, -4]],
+  [1.2, [1300, 900, 181, 4]], [1.45, [1320, 480, 181, 5]], [1.65, [1328, 280, 181, 6]], [1.78, [1331, 178, 181, 6.6]],
+  [1.98, [1341, 145, 175, 9]], [2.35, [1351, 127, 177, 11]], [2.5, [1351, 127, 177, 11]], [2.75, [1403, 160, 238, 16]],
+  [3.05, [1395, 178, 258, 18.5]], [3.4, [1393, 181, 261, 18.8]], [3.75, [1060, 200, 190, 0]], [3.93, [1039, 205, 176, -2]],
+  [4.23, [1039, 205, 176, -2]], [4.45, [1087, 211, 174, -3]], [4.8, [1450, 326, 160, -4.7]], [HOLD, [1470, 334, 160, -4.5]],
 ];
 const GIANT_L = [
-  [1.45, [500, 1000, 176, -1]], [1.63, [470, 540, 176, -1.5]], [1.73, [488, 280, 176, -1.5]], [1.93, [478, 236, 176, -2]],
-  [2.03, [472, 200, 176, -2]], [2.33, [467, 172, 176, -2]], [2.45, [467, 172, 176, -2]], [2.63, [370, 259, 193, -4.7]],
-  [2.9, [290, 292, 230, -10]], [3.23, [275, 300, 238, -11]], [3.33, [230, 270, 225, -9]], [3.45, [150, 210, 205, -6]],
-  [3.53, [138, 194, 200, -5.5]], [4.03, [137, 178, 197, -5.5]], [4.23, [128, 261, 172, -3]], [CUT - 0.001, [137, 289, 163, -2.5]],
-  [CUT, [145, 308, 154, -2.5]], [DIVE, [150, 314, 154, -2.5]],
+  [1.45, [500, 1000, 176, -1]], [1.65, [470, 540, 176, -1.5]], [1.78, [488, 280, 176, -1.5]], [1.98, [478, 236, 176, -2]],
+  [2.1, [472, 200, 176, -2]], [2.4, [467, 172, 176, -2]], [2.55, [467, 172, 176, -2]], [2.78, [370, 259, 193, -4.7]],
+  [3.05, [290, 292, 230, -10]], [3.4, [275, 300, 238, -11]], [3.53, [138, 194, 200, -5.5]], [4.03, [137, 178, 197, -5.5]],
+  [4.23, [128, 261, 172, -3]], [4.45, [137, 289, 163, -2.5]], [4.8, [145, 308, 154, -2.5]], [HOLD, [150, 314, 154, -2.5]],
 ];
-// eye openness (0 closed .. 1 open); values below 1 are squints
-const OPEN_R = [[1.7, 0], [1.95, 1], [3.3, 1], [3.43, 0], [3.88, 0], [4.06, 0.75], [CUT, 0.75], [DIVE, 0.6]];
-const OPEN_L = [[1.73, 0], [2.0, 1], [3.2, 1], [3.33, 0], [3.45, 0], [3.63, 0.85], [4.1, 0.85], [4.23, 0.5], [CUT, 0.5], [DIVE, 0.45]];
-// red "pillar" above the desk: left, right, bottom
-const PILLAR = [[0, [667, 1115, 195]], [2.4, [667, 1115, 195]], [3.03, [579, 1113, 230]], [3.9, [345, 1320, 300]], [CUT - 0.001, [345, 1320, 300]], [CUT, [690, 1130, 205]]];
-
-// figure key poses (desk-local D, origin = tabletop top-left)
-const POSES = {
-  work: { head: [104, -30], sh: [94, -16], hip: [82, 70], knee: [150, 78], ankle: [142, 124], el: [120, 10], ha: [146, -2], el2: [112, 14], ha2: [138, 0] },
-  up: { head: [88, -40], sh: [86, -24], hip: [82, 70], knee: [150, 78], ankle: [142, 124], el: [104, 14], ha: [100, -18], el2: [110, 16], ha2: [140, 0] },
-  stretch: { head: [80, -44], sh: [83, -26], hip: [84, 70], knee: [152, 80], ankle: [146, 126], el: [62, -52], ha: [78, -50], el2: [104, -56], ha2: [86, -50] },
-  yawn: { head: [94, -36], sh: [91, -20], hip: [84, 70], knee: [150, 78], ankle: [142, 124], el: [108, 4], ha: [96, -34], el2: [116, 12], ha2: [140, 0] },
-  leap: { head: [132, 8], sh: [120, 18], hip: [84, 56], knee: [128, 44], ankle: [104, 84], el: [102, -6], ha: [118, -16], el2: [140, 30], ha2: [152, 14] },
-};
-const POSE_KEYS = [[0, 'work'], [1.82, 'work'], [1.98, 'up'], [2.2, 'up'], [2.36, 'stretch'], [3.25, 'stretch'], [3.4, 'yawn'], [3.47, 'yawn'], [3.6, 'leap']];
-
-const lerp = (a, b, k) => a + (b - a) * k;
-const hex = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
-const mix = (a, b, k) => `rgb(${Math.round(lerp(a[0], b[0], k))},${Math.round(lerp(a[1], b[1], k))},${Math.round(lerp(a[2], b[2], k))})`;
-const C = {
-  dark: hex('#4a1d14'), lit: hex('#e88a76'), legLit: hex('#d17261'),
-  topDark: hex('#5c2618'), topLit: hex('#c0624e'),
-  chairDark: hex('#361a14'), chairLit: hex('#562014'),
-  hairDark: hex('#2a0f09'), hairLit: hex('#8a3a28'),
-  lampOff: hex('#e8a090'), lampOn: [254, 254, 252],
-};
-const AXIS_STOPS = [
-  [0, 'rgba(255,254,252,1)'], [85 / 700, 'rgba(253,229,220,1)'], [170 / 700, 'rgba(249,210,195,1)'],
-  [290 / 700, 'rgba(248,186,168,1)'], [400 / 700, 'rgba(232,140,117,0.85)'], [460 / 700, 'rgba(210,118,95,0.6)'],
-  [520 / 700, 'rgba(175,80,60,0.4)'], [575 / 700, 'rgba(153,58,38,0.2)'], [1, 'rgba(120,40,25,0)'],
+// eye openness (0 closed .. 1 open): the left giant blinks first, the right one a beat later, both
+// quickly; the right reopens a little narrowed as it leans over the logo, and both settle half-lidded
+const OPEN_R = [[1.7, 0], [1.98, 1], [3.46, 1], [3.58, 0], [3.68, 0], [3.84, 0.82], [4.45, 0.82], [4.8, 0.6], [HOLD, 0.6]];
+const OPEN_L = [[1.73, 0], [2.02, 1], [3.2, 1], [3.33, 0], [3.45, 0], [3.63, 0.85], [4.1, 0.85], [4.23, 0.5], [4.8, 0.5], [HOLD, 0.45]];
+// lamps (x, y, diameter): they ride up with the giants and come in closer with the lean
+const LAMP_R = [
+  [1.05, [1374, 505, 58]], [1.25, [1378, 489, 58]], [1.45, [1383, 435, 59]], [1.65, [1387, 378, 60]],
+  [1.85, [1388, 342, 61]], [2.05, [1393, 318, 62]], [2.35, [1396, 310, 62]], [2.55, [1427, 309, 70]],
+  [2.68, [1422, 362, 98]], [2.78, [1410, 380, 102]], [3.05, [1399, 392, 105]], [3.4, [1393, 393, 113]],
+  [3.53, [1200, 394, 118]], [3.63, [1152, 393, 113]], [3.83, [1122, 392, 103]], [3.93, [1114, 390, 90]],
+  [4.23, [1114, 390, 90]], [4.45, [1126, 396, 88]], [4.8, [1236, 444, 72]], [HOLD, [1260, 450, 70]],
 ];
+const LAMP_L = [
+  [1.9, [266, 475, 30]], [1.96, [268, 450, 36]], [2.03, [272, 385, 46]], [2.13, [278, 334, 52]], [2.35, [280, 309, 56]],
+  [2.55, [270, 317, 58]], [2.68, [220, 367, 66]], [2.78, [165, 425, 90]], [3.05, [141, 452, 99]],
+  [3.4, [141, 452, 99]], [3.53, [166, 417, 59]], [4.03, [170, 414, 57]], [4.23, [240, 437, 46]],
+  [4.45, [259, 443, 41]], [4.8, [270, 447, 40]], [HOLD, [276, 450, 40]],
+];
+const POWER_L = [[1.9, 0], [2.03, 1]];
+// beam aim offsets from the line to TARGET (deg; the right beam starts steeply at the floor) and half-angles
+const AIM_R = [[0, -30], [1.3, -30], [2.25, 0]];
+const AIM_L = [[1.9, 20], [2.45, 0]];
+// the beams open wide as the lamps come in close, then tighten for the wide shot
+const HALF = [[0, 13], [2.45, 13.4], [3.05, 18], [3.45, 18], [3.85, 16], [4.25, 14.5], [4.45, 14], [4.8, 8.5], [HOLD, 8]];
+// the opening close-up: camera zoom and the design point at the screen's centre
+const ZOOM_IN = 14;
+const CAM_T0 = 0.1, CAM_T1 = 1.45;
+
+// the light is strongest by the lamps and has mostly fallen off by the time it reaches the logo, so
+// the mark keeps its contrast against a deep ground while still reading as lit
+const BEAM_STOPS = [
+  [0, 'rgba(255,254,255,1)'], [0.1, 'rgba(236,234,255,0.92)'], [0.26, 'rgba(214,210,255,0.66)'],
+  [0.44, 'rgba(186,182,255,0.34)'], [0.62, 'rgba(150,142,245,0.13)'], [0.8, 'rgba(110,100,225,0.04)'], [1, 'rgba(80,70,200,0)'],
+];
+const toDeg = (r) => (r * 180) / Math.PI;
 
 export function runPreloader({ el, reduced, onReveal, onDone }) {
+  // phones get a portrait scene of their own (preloader-mobile.js): this stage is a landscape shot
+  if (isPhone()) return runMobilePreloader({ el, reduced, onReveal, onDone, wash: WASH, grain: makeGrain });
   const canvas = el.querySelector('.preloader__canvas');
-  const flash = el.querySelector('.preloader__flash');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const logo = el.querySelector('.preloader__logo');
+  const lighting = createLogoLight(el);
+  const { pieces, wordClip } = lighting;
+  const bar = el.querySelector('.preloader__bar');
+  const fill = bar.querySelector('i');
   const count = el.querySelector('.preloader__count');
   const num = el.querySelector('.preloader__num');
-  const ctx = canvas.getContext('2d', { alpha: false });
   el.style.setProperty('--grain', `url(${makeGrain().toDataURL()})`);
 
-  let W = 0, H = 0, dpr = 1, s = 1, ox = 0, oy = 0, lastBlur = 0;
-  const sprites = {};
+  // ---- the logo in design space: the SVG is a 430x120 box centred on LOGO, and its units are design
+  // units, so the lamps reach it by a shift ----
+  const LX = LOGO.x - 215, LY = LOGO.y - 60;
 
+  let W = 0, H = 0, dpr = 1, s = 1, portrait = false, lastBlur = 0, logoTr = '', logoOp = '';
+  const rest = { x: 800, y: 450 };
   function resize() {
     dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     W = window.innerWidth; H = window.innerHeight;
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
-    if (W / H < 0.9) {
-      // portrait: keep both lamps and the desk in frame
-      s = W / 1250;
-      ox = W / 2 - 800 * s; oy = H * 0.44 - 420 * s;
-    } else {
-      s = Math.max(W / DW, H / DH);
-      ox = (W - DW * s) / 2; oy = (H - DH * s) / 2;
-    }
+    portrait = W / H < 0.9;
+    // cover-fit the design space; portrait keeps both lamps in frame and centres on the logo
+    s = portrait ? W / 1200 : Math.max(W / DW, H / DH);
+    rest.y = portrait ? LOGO.y : 450;
   }
 
-  // ---------- static sprites, built once ----------
-  // a shape blurred once into its own canvas (shadowBlur is fine when it only runs at build time)
-  function softShape(w, h, blur, path, color) {
-    const c = document.createElement('canvas');
-    c.width = w + blur * 4; c.height = h + blur * 4;
-    const x = c.getContext('2d');
-    x.translate(blur * 2 - 10000, blur * 2);
-    x.shadowColor = color;
-    x.shadowBlur = blur;
-    x.shadowOffsetX = 10000;
-    x.fillStyle = color;
-    path(x);
-    x.fill();
-    return c;
-  }
-  function roundRect(c, x, y, w, h, r) {
-    c.beginPath();
-    c.moveTo(x + r, y);
-    c.arcTo(x + w, y, x + w, y + h, r);
-    c.arcTo(x + w, y + h, x, y + h, r);
-    c.arcTo(x, y + h, x, y, r);
-    c.arcTo(x, y, x + w, y, r);
-    c.closePath();
-  }
-  sprites.pillar = softShape(600, 600, 40, (c) => roundRect(c, 0, 0, 600, 600, 150), 'rgb(78,8,16)');
-  sprites.shadow = softShape(494, 40, 14, (c) => { c.beginPath(); c.ellipse(247, 20, 247, 20, 0, 0, Math.PI * 2); }, 'rgb(25,8,5)');
+  // ---- sprites built once ----
+  const specks = document.createElement('canvas');
+  specks.width = specks.height = 256;
   {
-    // lamp speck halo: fine salmon dots between 1.0 and 2.2 radii (radius 58 in a 256 sprite)
-    const sp = document.createElement('canvas');
-    sp.width = sp.height = 256;
-    const x = sp.getContext('2d');
-    x.fillStyle = 'rgba(192,96,72,0.55)';
+    const x = specks.getContext('2d');
+    x.fillStyle = 'rgba(176,184,255,0.5)';
     for (let i = 0; i < 160; i++) {
       const a = Math.random() * Math.PI * 2;
       const r = (1.0 + Math.random() * 1.2) * 58;
       x.fillRect(128 + Math.cos(a) * r, 128 + Math.sin(a) * r, 1.4, 1.4);
     }
-    sprites.specks = sp;
   }
+  const sparks = Array.from({ length: 300 }, (_, i) => ({
+    a: (i / 300) * Math.PI * 2 + Math.random() * 0.3,
+    f: 1.5 + Math.random() * 3,
+    r: 0.6 + Math.random() * 1.4,
+    c: Math.random() < 0.5 ? '#9ea6ff' : '#eef0ff',
+  }));
 
-  // ---------- layer transforms ----------
-  // design point p -> p*k + t (scale S1 about O1, then S2 about O2), then cover-fit and dpr
-  function layer(S1, O1, S2, O2) {
-    const k = S1 * S2;
-    const tx = O2.x * (1 - S2) + O1.x * (1 - S1) * S2;
-    const ty = O2.y * (1 - S2) + O1.y * (1 - S1) * S2;
-    ctx.setTransform(dpr * s * k, 0, 0, dpr * s * k, dpr * (ox + s * tx), dpr * (oy + s * ty));
+  // ---- camera: the design point at the screen's centre and the magnification ----
+  const cam = { x: rest.x, y: rest.y, k: 1 };
+  const LAMP0 = LAMP_R[0][1];
+  function setCamera(t, dive) {
+    const u = clamp01((t - CAM_T0) / (CAM_T1 - CAM_T0));
+    // the close-up opens on the right lamp and pulls back onto the stage; the lamp slides from the
+    // frame's centre to its place in one monotonic move (the camera's centre is solved from that)
+    cam.k = Math.exp(Math.log(ZOOM_IN) * (1 - ease.out2(u)));
+    const g = ease.out2(u);
+    cam.x = LAMP0[0] - 40 - (LAMP0[0] - 40 - rest.x) * g / cam.k;
+    cam.y = LAMP0[1] - (LAMP0[1] - rest.y) * g / cam.k;
+    if (dive > 0) {
+      // dive into the light at the logo
+      const d = ease.in3(dive);
+      cam.k = 1 + 6.5 * d;
+      cam.x = lerp(rest.x, LOGO.x, ease.out2(dive));
+      cam.y = lerp(rest.y, LOGO.y, ease.out2(dive));
+    }
+    const kk = s * cam.k;
+    ctx.setTransform(dpr * kk, 0, 0, dpr * kk, dpr * (W / 2 - cam.x * kk), dpr * (H / 2 - cam.y * kk));
   }
+  const toScreen = (x, y) => [W / 2 + (x - cam.x) * s * cam.k, H / 2 + (y - cam.y) * s * cam.k];
 
-  // ---------- drawing ----------
-  // flat-topped bell head with shoulders, fading into the wall below the eye line
+  // ---- drawing ----
+  // flat-topped bell head with shoulders: a silhouette darker than the lit wall, fading into it below the eyes
+  // drawn four times, each pass a little larger and fainter, so the edge is soft like something
+  // close to the camera and out of its focus
   function drawHead(g) {
     const [x, y, k, tilt] = g;
     if (y > 1040) return;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate((tilt * Math.PI) / 180);
-    const grad = ctx.createLinearGradient(0, -1.6 * k, 0, 0.45 * k);
-    grad.addColorStop(0, '#231816');
-    grad.addColorStop(0.45, '#2d1a13');
-    grad.addColorStop(0.8, 'rgba(56,29,20,0.6)');
-    grad.addColorStop(1, 'rgba(62,29,20,0)');
+    const grad = ctx.createLinearGradient(0, -1.6 * k, 0, 0.5 * k);
+    grad.addColorStop(0, 'rgba(5,5,16,0.92)');
+    grad.addColorStop(0.45, 'rgba(7,7,22,0.9)');
+    grad.addColorStop(0.8, 'rgba(9,9,28,0.5)');
+    grad.addColorStop(1, 'rgba(12,12,34,0)');
     ctx.fillStyle = grad;
+    const base = ctx.globalAlpha;
+    for (const [sc, a] of [[1.085, 0.08], [1.055, 0.1], [1.025, 0.16], [1, 0.75]]) {
+      ctx.globalAlpha = base * a;
+      ctx.save();
+      ctx.translate(0, -1.5 * k);
+      ctx.scale(sc, sc);
+      ctx.translate(0, 1.5 * k);
+      headPath(k);
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.globalAlpha = base;
+    ctx.restore();
+  }
+  function headPath(k) {
     ctx.beginPath();
     ctx.moveTo(-3.5 * k, 0.75 * k);
     ctx.bezierCurveTo(-2.4 * k, 0.5 * k, -1.6 * k, 0.3 * k, -1.38 * k, 0.2 * k);
@@ -211,8 +231,6 @@ export function runPreloader({ el, reduced, onReveal, onDone }) {
     ctx.lineTo(3.5 * k, 1.2 * k);
     ctx.lineTo(-3.5 * k, 1.2 * k);
     ctx.closePath();
-    ctx.fill();
-    ctx.restore();
   }
   function drawEyes(g, open, ratios) {
     if (open <= 0.02 || g[1] > 1040) return;
@@ -225,19 +243,18 @@ export function runPreloader({ el, reduced, onReveal, onDone }) {
     drawEye(0.5 * k, 0, w, w * ratios[1], open, true);
     ctx.restore();
   }
-  // almond leaf: blunt outer end, sharp inner point set lower, so each pair frowns
+  // almond leaf: blunt outer end, sharp inner point set lower, so each pair frowns a little
   function drawEye(cx, cy, w, h, open, right) {
     ctx.save();
     ctx.translate(cx, cy);
     if (right) ctx.scale(-1, 1);
     ctx.rotate((16 * Math.PI) / 180);
-    // hot orange bloom hugging the eye
     ctx.save();
     ctx.scale(1, 0.62);
     const gr = ctx.createRadialGradient(0, -0.08 * w, 0.1 * w, 0, -0.08 * w, 0.78 * w);
-    gr.addColorStop(0, `rgba(255,128,88,${0.75 * open})`);
-    gr.addColorStop(0.42, `rgba(214,72,42,${0.42 * open})`);
-    gr.addColorStop(1, 'rgba(120,36,22,0)');
+    gr.addColorStop(0, `rgba(160,170,255,${0.7 * open})`);
+    gr.addColorStop(0.42, `rgba(96,100,240,${0.38 * open})`);
+    gr.addColorStop(1, 'rgba(50,50,170,0)');
     ctx.fillStyle = gr;
     ctx.fillRect(-0.8 * w, -0.9 * w, 1.6 * w, 1.6 * w);
     ctx.restore();
@@ -248,20 +265,18 @@ export function runPreloader({ el, reduced, onReveal, onDone }) {
     ctx.bezierCurveTo(0.12 * w, 0.42 * h, -0.3 * w, 0.48 * h, -0.47 * w, 0.3 * h);
     ctx.quadraticCurveTo(-0.56 * w, 0.18 * h, -0.5 * w, 0.02 * h);
     ctx.closePath();
-    ctx.fillStyle = '#fdf9f8';
+    ctx.fillStyle = '#f8f8ff';
     ctx.fill();
     ctx.restore();
   }
-
   // crisp near-white trapezoid from the lamp disc, fading along its axis
   function drawBeam(lx, ly, d, aimDeg, halfDeg, len, power) {
     if (power <= 0.01) return;
-    const a = (aimDeg * Math.PI) / 180;
-    const h = (halfDeg * Math.PI) / 180;
+    const a = (aimDeg * Math.PI) / 180, h = (halfDeg * Math.PI) / 180;
     const ax = Math.cos(a), ay = Math.sin(a), nx = -ay, ny = ax;
     const b0 = 0.4 * d, b1 = 0.4 * d + len * Math.tan(h);
     const g = ctx.createLinearGradient(lx, ly, lx + ax * len, ly + ay * len);
-    for (const [o, c] of AXIS_STOPS) g.addColorStop(o, c);
+    for (const [o, c] of BEAM_STOPS) g.addColorStop(o, c);
     ctx.globalAlpha = power;
     ctx.fillStyle = g;
     ctx.beginPath();
@@ -277,37 +292,36 @@ export function runPreloader({ el, reduced, onReveal, onDone }) {
   function drawLamp(x, y, d, power, aimDeg, zoom = 1) {
     if (power <= 0.01) return;
     const r = d / 2;
-    const zf = Math.min(1, Math.max(0, (zoom - 1.3) / 4));
-    // soft halo (huge and salmon in the close-up, a tight bright bloom at rest)
-    const hr = r * (2.1 + 1.6 * zf);
+    const zf = clamp01((zoom - 1.3) / 4);
+    const hr = r * (2.2 + 1.6 * zf);
     const gl = ctx.createRadialGradient(x, y, r * 0.85, x, y, hr);
-    gl.addColorStop(0, `rgba(255,236,228,${0.85 * power})`);
-    gl.addColorStop(0.35, `rgba(255,170,148,${(0.38 + 0.3 * zf) * power})`);
-    gl.addColorStop(1, 'rgba(226,116,96,0)');
+    gl.addColorStop(0, `rgba(242,244,255,${0.85 * power})`);
+    gl.addColorStop(0.35, `rgba(178,186,255,${(0.38 + 0.3 * zf) * power})`);
+    gl.addColorStop(1, 'rgba(120,126,255,0)');
     ctx.fillStyle = gl;
     ctx.beginPath(); ctx.arc(x, y, hr, 0, Math.PI * 2); ctx.fill();
     if (zf > 0) {
-      ctx.strokeStyle = `rgba(150,72,60,${0.1 * zf})`;
+      ctx.strokeStyle = `rgba(120,126,220,${0.1 * zf})`;
       ctx.lineWidth = r * 0.05;
       for (const f of [1.3, 1.55, 1.85]) { ctx.beginPath(); ctx.arc(x, y, r * f, 0, Math.PI * 2); ctx.stroke(); }
     }
     ctx.globalAlpha = power * (1 - 0.6 * zf);
     const sr = (r / 58) * 128;
-    ctx.drawImage(sprites.specks, x - sr, y - sr, sr * 2, sr * 2);
+    ctx.drawImage(specks, x - sr, y - sr, sr * 2, sr * 2);
     ctx.globalAlpha = 1;
     if (zf > 0) {
       // out-of-focus disc: solid core with a feathered edge
       const dg = ctx.createRadialGradient(x, y, r * 0.8, x, y, r * 1.18);
-      dg.addColorStop(0, 'rgba(255,254,252,1)');
-      dg.addColorStop(1, 'rgba(255,240,234,0)');
+      dg.addColorStop(0, 'rgba(255,255,255,1)');
+      dg.addColorStop(1, 'rgba(240,240,255,0)');
       ctx.fillStyle = dg;
       ctx.beginPath(); ctx.arc(x, y, r * 1.18, 0, Math.PI * 2); ctx.fill();
     } else {
-      ctx.fillStyle = power < 1 ? mix(C.lampOff, C.lampOn, power) : '#fefefc';
+      ctx.fillStyle = power < 1 ? `rgb(${Math.round(176 + 79 * power)},${Math.round(184 + 71 * power)},255)` : '#fdfdff';
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
       // sketchy housing strokes just inside the rim, away from the beam
-      ctx.globalAlpha = power * 0.45;
-      ctx.strokeStyle = '#7a3628';
+      ctx.globalAlpha = power * 0.5;
+      ctx.strokeStyle = '#3e4190';
       ctx.lineWidth = 0.04 * d;
       ctx.lineCap = 'round';
       const back = ((aimDeg + 180) * Math.PI) / 180;
@@ -315,106 +329,11 @@ export function runPreloader({ el, reduced, onReveal, onDone }) {
       ctx.globalAlpha = 1;
     }
   }
-
-  // 0..1: how far inside a beam a point is
-  function inBeam(p, lamp, beam) {
-    const ang = (Math.atan2(p[1] - lamp[1], p[0] - lamp[0]) * 180) / Math.PI;
-    const diff = Math.abs((((ang - beam[0]) % 360) + 540) % 360 - 180);
-    return diff < beam[1] + 3 ? 1 : diff < beam[1] + 9 ? 1 - (diff - beam[1] - 3) / 6 : 0;
-  }
-
-  function poseAt(t) {
-    let i = 0;
-    while (i < POSE_KEYS.length - 1 && POSE_KEYS[i + 1][0] <= t) i++;
-    const [t0, a] = POSE_KEYS[i];
-    const next = POSE_KEYS[i + 1];
-    const A = POSES[a];
-    if (!next) return A;
-    const [t1, b] = next;
-    const k = ease.io(Math.min(1, Math.max(0, (t - t0) / (t1 - t0))));
-    const B = POSES[b], out = {};
-    for (const j in A) out[j] = [lerp(A[j][0], B[j][0], k), lerp(A[j][1], B[j][1], k)];
-    return out;
-  }
-  function line(x1, y1, x2, y2) { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
-
-  // solid brown desk, dark chair seen from behind, slender cut-out figure
-  function drawDesk(t, light) {
-    ctx.save();
-    ctx.translate(711, 594);
-    ctx.globalAlpha = 0.55;
-    ctx.drawImage(sprites.shadow, 30 - 247 - 28, 127 - 20 - 28);
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = '#3d190f';
-    ctx.fillRect(283, 17, 5, 97);
-    ctx.fillStyle = mix(C.topDark, C.topLit, light.desk);
-    ctx.fillRect(0, 0, 295, 11);
-    ctx.fillStyle = '#892f1c';
-    ctx.fillRect(0, 11, 295, 6);
-    ctx.fillStyle = '#fee7e3';
-    ctx.fillRect(158, -1, 28, 7);
-    ctx.fillStyle = '#5a2016';
-    ctx.fillRect(109, -3, 16, 20);
-    ctx.fillStyle = '#3d190f';
-    for (const lx of [28, 50, 84, 104]) ctx.fillRect(lx, 98, 3, 62);
-    ctx.fillStyle = mix(C.chairDark, C.chairLit, light.fig);
-    roundRect(ctx, 20, 17, 55, 61, 10); ctx.fill();
-    ctx.fillRect(24, 84, 83, 14);
-
-    const P = poseAt(t);
-    const bob = t > 3.6 && t < DIVE ? Math.sin((t - 3.6) * 12.5) * 2.5 : 0;
-    const body = mix(C.dark, C.lit, light.fig);
-    const legs = mix(C.dark, C.legLit, light.fig);
-    const Y = (p) => p[1] + bob;
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.strokeStyle = legs;
-    ctx.lineWidth = 11; line(P.hip[0], Y(P.hip), P.knee[0], Y(P.knee));
-    ctx.lineWidth = 7; line(P.knee[0], Y(P.knee), P.ankle[0], Y(P.ankle));
-    ctx.fillStyle = '#2a0f09';
-    ctx.beginPath(); ctx.ellipse(P.ankle[0] + 5, Y(P.ankle) + 2, 7, 3, 0, 0, Math.PI * 2); ctx.fill();
-    const sx = P.sh[0], sy = Y(P.sh), hx = P.hip[0], hy = Y(P.hip);
-    const len = Math.hypot(hx - sx, hy - sy) || 1;
-    const nx = -(hy - sy) / len, ny = (hx - sx) / len;
-    ctx.fillStyle = body;
-    ctx.beginPath();
-    ctx.moveTo(sx + nx * 10, sy + ny * 10);
-    ctx.lineTo(hx + nx * 8, hy + ny * 8);
-    ctx.lineTo(hx - nx * 8, hy - ny * 8);
-    ctx.lineTo(sx - nx * 10, sy - ny * 10);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = body;
-    ctx.lineWidth = 6; line(sx, sy, P.el2[0], Y(P.el2));
-    ctx.lineWidth = 5; line(P.el2[0], Y(P.el2), P.ha2[0], Y(P.ha2));
-    ctx.lineWidth = 6; line(sx, sy, P.el[0], Y(P.el));
-    ctx.lineWidth = 5; line(P.el[0], Y(P.el), P.ha[0], Y(P.ha));
-    line(sx, sy, P.head[0], Y(P.head));
-    ctx.beginPath(); ctx.arc(P.head[0], Y(P.head), 7.5, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = mix(C.hairDark, C.hairLit, light.fig);
-    ctx.beginPath(); ctx.arc(P.head[0] - 5, Y(P.head) - 4, 4, 0, Math.PI * 2); ctx.fill();
-    if (light.fig < 0.5) {
-      // pale rim on the lamp-facing edge while the figure is in the dark
-      ctx.strokeStyle = `rgba(232,160,140,${0.8 * (1 - light.fig * 2)})`;
-      ctx.lineWidth = 1.5;
-      line(sx + 9, sy, hx + 7, hy);
-    }
-    ctx.fillStyle = '#3d190f';
-    ctx.fillRect(-4, 17, 8, 92);
-    ctx.fillRect(290, 17, 7, 114);
-    ctx.restore();
-  }
-
-  // left lamp ignition sparks
-  const sparks = Array.from({ length: 320 }, (_, i) => ({
-    a: (i / 320) * Math.PI * 2 + Math.random() * 0.3,
-    f: 1.5 + Math.random() * 3,
-    r: 0.6 + Math.random() * 1.4,
-    c: Math.random() < 0.5 ? '#d27a62' : '#f0a088',
-  }));
-  function drawSparks(t, lamp) {
-    if (t < 1.9 || t > 2.36) return;
-    const e = ease.out2(Math.min(1, (t - 1.9) / 0.45));
-    const alpha = t < 1.98 ? ((t - 1.9) / 0.08) * 0.9 : 0.9 * (1 - (t - 1.98) / 0.38);
+  // ignition: a ring of specks flung out of the lamp over 0.45 s
+  function drawSparks(t0, t, lamp) {
+    if (t < t0 || t > t0 + 0.46) return;
+    const e = ease.out2(Math.min(1, (t - t0) / 0.45));
+    const alpha = t < t0 + 0.08 ? ((t - t0) / 0.08) * 0.9 : 0.9 * (1 - (t - t0 - 0.08) / 0.38);
     const R = lamp[2] / 2;
     ctx.globalAlpha = Math.max(0, alpha);
     for (const p of sparks) {
@@ -424,135 +343,177 @@ export function runPreloader({ el, reduced, onReveal, onDone }) {
     }
     ctx.globalAlpha = 1;
   }
+  const aimTo = (lamp) => toDeg(Math.atan2(TARGET.y - lamp[1], TARGET.x - lamp[0]));
 
-  function draw(t) {
-    // dive zoom (0.12s) with per-layer depth
-    const zc = t <= DIVE ? 1 : 1 + 5 * ease.in2(Math.min(1, (t - DIVE) / 0.12));
-    // the dive smears into a motion blur as it zooms
-    const blur = t <= DIVE ? 0 : Math.round(14 * ease.in2(Math.min(1, (t - DIVE) / 0.12)));
+  // ---- the frame ----
+  let washA = 0;
+  function draw(tau, dive) {
+    const t = Math.min(tau / TS, HOLD);
+    // the hold pose breathes a little while the fonts load
+    const idle = Math.max(0, tau / TS - HOLD);
+    const sway = Math.sin(idle * 1.3) * 3, bob = Math.sin(idle * 0.9 + 1) * 2;
+    const blur = dive > 0 ? Math.round(16 * ease.in2(dive)) : 0;
     if (blur !== lastBlur) { lastBlur = blur; canvas.style.filter = blur ? `blur(${blur}px)` : ''; }
-    const zWall = 1 + (zc - 1) * 0.6, zDesk = zc, zFront = 1 + (zc - 1) * 1.6;
-    const sd = kf(DESK_S, t, ease.out3);
+    setCamera(t, dive);
 
-    // wall, warm glow behind the desk, darker floor
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = '#3e1d14';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    layer(sd, BACK_O, zWall, DIVE_O);
-    const glow = ctx.createRadialGradient(820, 560, 0, 820, 560, 620);
-    glow.addColorStop(0, '#742a16');
-    glow.addColorStop(1, 'rgba(116,42,22,0)');
+    // wall, a violet glow behind the stage, the darker floor
+    ctx.fillStyle = '#10102a';
+    ctx.fillRect(-2400, -1800, 6400, 5400);
+    const glow = ctx.createRadialGradient(800, 560, 0, 800, 560, 720);
+    glow.addColorStop(0, '#2d2772');
+    glow.addColorStop(0.55, 'rgba(37,32,105,0.55)');
+    glow.addColorStop(1, 'rgba(37,32,105,0)');
     ctx.fillStyle = glow;
-    ctx.fillRect(200, -60, 1240, 1240);
-    const fl = ctx.createLinearGradient(0, 690, 0, 900);
-    fl.addColorStop(0, 'rgba(30,12,8,0)');
-    fl.addColorStop(1, 'rgba(30,12,8,0.25)');
+    ctx.fillRect(-400, -400, 2400, 1800);
+    const fl = ctx.createLinearGradient(0, 640, 0, 900);
+    fl.addColorStop(0, 'rgba(6,6,18,0)');
+    fl.addColorStop(1, 'rgba(6,6,18,0.6)');
     ctx.fillStyle = fl;
-    ctx.fillRect(-400, 690, 2400, 600);
+    ctx.fillRect(-2400, 640, 6400, 2000);
 
-    // giant heads, with the red pillar laid over them
-    layer(1, BACK_O, zFront, DIVE_O);
-    const gR = kf(GIANT_R, t), gL = kf(GIANT_L, t);
-    const fadeR = Math.min(1, Math.max(0, (t - 1.2) / 0.15)), fadeL = Math.min(1, Math.max(0, (t - 1.45) / 0.15));
+    // the lamps light the wall around them, so the giants read as silhouettes against it
+    const lampR = spline(LAMP_R, t), lampL = spline(LAMP_L, t);
+    lampR[0] += sway * 0.6; lampR[1] += bob; lampL[0] -= sway * 0.6; lampL[1] += bob * 0.8;
+    const powerL = kf(POWER_L, t);
+    const wallGlow = (l, p) => {
+      if (p <= 0.01) return;
+      const g = ctx.createRadialGradient(l[0], l[1], 0, l[0], l[1], 420);
+      g.addColorStop(0, `rgba(96,92,220,${0.34 * p})`);
+      g.addColorStop(0.5, `rgba(70,64,190,${0.14 * p})`);
+      g.addColorStop(1, 'rgba(60,54,170,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(l[0] - 420, l[1] - 420, 840, 840);
+    };
+    wallGlow(lampR, 1);
+    wallGlow(lampL, powerL);
+
+    // giants
+    const gR = spline(GIANT_R, t), gL = spline(GIANT_L, t);
+    gR[0] += sway; gR[1] += bob; gL[0] -= sway; gL[1] += bob * 0.8;
+    const fadeR = clamp01((t - 1.42) / 0.32), fadeL = clamp01((t - 1.62) / 0.32);
     ctx.globalAlpha = fadeL; drawHead(gL);
     ctx.globalAlpha = fadeR; drawHead(gR);
-    ctx.globalAlpha = 0.45;
-    layer(sd, BACK_O, zWall, DIVE_O);
-    const [px0, px1, pb] = kf(PILLAR, t);
-    const psx = (px1 - px0) / 600, psy = (pb + 300) / 600;
-    ctx.drawImage(sprites.pillar, px0 - 80 * psx, -300 - 80 * psy, 760 * psx, 760 * psy);
     ctx.globalAlpha = 1;
 
     // lamps and beams
-    let lampR, beamR, zoom = 1;
-    if (t < 1.03) {
-      // opening: extreme close-up on the right lamp, pulling back while it slides into place
-      zoom = Math.exp(2.95 * (1 - ease.out2(Math.min(1, Math.max(0, (t - 0.08) / 1.05)))));
-      const pk = ease.io(Math.min(1, Math.max(0, (t - 0.05) / 0.75)));
-      lampR = [lerp(906, 1370, pk), lerp(434, 510, pk), 58 * zoom];
-      beamR = kf(BEAM_R, t, ease.out2);
-    } else {
-      lampR = kf(LAMP_R, t);
-      beamR = kf(BEAM_R, t);
-    }
-    const lampL = kf(LAMP_L, t, ease.out2);
-    const beamL = kf(BEAM_L, t);
-    const powerL = t < 1.9 ? 0 : Math.min(1, 0.35 + (0.65 * (t - 1.9)) / 0.13);
-
-    // light on the desk and figure, tested in front-layer coordinates
-    const toFront = (x, y) => [BACK_O.x + (711 + x - BACK_O.x) * sd, BACK_O.y + (594 + y - BACK_O.y) * sd];
-    const lit = (p) => Math.min(1, inBeam(p, lampR, beamR) + (powerL > 0.5 ? inBeam(p, lampL, beamL) : 0));
-    const light = { fig: lit(toFront(90, 20)), desk: Math.max(lit(toFront(150, 4)), lit(toFront(260, 0))) };
-
-    layer(sd, BACK_O, zDesk, DIVE_O);
-    drawDesk(t, light);
-
-    layer(1, BACK_O, zFront, DIVE_O);
+    const half = kf(HALF, t);
+    const aimR = aimTo(lampR) + kf(AIM_R, t, ease.out2);
+    const aimL = aimTo(lampL) + kf(AIM_L, t, ease.out2);
+    const zoom = cam.k > 1.02 && dive === 0 ? cam.k : 1;
+    const len = 760 + 300 * dive;
     ctx.globalCompositeOperation = 'screen';
-    drawBeam(lampR[0], lampR[1], lampR[2], beamR[0], beamR[1], 700 * zoom, 1);
-    drawBeam(lampL[0], lampL[1], lampL[2], beamL[0], beamL[1], 700, powerL);
+    drawBeam(lampR[0], lampR[1], lampR[2], aimR, half, len, 1);
+    drawBeam(lampL[0], lampL[1], lampL[2], aimL, half, len, powerL);
     ctx.globalCompositeOperation = 'source-over';
-    drawLamp(lampR[0], lampR[1], lampR[2], 1, beamR[0], zoom);
-    drawLamp(lampL[0], lampL[1], lampL[2], powerL, beamL[0]);
-    drawSparks(t, lampL);
+    // the logo's light, in its own units: each lamp as it is drawn, and the shadows it casts on the
+    // wall, fading with the logo in the dive
+    const lo = dive > 0 ? 1 - clamp01((dive - 0.22) / 0.38) : 1;
+    const lamp = (l, aim, power) => ({ x: l[0] - LX, y: l[1] - LY, ang: (aim * Math.PI) / 180, half: (half * Math.PI) / 180, power, size: l[2] });
+    const lamps = [lamp(lampR, aimR, 1), lamp(lampL, aimL, powerL)];
+    // the dive scales the logo up: its light holds still from here, so the masks are not redrawn at
+    // every new size (the lamps barely move now anyway)
+    if (!dive) lighting.update(lamps);
+    ctx.save();
+    ctx.translate(LX, LY);
+    lighting.shadows(ctx, lamps, lo);
+    ctx.restore();
+    drawLamp(lampR[0], lampR[1], lampR[2], 1, aimR, zoom);
+    drawLamp(lampL[0], lampL[1], lampL[2], powerL, aimL);
+    drawSparks(1.9, t, lampL);
 
     ctx.globalAlpha = fadeL; drawEyes(gL, kf(OPEN_L, t), [0.29, 0.38]);
     ctx.globalAlpha = fadeR; drawEyes(gR, kf(OPEN_R, t), [0.45, 0.29]);
     ctx.globalAlpha = 1;
+
+    // the dive: the light fills the frame
+    washA = dive > 0 ? clamp01((dive - 0.4) / 0.45) : 0;
+    if (washA > 0) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = `rgba(207,204,255,${washA})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // the logo rides the camera, lit by the lamps
+    const [lx, ly] = toScreen(LOGO.x, LOGO.y);
+    const lk = s * cam.k;
+    const tr = `translate(${lx.toFixed(2)}px, ${ly.toFixed(2)}px) scale(${lk.toFixed(4)}) translate(-50%, -50%)`;
+    if (tr !== logoTr) { logoTr = tr; logo.style.transform = tr; }
+    const op = lo.toFixed(3);
+    if (op !== logoOp) { logoOp = op; logo.style.opacity = op; }
   }
 
-  // ---------- timeline ----------
-  const st = { tau: 0 };
-  let shown = -1;
-  const pct = gsap.parseEase('power4.inOut');
-  const setCount = () => {
-    const v = st.tau >= DIVE ? 100 : Math.round(100 * pct(Math.min(1, (st.tau + 0.78) / 6.48)));
-    if (v !== shown) { shown = v; num.textContent = v; }
-  };
-  // once the red field covers the scene there's nothing left to redraw
-  const tick = () => {
-    if (st.tau < DIVE + 0.27) draw(st.tau);
-    setCount();
-  };
-
+  // ---- clocks ----
+  const st = { tau: 0, dive: 0 };
+  const tick = () => draw(st.tau, st.dive);
+  let clock = null;
   resize();
   window.addEventListener('resize', resize);
-  gsap.ticker.add(tick);
-
+  // like the phone scene: stop the scene clock and let the canvas's backing store go with it
   const finish = () => {
     gsap.ticker.remove(tick);
     window.removeEventListener('resize', resize);
+    if (clock) clock.kill();
+    canvas.width = canvas.height = 1;
     el.remove();
     onDone && onDone();
   };
 
+  // the logo assembles in the dark: pieces slide in along their own slants (each layer's copy of a
+  // piece together), the wordmark is revealed left to right
+  const OFF = [[-0.485, -0.875], [-0.485, 0.875], [0.485, -0.875], [-0.485, 0.875], [0.485, -0.875], [0.485, 0.875]];
   if (reduced) {
-    st.tau = 2.33;
-    tick();
-    gsap.set(flash, { opacity: 0 });
-    gsap.timeline({ delay: 0.5 })
-      .to(el, { opacity: 0, duration: 0.5 })
-      .add(() => { onReveal && onReveal(); finish(); });
-    return;
+    st.tau = HOLD * TS;
+    wordClip.setAttribute('width', '290');
+    draw(st.tau, 0);
+    num.textContent = '100';
+    fill.style.transform = 'scaleX(1)';
+    gsap.timeline({ delay: 0.6 })
+      .add(() => { onReveal && onReveal(); })
+      .to(el, { opacity: 0, duration: 0.5, ease: 'none' })
+      .add(finish);
+    return null;
   }
 
-  const diveOrigin = () => {
-    const r = count.getBoundingClientRect();
-    return `${ox + DIVE_O.x * s - r.left}px ${oy + DIVE_O.y * s - r.top}px`;
+  pieces.forEach((p, i) => gsap.set(p, { x: OFF[i % 6][0] * 60, y: OFF[i % 6][1] * 60, opacity: 0 }));
+  gsap.set(wordClip, { attr: { width: 0 } });
+  gsap.set(fill, { scaleX: 0, transformOrigin: '0% 50%' });
+  gsap.set(count, { opacity: 0, y: 40 });
+  gsap.ticker.add(tick);
+  // the scene clock runs through the hold pose and idles there until the exit
+  clock = gsap.to(st, { tau: 40, duration: 40, ease: 'none' });
+
+  const c = { v: 0 };
+  let shown = -1;
+  const setCount = () => {
+    const v = Math.round(c.v);
+    if (v !== shown) { shown = v; num.textContent = v; }
+    fill.style.transform = `scaleX(${(c.v / 100).toFixed(4)})`;
   };
+  const T = (ref) => ref * TS;
   const tl = gsap.timeline();
-  tl.set(flash, { opacity: 0, backgroundColor: '#6a241a' })
-    .fromTo(count, { y: 60, opacity: 0, filter: 'blur(6px)' }, { y: 0, opacity: 1, filter: 'blur(0px)', duration: 0.9, ease: 'expo.out', clearProps: 'filter' }, 0)
-    .to(st, { tau: END, duration: END, ease: 'none' }, 0)
-    .add(() => { gsap.to(count, { scale: 6, opacity: 0, transformOrigin: diveOrigin(), duration: 0.12, ease: 'power2.in' }); }, DIVE)
-    // red field after the dive: dark first, then ramps to the hero red underneath
-    // the blurred dive dissolves into dark red, which warms to the glass's starting red
-    .fromTo(flash, { opacity: 0, backgroundColor: '#7f2b1f' }, { opacity: 0.85, duration: 0.04, ease: 'none' }, 4.83)
-    .to(flash, { opacity: 1, backgroundColor: '#97311f', duration: 0.07, ease: 'power1.in' }, 4.87)
-    .add(() => { onReveal && onReveal(); }, 4.78)
-    // the whole preloader fades off the hero glass, which starts on the same red and brightens
-    .to(el, { opacity: 0, duration: 0.07, ease: 'none' }, 4.9)
-    .add(finish, END);
+  tl.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.25, ease: 'none' }, 0)
+    .to(count, { opacity: 1, y: 0, duration: 0.9, ease: 'expo.out' }, T(0.5))
+    .to(c, { v: 100, duration: T(HOLD) - T(0.6), ease: 'power2.inOut', onUpdate: setCount }, T(0.6))
+    .to(pieces, { x: 0, y: 0, opacity: 1, duration: 1.2, ease: 'expo.out', stagger: (i) => (i % 6) * 0.08 }, T(0.9))
+    .to(wordClip, { attr: { width: 290 }, duration: 1.0, ease: 'power3.inOut' }, T(1.45));
+
+  const exit = () => {
+    const [lx, ly] = toScreen(LOGO.x, LOGO.y);
+    const r = count.getBoundingClientRect();
+    gsap.timeline()
+      .to(st, { dive: 1, duration: DIVE_DUR, ease: 'none' }, 0)
+      .to(count, { scale: 5, opacity: 0, transformOrigin: `${lx - r.left}px ${ly - r.top}px`, duration: 0.6, ease: 'power2.in' }, 0.1)
+      .to(bar, { opacity: 0, duration: 0.3 }, 0.2)
+      // the frame is a flat wash now: the hero starts drawing in the same colour underneath
+      .add(() => { onReveal && onReveal(); }, DIVE_DUR - 0.18)
+      .to(el, { opacity: 0, duration: 0.3, ease: 'none' }, DIVE_DUR - 0.1)
+      .add(finish);
+  };
+  // leave once the scene has reached its hold pose and the fonts the hero needs are in (but never wait long)
+  const posed = new Promise((r) => tl.call(r, null, T(HOLD)));
+  const fonts = document.fonts && document.fonts.ready ? document.fonts.ready.catch(() => { }) : Promise.resolve();
+  const cap = new Promise((r) => setTimeout(r, T(HOLD) * 1000 + 1500));
+  Promise.all([posed, Promise.race([fonts, cap])]).then(exit);
   return tl;
 }
 

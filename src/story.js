@@ -1,65 +1,25 @@
-// About + Services: one sticky stage driven by a single scrubbed timeline.
-// Timeline units are "vh of scroll" inside the stage (the stage is 1096vh tall, so 996 units of
-// sticky travel: LEAD idle units under the hero funnel, then 880 of About + Services).
+// About stage: one sticky stage driven by a single scrubbed timeline. The headline assembles letter
+// by letter while a blue line draws through the stage, the video pill opens inside the title, the
+// copy reveals in two beats, and finally the pill becomes a portal that grows to fill the screen
+// with the next chapter's header (the Impact cards then slide up over it).
+// Timeline units are "vh of scroll" inside the stage: LEAD idle units under the hero funnel, then
+// TOTAL - LEAD of About.
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { CustomEase } from 'gsap/CustomEase';
 import { vp } from './viewport.js';
 import { splitLines } from './lines.js';
+import { latch } from './latch.js';
+import { samplePath } from './path-sample.js';
+import { cubicBezier } from './ease.js';
+import { isPhone, PHONE_LAND } from './breakpoints.js';
 
 // The stage pins under the hero from 69.5vh of scroll, so it idles for LEAD units while the
 // hero's funnel plays over it; the blue line's hook and spike draw while the last bars collapse.
-const LEAD = 116;
-
-// three.js and the Services scene ship as a separate script (js/sculpture.js), fetched after the
-// intro so the first paint only has to parse the small main bundle
-const here = document.currentScript && document.currentScript.src;
-const SCULPTURE_SRC = here ? new URL('sculpture.js', here).href : 'js/sculpture.js';
-function loadSculpture() {
-  if (window.UrobinsSculpture) return Promise.resolve(window.UrobinsSculpture);
-  return new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = SCULPTURE_SRC;
-    s.async = true;
-    s.onload = () => (window.UrobinsSculpture ? resolve(window.UrobinsSculpture) : reject(new Error('sculpture missing')));
-    s.onerror = reject;
-    document.head.appendChild(s);
-  });
-}
-const TOTAL = 880 + LEAD;
-export const STORY_MARKS = { about: 125 + LEAD, services: 350 + LEAD };
-
-// card path keyframes at u = -1 .. 7 (x: vw, y: vh, z: px, ry/rz: deg; perspective 1400px from the
-// viewport centre). Cards come in from the bottom-right, sit at the centre (u = 1), recede up the
-// left edge, then turn past edge-on and drift back across the top-left mirrored.
-// (rotations and scales solved through the off-axis perspective, so each rest pose projects to the
-// reference's card box)
-const PATH = [
-  { x: 63.2, y: 61.4, z: 0, ry: 20, rz: -2, s: 0.85, o: 1 },
-  { x: 34.0, y: 40.6, z: 0, ry: 17, rz: -1, s: 0.86, o: 1 },
-  { x: 1.8, y: 21.9, z: 0, ry: 0, rz: 0, s: 1, o: 1 },
-  { x: -29.8, y: 0.6, z: 0, ry: -23, rz: 0.5, s: 0.9, o: 1 },
-  { x: -62.5, y: -21.5, z: -500, ry: -49, rz: 1, s: 1, o: 1 },
-  { x: -92.8, y: -61.6, z: -1400, ry: -66, rz: 1, s: 1, o: 1 },
-  { x: -90, y: -88.6, z: -1933, ry: -150, rz: 0, s: 0.78, o: 0.95 },
-  { x: -58.5, y: -99.6, z: -1856, ry: -175, rz: 0, s: 1, o: 0.9 },
-  { x: -25, y: -110, z: -1900, ry: -185, rz: 0, s: 1, o: 0 },
-];
-// the cards step one slot at a time on their own clock at these story units, resting between steps
-const STEPS = [355, 453, 551, 649, 747, 813];
-const KEYS = Object.keys(PATH[0]);
-
-function cr(p0, p1, p2, p3, t) {
-  const t2 = t * t, t3 = t2 * t;
-  return 0.5 * (2 * p1 + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 + (-p0 + 3 * p1 - 3 * p2 + p3) * t3);
-}
-function pathAt(u, out) {
-  const f = Math.min(PATH.length - 1.0001, Math.max(0, u + 1));
-  const i = Math.floor(f), t = f - i;
-  const a = PATH[Math.max(0, i - 1)], b = PATH[i], c = PATH[i + 1], d = PATH[Math.min(PATH.length - 1, i + 2)];
-  for (const k of KEYS) out[k] = cr(a[k], b[k], c[k], d[k], t);
-  return out;
-}
+export const LEAD = 116;
+// the portal is fully open at 315; the stage holds it while the Impact cards slide in over its
+// lower half (they start 56vh before the stage unpins), so the hand-over never shows a blank screen
+export const TOTAL = 372 + LEAD;
+export const STORY_MARKS = { about: 125 + LEAD };
 
 function splitChars(el) {
   const words = el.textContent.trim().split(/\s+/);
@@ -81,22 +41,28 @@ function splitChars(el) {
   return chars;
 }
 
+// phones: the line takes a portrait path through the gap between the title and the copy (the mobile
+// CSS fits the SVG to that gap), entering from the left edge, looping once and leaving on the right
+const PORTRAIT_LINE = 'M -12 24 C 40 34, 92 70, 132 112 C 168 150, 206 176, 248 172 C 292 168, 320 130, 306 100 ' +
+  'C 294 74, 258 78, 254 108 C 250 146, 292 196, 342 212 C 364 219, 386 222, 404 222';
+// phones in landscape: the title holds the left of the stage and the copy the right, so the line (over
+// the whole stage, 844x390) enters low on the left, runs under the title, loops once in the gap
+// between the two and leaves along the bottom under the founder
+const LANDSCAPE_LINE = 'M -12 352 C 70 346, 150 318, 236 318 C 322 318, 372 346, 410 330 C 446 315, 452 278, 428 262 ' +
+  'C 404 246, 380 270, 392 296 C 404 322, 452 336, 500 338 C 590 342, 690 350, 760 390 C 790 407, 830 412, 860 412';
+
 export function initStory({ reduced, smooth }) {
+  // decided once (only the line's shape follows a later crossing of the phone breakpoint)
+  const mobile = isPhone();
   const section = document.querySelector('.story');
   const pin = section.querySelector('.story__pin');
   const title = section.querySelector('.about__title');
   const pill = section.querySelector('.about__video');
   const video = pill.querySelector('video');
-  const services = section.querySelector('.services');
-  const svcTitle = services.querySelector('.services__title');
-  // the reference deck shows its first card twice (once settling on the centre as the stage opens,
-  // once waiting in the next slot); the copy is hidden from assistive tech
-  const svcTrack = services.querySelector('.services__track');
-  const dup = svcTrack.querySelector('.svc-card').cloneNode(true);
-  dup.setAttribute('aria-hidden', 'true');
-  svcTrack.prepend(dup);
-  const cards = [...services.querySelectorAll('.svc-card')];
-  const fade = section.querySelector('.story__fade');
+  const portal = section.querySelector('.portal');
+  const inner = portal.querySelector('.portal__inner');
+  const headLines = [...portal.querySelectorAll('.line__in')];
+  const headSoft = [...portal.querySelectorAll('.eyebrow, .section__lede')];
   const path = section.querySelector('.about__line path');
   const aboutLayer = section.querySelector('.about');
   // the About block assembles 24.3vh lower, then glides up into place while the pill opens
@@ -109,10 +75,6 @@ export function initStory({ reduced, smooth }) {
   // arc onto the baseline, word by word in reading order ----
   const fs = () => parseFloat(getComputedStyle(title).fontSize) || 100;
   const [line1, line2, line3] = [...title.querySelectorAll('.aline')];
-  // per word: k scales its letters up, linearly with scroll, each letter at its final x; c(j) is how
-  // far the word rides above its baseline (em, - = up) as it swings up and drops into place; the word
-  // starts tilted, rising to the right, and flattens by `flat` of its growth. The last line moves as
-  // one group on its own measured curve.
   const groups = [
     { chars: splitChars(line1.querySelector('.split')), from: 12, to: 59.5, ty: 59.5, c: (j) => -0.57 * Math.sin(Math.PI * j), tilt: 1.22, flat: 0.78, bend: 0.37 },
     { chars: splitChars(line2.querySelectorAll('.split')[0]), from: 19.5, to: 60, ty: 60, c: (j) => -0.28 * Math.sin(Math.PI * j), tilt: 0.32, flat: 0.9 },
@@ -121,6 +83,7 @@ export function initStory({ reduced, smooth }) {
   ];
   const letterData = [];
   groups.forEach((g) => g.chars.forEach((el) => letterData.push({ el, g, xe: 0, xw: 0, on: false, done: false })));
+  let em = 100;
   const measureLetters = () => {
     em = fs();
     groups.forEach((g) => {
@@ -146,11 +109,15 @@ export function initStory({ reduced, smooth }) {
     });
   };
   const letters = { u: 0 };
+  // phones: the funnel's last bars leave an almost empty frame, so the letters start 10 units
+  // (about 85px of scroll) sooner and the title is already arriving as they clear
+  const EARLY = mobile ? 10 : 0;
   const renderLetters = () => {
+    const u = letters.u + EARLY;
     for (let i = 0; i < letterData.length; i++) {
       const d = letterData[i], g = d.g;
-      const k = Math.min(1, Math.max(0, (letters.u - g.from) / (g.to - g.from)));
-      const j = Math.min(1, Math.max(0, (letters.u - g.from) / (g.ty - g.from)));
+      const k = Math.min(1, Math.max(0, (u - g.from) / (g.to - g.from)));
+      const j = Math.min(1, Math.max(0, (u - g.from) / (g.ty - g.from)));
       const on = k > 0;
       if (on !== d.on) { d.on = on; d.el.style.opacity = on ? '1' : ''; }
       if (!on) continue;
@@ -169,14 +136,15 @@ export function initStory({ reduced, smooth }) {
     }
   };
 
-  const pillWidth = () => Math.min(Math.max(window.innerWidth * (window.innerWidth < 640 ? 0.26 : 0.215), 96), 460);
-  // the pill keeps its final width in layout and scales up from its centre while the two words slide
-  // apart, so nothing re-lays-out while scrolling
+  // ---- the pill keeps its final width in layout and scales up from its centre while the two words
+  // slide apart, so nothing re-lays-out while scrolling ----
+  // (a phone on its side sizes it by the title, which is sized by the height there)
+  const pillWidth = () => Math.min(Math.max(window.matchMedia(PHONE_LAND).matches ? 2.7 * fs() : window.innerWidth * (mobile ? 0.32 : window.innerWidth < 640 ? 0.26 : 0.215), 96), 460);
   const midWords = [...line2.querySelectorAll(':scope > .split')];
   const pillOpen = { k: 0 };
   // "Path" arrives slanted like an italic and straightens once its letters have landed
   const pathWord = midWords[1].querySelector('.word');
-  let pillW = 0, em = 100, playing = false;
+  let pillW = 0, playing = false;
   const sizePill = () => {
     em = fs();
     pillW = pillWidth();
@@ -192,28 +160,20 @@ export function initStory({ reduced, smooth }) {
     syncVideo();
   };
   // the video only decodes while its pill is open (starting a little before, while it is still at
-  // scale 0, so the first decode is not in the frame the glide starts) and not under Services
+  // scale 0, so the first decode is not in the frame the glide starts) and not under the portal
   function syncVideo() {
     const want = !reduced && !covered && (pillOpen.k > 0.001 || letters.u > 50);
     if (want === playing) return;
     playing = want;
-    if (want) video.play().catch(() => {});
+    if (want) video.play().catch(() => { });
     else video.pause();
   }
   sizePill();
 
-  // the teal stage first wipes across the open pill (left to right), then the rect grows to full
-  // screen with everything inside it scaling up from 0.3 + 0.7 * (rect width / stage width)
-  const portal = { wipe: 0, t: 0 };
-  let glide = null;
-  // flow runs continuously with the scroll (props, haze); deck counts completed card steps
-  const flow = { c: 0 };
-  const deck = { s: 0 };
-  let sculpture = null;
-  const inner = services.querySelector('.services__inner');
-  const PILL_R = 0;
-
-  // pill position inside the stage, measured on refresh (the stage is sticky, so it never moves while stuck)
+  // ---- the portal: the pill's content first wipes (left to right, a 20deg slanted soft edge) to
+  // the panel, then the rect grows to full screen with everything inside it scaling up from
+  // 0.3 + 0.7 * (rect width / stage width) ----
+  const port = { wipe: 0, t: 0 };
   let pillBox = null;
   let pinW = 1, pinH = 1;
   const measurePill = () => {
@@ -225,26 +185,32 @@ export function initStory({ reduced, smooth }) {
     pillBox = { top: y, left: x, right: pinW - x - pill.offsetWidth, bottom: pinH - y - pill.offsetHeight };
   };
   let covered = false, growing = false, masked = false;
-  const setMask = (m) => { services.style.webkitMaskImage = m; services.style.maskImage = m; };
+  const setMask = (m) => { portal.style.webkitMaskImage = m; portal.style.maskImage = m; };
+  // phones: the title's first letter sits just outside the growing rect's left edge late in the
+  // opening, where a sliver of it would trail beside the header, so the title fades as the rect grows
+  let titleOp = '';
+  const fadeTitle = (k) => {
+    const f = Math.min(1, Math.max(0, (k - 0.2) / 0.4));
+    const o = mobile && f > 0 ? (1 - f * f * (3 - 2 * f)).toFixed(3) : '';
+    if (o !== titleOp) title.style.opacity = titleOp = o;
+  };
   const applyPortal = () => {
     // fully open: drop the clip (no extra render surface) and stop painting About underneath
-    const full = portal.t >= 0.999 && portal.wipe >= 0.999;
+    const full = port.t >= 0.999 && port.wipe >= 0.999;
     if (full !== covered) { covered = full; aboutLayer.classList.toggle('is-covered', full); syncVideo(); }
-    if (portal.wipe <= 0.001) {
-      services.classList.remove('is-open');
+    fadeTitle(port.wipe > 0.001 ? port.t : 0);
+    if (port.wipe <= 0.001) {
+      portal.classList.remove('is-open');
       return;
     }
-    services.classList.add('is-open');
+    portal.classList.add('is-open');
     if (!pillBox) measurePill();
-    // the clip starts from the pill's resting box: never let a late glide leave them apart
-    if (glide && glide.progress() < 1) glide.progress(1);
-    const k = portal.t;
+    const k = port.t;
     // the content keeps its own layer for the whole opening (never toggled mid-motion)
     const g = !full;
     if (g !== growing) { growing = g; inner.classList.toggle('is-growing', g); }
-    layoutCards();
     if (full) {
-      services.style.clipPath = 'none';
+      portal.style.clipPath = 'none';
       inner.style.transform = '';
       return;
     }
@@ -253,18 +219,13 @@ export function initStory({ reduced, smooth }) {
     const left = pillBox.left * (1 - k);
     const right = pillBox.right * (1 - k);
     const bottom = pillBox.bottom * (1 - k);
-    const round = PILL_R ? ` round ${(PILL_R * (1 - k)).toFixed(2)}px` : '';
-    services.style.clipPath = `inset(${top.toFixed(1)}px ${right.toFixed(1)}px ${bottom.toFixed(1)}px ${left.toFixed(1)}px${round})`;
-    // the wipe crosses the pill with a soft edge slanted 20deg, its bottom leading (the mask alone
-    // forms the moving edge; the growth only starts once it is done)
-    if (portal.wipe < 0.999) {
+    portal.style.clipPath = `inset(${top.toFixed(1)}px ${right.toFixed(1)}px ${bottom.toFixed(1)}px ${left.toFixed(1)}px)`;
+    if (port.wipe < 0.999) {
       const pillH = pinH - pillBox.top - pillBox.bottom;
       const A = (70 * Math.PI) / 180, sA = Math.sin(A), cA = Math.cos(A);
       const soft = 26 / sA, half = 0.182 * pillH;
-      // where the edge's transparent end crosses the pill's middle row
-      const xe = pillBox.left - half + portal.wipe * (pw + 2 * half + soft);
+      const xe = pillBox.left - half + port.wipe * (pw + 2 * half + soft);
       const ym = pillBox.top + pillH / 2;
-      // ...projected onto the CSS gradient line (centred on the stage box)
       const p = (xe - pinW / 2) * sA - (ym - pinH / 2) * cA + (pinW * sA + pinH * cA) / 2;
       setMask(`linear-gradient(70deg, #000 ${(p - 26).toFixed(1)}px, transparent ${p.toFixed(1)}px)`);
       masked = true;
@@ -276,43 +237,6 @@ export function initStory({ reduced, smooth }) {
     inner.style.transform = `scale(${(0.3 + 0.7 * (rectW / pinW)).toFixed(4)})`;
   };
 
-  // titles stay on one line: if any is too long for its card, all of them step down to the same size
-  const cardTitles = cards.map((c) => c.querySelector('.svc-card__title'));
-  const fitTitles = () => {
-    cardTitles.forEach((t) => { t.style.fontSize = ''; });
-    let k = 1;
-    cardTitles.forEach((t) => { if (t.scrollWidth > t.clientWidth) k = Math.min(k, t.clientWidth / t.scrollWidth); });
-    if (k >= 1) return;
-    const size = Math.floor(parseFloat(getComputedStyle(cardTitles[0]).fontSize) * k * 10) / 10;
-    cardTitles.forEach((t) => { t.style.fontSize = `${size}px`; });
-  };
-
-  const pt = {};
-  const layoutCards = () => {
-    const narrow = window.innerWidth < 760;
-    cards.forEach((card, i) => {
-      // card 0 rides in with the growth and lands on the centre slot as it completes; after that
-      // every card moves only when the deck steps
-      const u = -0.6 + 1.6 * portal.t + deck.s - i;
-      const on = u >= -1 && u <= 7;
-      if (card._on !== on) {
-        card._on = on;
-        card.style.visibility = on ? 'visible' : 'hidden';
-        if (!on) card.style.opacity = 0;
-      }
-      if (!on) return;
-      pathAt(u, pt);
-      const x = narrow ? pt.x * 0.55 : pt.x;
-      const y = narrow ? pt.y * 1.05 : pt.y;
-      // only touch the style when the card actually moved (it rests between steps)
-      const op = Math.max(0, Math.min(1, pt.o)).toFixed(3);
-      const tr = `translate(-50%, -50%) translate3d(${x.toFixed(2)}vw, ${y.toFixed(2)}vh, ${pt.z.toFixed(1)}px) ` +
-        `rotateY(${pt.ry.toFixed(2)}deg) rotateZ(${pt.rz.toFixed(2)}deg) scale(${pt.s.toFixed(4)})`;
-      if (card._op !== op) { card._op = op; card.style.opacity = op; }
-      if (card._tr !== tr) { card._tr = tr; card.style.transform = tr; }
-    });
-  };
-
   // ---- build the timeline (positions below are relative to the end of the lead-in) ----
   const master = gsap.timeline({ defaults: { ease: 'none' } });
   const tl = gsap.timeline({ defaults: { ease: 'none' } });
@@ -320,11 +244,27 @@ export function initStory({ reduced, smooth }) {
   tl.to(letters, { u: 64, duration: 64, onUpdate: () => { renderLetters(); syncVideo(); } }, 0);
 
   // the line hooks and spikes while the hero's last bars clear (easing into its main speed), then
-  // draws at one constant rate to its tail under the last line, just before the Services wipe.
+  // draws at one constant rate to its tail under the last line, just before the portal opens.
   // With a non-scaling stroke the dash is laid out in screen pixels, so measure the on-screen length.
   // The line is drawn as SEG consecutive pieces of equal on-screen length: a dash change repaints
   // only the piece being drawn, not a viewport-sized path every frame.
+  // the line's shape follows the layout it is measured in (the phone CSS fits the SVG to the copy's
+  // gap), so a window narrowed to a phone, or widened past one, gets the right line
   const lineSvg = path.ownerSVGElement;
+  const SHAPES = {
+    wide: [lineSvg.getAttribute('viewBox'), path.getAttribute('d')],
+    portrait: ['0 0 390 250', PORTRAIT_LINE],
+    land: ['0 0 844 390', LANDSCAPE_LINE],
+  };
+  let shape = 'wide';
+  const shapeLine = () => {
+    const m = window.matchMedia(PHONE_LAND).matches ? 'land' : isPhone() ? 'portrait' : 'wide';
+    if (m === shape) return;
+    shape = m;
+    lineSvg.setAttribute('viewBox', SHAPES[m][0]);
+    path.setAttribute('d', SHAPES[m][1]);
+    pts = null;
+  };
   const lineDraw = { f: 0 };
   const SEG = 10, SAMPLES = 1200;
   const segs = Array.from({ length: SEG }, () => {
@@ -341,14 +281,22 @@ export function initStory({ reduced, smooth }) {
       if (v !== s.last) { s.last = v; s.el.style.strokeDashoffset = v; }
     }
   };
+  // the samples are in viewBox units, so they never change: take them once per shape (refreshes only
+  // redo the on-screen lengths)
+  let pts = null;
   const measureLine = () => {
-    const sx = lineSvg.clientWidth / 1440, sy = lineSvg.clientHeight / 900, Lu = path.getTotalLength();
-    const pts = [], cum = [0];
-    for (let i = 0; i <= SAMPLES; i++) {
-      const p = path.getPointAtLength((Lu * i) / SAMPLES);
-      pts.push(p);
-      if (i) cum.push(cum[i - 1] + Math.hypot((p.x - pts[i - 1].x) * sx, (p.y - pts[i - 1].y) * sy));
+    shapeLine();
+    const box = lineSvg.viewBox.baseVal;
+    const sx = lineSvg.clientWidth / box.width, sy = lineSvg.clientHeight / box.height;
+    if (!pts) {
+      pts = samplePath(path, SAMPLES);
+      if (!pts) {
+        const Lu = path.getTotalLength();
+        pts = Array.from({ length: SAMPLES + 1 }, (_, i) => path.getPointAtLength((Lu * i) / SAMPLES));
+      }
     }
+    const cum = [0];
+    for (let i = 1; i <= SAMPLES; i++) cum.push(cum[i - 1] + Math.hypot((pts[i].x - pts[i - 1].x) * sx, (pts[i].y - pts[i - 1].y) * sy));
     lineLen = cum[SAMPLES];
     let a = 0;
     segs.forEach((s, k) => {
@@ -368,48 +316,33 @@ export function initStory({ reduced, smooth }) {
   // the hook's tip shows as a short stub first, then the hook and spike draw
   tl.to(lineDraw, { f: 0.021, duration: 0.6, ease: 'none', onUpdate: applyLine }, 0)
     .to(lineDraw, { f: 0.145, duration: 7, ease: (t) => 1.79 * t - 0.79 * t * t, onUpdate: applyLine }, 5)
-    .to(lineDraw, { f: 1, duration: 200, onUpdate: applyLine }, 12);
+    .to(lineDraw, { f: 1, duration: 190, onUpdate: applyLine }, 12);
 
-  // the pill scales open from its centre in step with the line while the words part
+  // the pill scales open from its centre in step with the line while the words part; the block
+  // glides up 24.3vh as it starts, scrubbed with the scroll
   tl.to(pillOpen, { k: 1, duration: 98, onUpdate: applyPill }, 62);
+  tl.to(lift, { k: 1, duration: 44, ease: 'power2.inOut', onUpdate: applyLift }, 62);
 
-  // the video pill turns into the services stage, then opens to full screen
-  const portalEase = CustomEase.create('svcPortal', '0.35,0.05,0.1,0.95');
-  tl.to(portal, { wipe: 1, duration: 13, onUpdate: applyPortal }, 213);
-  tl.to(portal, { t: 1, duration: 111, ease: portalEase, onUpdate: applyPortal }, 236);
-  tl.fromTo(svcTitle, { opacity: 0 }, { opacity: 1, duration: 52, ease: 'power1.out' }, 256);
-  tl.to(flow, { c: 1, duration: 590, onUpdate: layoutCards }, 236);
-
-  // the flat teal veil clears in a diagonal sweep (top-left first) onto a darker base, then soft
-  // cobalt haze drifts across it. Transform and opacity only, so nothing repaints.
-  const veil = services.querySelector('.services__veil');
-  const VEIL_A = (58.6 * Math.PI) / 180;
-  const veilReach = () => 0.5 * (Math.cos(VEIL_A) * vp.w + Math.sin(VEIL_A) * vp.h) + 182;
-  const sweep = { p: 0 };
-  const applyVeil = () => {
-    const t = (2 * sweep.p - 1) * veilReach();
-    veil.style.transform = `translate(${(t * Math.cos(VEIL_A)).toFixed(1)}px, ${(t * Math.sin(VEIL_A)).toFixed(1)}px) rotate(58.6deg) scale(13.75)`;
-  };
-  tl.to(sweep, { p: 1, duration: 126, onUpdate: applyVeil }, 363);
-  const [hzA, hzB, hzC] = services.querySelectorAll('.services__haze .hz');
-  const X = (px) => () => (px / 1392) * vp.w;
-  const Y = (px) => () => (px / 782) * vp.h;
-  tl.fromTo(hzA, { x: X(800), y: Y(300), opacity: 0, rotation: -14 }, { x: X(781), y: Y(310), opacity: 1, duration: 38 }, 440)
-    .to(hzA, { x: X(675), y: Y(252), rotation: -8, duration: 26 }, 478)
-    .to(hzA, { x: X(647), y: Y(243), rotation: -2, duration: 13 }, 504)
-    .to(hzA, { x: X(565), y: Y(241), rotation: 7, duration: 39 }, 517)
-    .to(hzA, { x: X(591), y: Y(211), rotation: 22, duration: 39 }, 556)
-    .to(hzA, { x: X(687), y: Y(192), rotation: 12, duration: 40 }, 595)
-    .to(hzA, { x: X(690), y: Y(215), duration: 39 }, 635)
-    .to(hzA, { opacity: 0, duration: 60 }, 620);
-  tl.fromTo(hzB, { x: X(490), y: 0, rotation: 35, opacity: 0 }, { opacity: 1, duration: 33 }, 680)
-    .to(hzB, { x: X(490), duration: 77 }, 713)
-    .to(hzB, { x: X(590), duration: 36 }, 790);
-  tl.fromTo(hzC, { x: X(1180), y: Y(640), opacity: 0 }, { opacity: 0.9, duration: 40 }, 755)
-    .to(hzC, { x: X(1080), y: Y(660), duration: 71 }, 755);
-  // quick fade to black, then a black hold before Metrics
-  const tail = { f: 0 };
-  tl.to(tail, { f: 1, duration: 26, ease: 'power2.out', onUpdate: () => { fade.style.opacity = tail.f; } }, 826);
+  // the video pill turns into the next chapter's panel, then opens to full screen while its
+  // header slides up out of its line masks
+  const portalEase = cubicBezier(0.35, 0.05, 0.1, 0.95);
+  tl.to(port, { wipe: 1, duration: 13, onUpdate: applyPortal }, 205);
+  tl.to(port, { t: 1, duration: 90, ease: portalEase, onUpdate: applyPortal }, 225);
+  tl.fromTo(headLines, { yPercent: 108, rotate: 2.2, transformOrigin: '0% 100%' }, { yPercent: 0, rotate: 0, duration: 46, ease: 'power3.out', stagger: 6 }, 262);
+  // phones place the header high, where the portal's edge crosses its first line: the tilted lines'
+  // glyph tops would show as fragments mid-rise, so each line also fades up as it rises. A staggered
+  // fromTo only writes a line's from-state once that line starts, so the later lines are put there
+  // up front (and again after a refresh that lands before the rise), or they show at rest meanwhile
+  // (the eyebrow and lede likewise, since the phone portal reaches the lede before it starts)
+  const HEAD_FROM = { yPercent: 108, rotate: 2.2, transformOrigin: '0% 100%', opacity: 0 };
+  const HEAD_AT = 262;
+  const SOFT_FROM = { opacity: 0, y: 14 }, SOFT_AT = 272;
+  if (mobile) {
+    gsap.set(headLines, HEAD_FROM);
+    gsap.set(headSoft, SOFT_FROM);
+    tl.fromTo(headLines, { opacity: 0 }, { opacity: 1, duration: 22, ease: 'power2.in', stagger: 6 }, HEAD_AT);
+  }
+  tl.fromTo(headSoft, { ...SOFT_FROM }, { opacity: 1, y: 0, duration: 40, ease: 'power2.out', stagger: 8 }, SOFT_AT);
   tl.set({}, {}, TOTAL - LEAD);
   master.add(tl, LEAD);
 
@@ -421,63 +354,18 @@ export function initStory({ reduced, smooth }) {
     // Lenis already smooths the scroll; a second scrub lag on top reads as rubber-banding
     scrub: smooth || reduced ? true : 0.5,
     invalidateOnRefresh: true,
-    onRefreshInit: () => { sizePill(); fitTitles(); },
+    onRefreshInit: () => { sizePill(); },
     // measure once layout has settled, never in the middle of a scrub
-    onRefresh: (self) => {
-      measureLine(); measureLetters(); renderLetters(); measurePill(); applyLift(); applyPill();
-      // the deck rests on however many steps are already behind the scroll position
-      gsap.killTweensOf(deck);
-      deck.s = STEPS.filter((u) => self.scroll() > self.start + ((LEAD + u) * vp.h) / 100).length;
-      applyPortal(); layoutCards(); applyVeil();
+    onRefresh: () => {
+      measureLine(); measureLetters(); renderLetters(); measurePill(); applyLift(); applyPill(); applyPortal();
+      if (mobile && tl.time() < HEAD_AT) gsap.set(headLines, HEAD_FROM);
+      if (mobile && tl.time() < SOFT_AT) gsap.set(headSoft, SOFT_FROM);
     },
   });
 
-  // the block glides up 24.3vh as the pill starts opening. In the reference this runs on its own
-  // clock (it keeps easing in while the scroll is paused), so it is fired here, not scrubbed. It
-  // eases in over ~0.45 s rather than starting at full speed.
-  const glideEase = CustomEase.create('aboutGlide', '0.3,0,0.1,1');
-  glide = gsap.to(lift, { k: 1, duration: 2.5, ease: glideEase, paused: true, onUpdate: applyLift });
-  if (reduced) glide.progress(1);
-  else {
-    ScrollTrigger.create({
-      trigger: section,
-      start: () => st.start + ((LEAD + 62) * vp.h) / 100,
-      onEnter: () => glide.play(),
-      onLeaveBack: () => glide.reverse(),
-    });
-  }
-
-  // the 3D scene (and three.js itself) loads once the intro has settled, in idle time, in small
-  // slices so no single task stalls a frame; this trigger is only a fallback for visitors who start
-  // scrolling straight away (it is not active at load, so it never fires under the preloader)
-  const idle = () => new Promise((r) => (window.requestIdleCallback || ((f) => setTimeout(f, 50)))(() => r(), { timeout: 1000 }));
-  let warming = null;
-  const warm = () => {
-    if (!warming) {
-      warming = loadSculpture().then(async ({ Sculpture }) => {
-        await idle();
-        sculpture = new Sculpture(services.querySelector('.services__gl'));
-        sculpture.setProgress(flow.c);
-        await idle();
-        return sculpture.warm(idle);
-      }).catch((e) => console.warn('[services] 3D scene unavailable', e));
-    }
-    return warming;
-  };
-  ScrollTrigger.create({ trigger: section, start: 'top top', once: true, onEnter: warm });
-
-  // card steps: each one is a 0.95 s quartic ease-out move, whichever way the scroll crosses it
-  const stepTo = (n) => gsap.to(deck, { s: n, duration: 0.95, ease: 'power3.out', overwrite: true, onUpdate: layoutCards });
-  STEPS.forEach((unit, i) => ScrollTrigger.create({
-    trigger: section,
-    start: () => st.start + ((LEAD + unit) * vp.h) / 100,
-    onEnter: () => stepTo(i + 1),
-    onLeaveBack: () => stepTo(i),
-  }));
-
-  // the grid text reveals in two timed beats (like the reference, they finish even if scrolling
-  // pauses): the first paragraph line by line with the labels as the letters land, then the second
-  // paragraph and the founder during the glide. Scrolling back above a beat reverses it.
+  // the grid text reveals in two timed beats (they finish even if scrolling pauses): the first
+  // paragraph line by line with the labels as the letters land, then the second paragraph and the
+  // founder during the glide. Scrolling back well above a beat reverses it.
   const eyebrows = [...section.querySelectorAll('.about__grid .eyebrow')];
   const [p1, p2] = section.querySelectorAll('.about__copy p');
   const founderImg = section.querySelector('.founder__img');
@@ -492,6 +380,17 @@ export function initStory({ reduced, smooth }) {
     gsap.set([p1, p2], { opacity: 1 });
     const rise = { y: 10, opacity: 0 };
     const to = { y: 0, opacity: 1, ease: 'power2.out', duration: 0.6 };
+    if (mobile) {
+      // phones: the copy sits low in the frame and is still below the fold while the letters land,
+      // so it all reveals in the second beat, once the block has glided into place
+      beat1.fromTo(pathWord, { skewX: -14 }, { skewX: 0, duration: 0.3, ease: 'power2.inOut' }, 0);
+      beat2.fromTo(eyebrows[0], rise, { ...to, duration: 0.7 }, 0)
+        .fromTo(lines1, rise, { ...to, duration: 0.7, stagger: 0.067 }, 0.06)
+        .fromTo(founderImg, rise, { ...to, duration: 0.7 }, 0.3)
+        .fromTo(founderText, rise, { ...to, duration: 0.7 }, 0.42);
+      beat1.progress(progress[0]); beat2.progress(progress[1]);
+      return;
+    }
     beat1.fromTo(eyebrows[0], rise, to, 0)
       .fromTo(lines1, rise, { ...to, stagger: 0.067 }, 0.03)
       .fromTo(eyebrows[1], rise, to, 0.27)
@@ -503,59 +402,50 @@ export function initStory({ reduced, smooth }) {
   };
   if (!reduced) {
     buildBeats();
-    const beat = (tl, unit) => ScrollTrigger.create({
-      trigger: section,
-      start: () => `top+=${((LEAD + unit) * vp.h) / 100} top`,
-      onEnter: () => tl.play(),
-      onLeaveBack: () => tl.reverse(),
+    const beat = (btl, unit) => latch({
+      at: () => st.start + ((LEAD + unit) * vp.h) / 100,
+      back: () => 0.12 * vp.h,
+      forward: () => btl.play(),
+      backward: () => btl.reverse(),
+      init: (past) => btl.progress(past ? 1 : 0),
     });
     beat(beat1, 56);
-    beat(beat2, 111);
+    beat(beat2, mobile ? 100 : 111);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(buildBeats);
   } else {
     gsap.set([...eyebrows, p1, p2, founderImg, founderText], { opacity: 1 });
   }
 
-  // the About smoke loop only runs while the stage is on screen; the video starts buffering then
+  // the stage's moving parts keep their layers from the start (is-live), but the smoke only drifts
+  // once the stage has pinned (is-shown): until then it sits under the opaque hero glass
+  const buffer = () => { if (video.preload !== 'auto') video.preload = 'auto'; };
+  ScrollTrigger.create({ trigger: section, start: 'top bottom', end: 'bottom top', toggleClass: { targets: section, className: 'is-live' } });
   ScrollTrigger.create({
-    trigger: section, start: 'top bottom', end: 'bottom top', toggleClass: { targets: section, className: 'is-live' },
-    onEnter: () => { if (video.preload !== 'auto') video.preload = 'auto'; },
+    trigger: section, start: 'top top', end: 'bottom top', toggleClass: { targets: section, className: 'is-shown' },
+    onEnter: buffer,
   });
 
-  fitTitles();
   measureLetters();
   renderLetters();
   applyPill();
   applyLift();
   measurePill();
   applyPortal();
-  layoutCards();
 
   return {
     st,
+    // the video buffers once the hero intro is over, not alongside the fonts the loader waits on
+    buffer,
     anchor(name) {
       const units = STORY_MARKS[name];
       return st.start + (st.end - st.start) * (units / TOTAL);
     },
-    warm,
     resize() {
       measureLine();
       if (!reduced) buildBeats();
-      if (sculpture) sculpture.resize();
       sizePill();
       applyPill();
-      layoutCards();
       applyPortal();
-    },
-    tick(time, scrollY) {
-      if (!sculpture) return;
-      // nothing to draw before the portal opens or once the black fade has covered the stage
-      sculpture.visible = portal.wipe > 0.01 && tail.f < 0.995 && scrollY > st.start - vp.h && scrollY <= st.end;
-      // the props follow Lenis's fractional scroll (the native one is whole pixels, which makes them
-      // step 2-4px on irregular frames as a scroll eases out); same mapping as `flow`, units 236-826
-      const u = ((scrollY - st.start) / vp.h) * 100 - LEAD;
-      sculpture.setProgress(Math.min(1, Math.max(0, (u - 236) / 590)));
-      sculpture.render(time);
     },
   };
 }

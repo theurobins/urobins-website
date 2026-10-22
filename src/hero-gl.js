@@ -1,42 +1,36 @@
-// Full-screen ribbed (fluted) glass gradient for the hero.
+// Full-screen ribbed (fluted) glass gradient for the hero: electric blue, cobalt and violet.
 // The same shader paints the stepped funnel bars below the hero's bottom edge, so each bar
 // reads as a slice of the glass. Everything outside the glass is transparent, so the About
 // stage pinned underneath shows through.
 import { BAR_COUNT } from './funnel.js';
 
-// palette blobs, orange (mix 0) -> lavender (mix 1), painted in order:
+// palette blobs, electric (mix 0) -> violet (mix 1), painted in order:
 // [c0x, c0y, c1x, c1y, drift, r0, r1, col0, col1, a0, a1, stretchX, hardness]
 // drift scales the shared slow wander; stretchX widens a blob horizontally; hardness > 1 gives a
-// crisper rim (exp(-d^2k))
+// crisper rim (exp(-d^2k)). y runs past 1: the lower glass is what the funnel bars are cut from.
 const BLOBS = [
-  // left band: saturated orange / lilac
-  [0.03, 0.45, 0.0, 0.45, 1, 0.30, 0.35, [0.84, 0.30, 0.13], [0.67, 0.60, 0.88], 0.9, 0.8, 1, 1],
-  // bottom-left: light orange rising diagonally / periwinkle
-  [0.08, 0.97, 0.20, 0.90, -1, 0.45, 0.40, [0.87, 0.52, 0.30], [0.78, 0.79, 0.96], 0.95, 0.85, 1, 1],
-  // wide white dome with a crisp rim (lavender only), under the violet corners
-  [0.64, 0.36, 0.64, 0.36, 0.5, 0.40, 0.40, [0.93, 0.93, 0.98], [0.93, 0.93, 0.98], 0, 0.97, 1.35, 2.4],
-  // deep crimson core (upper middle only) / top-left violet
-  [0.43, 0.30, 0.27, 0.0, 1, 0.30, 0.30, [0.75, 0.20, 0.16], [0.36, 0.25, 0.76], 0.9, 1.0, 1, 1],
-  // orange only: rose lower middle, salmon top centre
-  [0.50, 0.86, 0.50, 0.86, 0, 0.32, 0.32, [0.76, 0.34, 0.27], [0.76, 0.34, 0.27], 0.8, 0, 1, 1],
-  [0.55, 0.0, 0.55, 0.0, 0, 0.20, 0.20, [0.78, 0.40, 0.33], [0.78, 0.40, 0.33], 0.75, 0, 1, 1],
-  // violet diagonal running down from the top-left (lavender only)
-  [0.18, 0.36, 0.18, 0.36, 0, 0.22, 0.22, [0.50, 0.42, 0.80], [0.50, 0.42, 0.80], 0, 0.7, 1, 1],
-  // top-right: muted rose / violet
-  [0.88, 0.22, 0.86, 0.0, -1, 0.34, 0.22, [0.76, 0.36, 0.30], [0.40, 0.33, 0.80], 0.85, 1.0, 1, 1],
-  // right edge violet (lavender only)
-  [1.0, 0.32, 1.0, 0.32, 0, 0.22, 0.22, [0.47, 0.40, 0.79], [0.47, 0.40, 0.79], 0, 0.7, 1, 1],
-  // right side: orange-red low / lilac
-  [1.0, 0.78, 0.92, 0.80, 0, 0.20, 0.32, [0.84, 0.36, 0.17], [0.78, 0.68, 0.95], 0.9, 0.95, 1, 1],
-  // mid-right accent (lavender only)
-  [0.82, 0.55, 0.82, 0.55, 0, 0.22, 0.22, [0.74, 0.70, 0.95], [0.74, 0.70, 0.95], 0, 0.3, 1, 1],
-  // orange-only corners: brown-rose top-right, salmon top-left
-  [1.0, 0.0, 1.0, 0.0, 0, 0.12, 0.12, [0.57, 0.29, 0.25], [0.57, 0.29, 0.25], 0.8, 0, 1, 1],
-  [0.0, 0.0, 0.0, 0.0, 0, 0.10, 0.10, [0.80, 0.42, 0.35], [0.80, 0.42, 0.35], 0.6, 0, 1, 1],
-  // lower glass (only seen once it scrolls up): faint grey-blue curve at the right
-  [1.0, 1.25, 1.0, 1.25, 0, 0.25, 0.25, [0.62, 0.64, 0.80], [0.62, 0.64, 0.80], 0, 0.5, 1, 1],
-  // darker lilac lower left (lavender only)
-  [0.17, 0.62, 0.17, 0.62, 0, 0.18, 0.18, [0.60, 0.56, 0.84], [0.60, 0.56, 0.84], 0, 0.75, 1, 1],
+  // electric-blue core, left of centre, drifting
+  [0.24, 0.52, 0.20, 0.48, 1, 0.42, 0.46, [0.10, 0.09, 1.00], [0.22, 0.18, 1.00], 0.96, 0.94, 1.15, 1],
+  // cobalt dome upper-middle with a crisp rim; periwinkle in the second state
+  [0.60, 0.26, 0.62, 0.28, 0.5, 0.32, 0.36, [0.24, 0.36, 1.00], [0.56, 0.54, 1.00], 0.82, 0.92, 1.3, 2.2],
+  // violet top-right
+  [0.92, 0.10, 0.90, 0.08, -1, 0.40, 0.42, [0.36, 0.20, 0.96], [0.52, 0.28, 0.98], 0.92, 0.95, 1, 1],
+  // cyan glint top-left, small and crisp; lilac later
+  [0.12, 0.10, 0.14, 0.12, 1, 0.24, 0.27, [0.30, 0.80, 1.00], [0.74, 0.68, 1.00], 0.55, 0.62, 1.2, 1.1],
+  // indigo lower-right
+  [0.98, 0.80, 0.95, 0.78, 0, 0.36, 0.36, [0.20, 0.14, 0.80], [0.30, 0.18, 0.88], 0.85, 0.85, 1, 1],
+  // navy band under the headline (keeps the white type readable)
+  [0.50, 1.00, 0.50, 1.00, 0, 0.45, 0.45, [0.03, 0.03, 0.14], [0.04, 0.03, 0.16], 0.55, 0.55, 2.0, 1.2],
+  // magenta accent mid-right (second state only)
+  [0.78, 0.55, 0.78, 0.55, 0, 0.20, 0.22, [0.82, 0.32, 0.92], [0.82, 0.32, 0.92], 0, 0.55, 1, 1],
+  // periwinkle lower-left, brightening in the second state
+  [0.06, 0.92, 0.10, 0.90, 0, 0.26, 0.30, [0.44, 0.50, 1.00], [0.56, 0.60, 1.00], 0.30, 0.80, 1, 1],
+  // soft white sheen upper-centre (second state only)
+  [0.45, 0.16, 0.45, 0.16, 0.5, 0.17, 0.20, [0.92, 0.92, 1.00], [0.92, 0.92, 1.00], 0, 0.34, 1.6, 1.4],
+  // lower glass: vivid cobalt, violet and cyan (seen once the hero scrolls up and in the funnel bars)
+  [0.50, 1.50, 0.50, 1.50, 0, 0.50, 0.50, [0.22, 0.30, 1.00], [0.40, 0.42, 1.00], 0.95, 0.95, 1.8, 1],
+  [0.12, 1.30, 0.12, 1.30, 0, 0.30, 0.30, [0.50, 0.30, 1.00], [0.62, 0.42, 1.00], 0.9, 0.9, 1, 1],
+  [0.88, 1.65, 0.88, 1.65, 0, 0.30, 0.30, [0.36, 0.86, 1.00], [0.70, 0.76, 1.00], 0.8, 0.85, 1, 1.4],
 ];
 const MAX_BLOBS = BLOBS.length;
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -55,7 +49,8 @@ uniform float uShift;       // css px the glass has scrolled up
 uniform float uPitch;       // rib pitch, css px
 uniform float uHyp;         // intro hourglass strength (0 = straight ribs)
 uniform float uFlash;       // intro peach flash 0..1
-uniform float uReveal;      // 0 dark red hand-off colour -> 1 full glass
+uniform float uReveal;      // 0 hand-off colour -> 1 full glass
+uniform vec3 uHand;         // the colour the preloader ends on
 uniform float uLg;          // log2 of the rib zoom length: small = spacing grows fast away from the centre
 uniform float uFan;         // px (at 1392 wide): ribs closer than this to the centre fan out instead of
                             // sharing the hourglass's asymptotes; 0 leaves its top/bottom wedges blank
@@ -126,9 +121,9 @@ void main() {
 
   vec3 col = field(vec2(frag.x / W, (ypx + uShift) / H));
   float l = dot(col, vec3(0.299, 0.587, 0.114));
-  col += hl * 0.042 * (1.0 - smoothstep(0.55, 0.95, l)) * (1.0 + 1.5 * uFlash);
+  col += hl * 0.07 * (1.0 - smoothstep(0.55, 0.95, l)) * (1.0 + 1.5 * uFlash);
   col = 1.0 - (1.0 - col) * (1.0 - uFlash * vec3(0.83, 0.4, 0.31));
-  col = mix(vec3(0.592, 0.192, 0.125), col, uReveal);
+  col = mix(uHand, col, uReveal);
   gl_FragColor = vec4(col * cover, cover);
 }
 `;
@@ -136,7 +131,7 @@ void main() {
 export class HeroGL {
   constructor(canvas) {
     this.canvas = canvas;
-    this.state = { mix: 0, heroBottom: 1, shift: 0, pitch: 1400, hyp: 12, flash: 0, reveal: 0, lg: 30, fan: 0 };
+    this.state = { mix: 0, heroBottom: 1, shift: 0, pitch: 1400, hyp: 12, flash: 0, reveal: 0, lg: 30, fan: 0, hand: [0.035, 0.035, 0.043] };
     this.bars = new Float32Array(BAR_COUNT * 4);
     const gl = canvas.getContext('webgl', { antialias: false, alpha: true, premultipliedAlpha: true, depth: false, stencil: false, powerPreference: 'high-performance' });
     if (!gl) { this.failed = true; canvas.classList.add('is-fallback'); return; }
@@ -172,7 +167,7 @@ export class HeroGL {
     this.u = {
       res: u('uRes'), dpr: u('uDpr'), heroBottom: u('uHeroBottom'),
       shift: u('uShift'), pitch: u('uPitch'), hyp: u('uHyp'), flash: u('uFlash'), reveal: u('uReveal'), bars: u('uBars'),
-      lg: u('uLg'), fan: u('uFan'),
+      lg: u('uLg'), fan: u('uFan'), hand: u('uHand'),
       base: u('uBase'), n: u('uN'), C: u('uC'), K: u('uK'), BC: u('uBC'), A: u('uA'), P: u('uP'),
     };
     this.fC = new Float32Array(MAX_BLOBS * 2);
@@ -217,15 +212,7 @@ export class HeroGL {
     let n = 0;
     for (let i = 0; i < MAX_BLOBS; i++) {
       const b = BLOBS[i];
-      let a = lerp(b[9], b[10], m);
-      // the change washes through a light mauve: the core dips mid-way and the right-hand violets
-      // arrive last
-      if (i === 3) a *= 1 - 3.6 * m * (1 - m);
-      if (i === 7 || i === 8) {
-        // only the lavender share is delayed; the orange state's corner is untouched
-        const x = Math.min(1, Math.max(0, (m - 0.93) / 0.07));
-        a = b[9] * (1 - m) + b[10] * m * x * x * (3 - 2 * x);
-      }
+      const a = lerp(b[9], b[10], m);
       if (a <= 0.002) continue;
       const r = lerp(b[5], b[6], m);
       fC[n * 2] = (lerp(b[0], b[2], m) + b[4] * dx) * aspect;
@@ -237,7 +224,7 @@ export class HeroGL {
       fP[n] = b[12];
       n++;
     }
-    gl.uniform3f(u.base, lerp(0.76, 0.79, m), lerp(0.24, 0.77, m), lerp(0.19, 0.94, m));
+    gl.uniform3f(u.base, lerp(0.035, 0.05, m), lerp(0.035, 0.035, m), lerp(0.10, 0.13, m));
     gl.uniform1i(u.n, n);
     gl.uniform2fv(u.C, fC);
     gl.uniform2fv(u.K, fK);
@@ -259,6 +246,7 @@ export class HeroGL {
     gl.uniform1f(u.hyp, state.hyp);
     gl.uniform1f(u.flash, state.flash);
     gl.uniform1f(u.reveal, state.reveal);
+    gl.uniform3f(u.hand, state.hand[0], state.hand[1], state.hand[2]);
     gl.uniform1f(u.lg, state.lg);
     gl.uniform1f(u.fan, state.fan);
     gl.uniform4fv(u.bars, this.bars);

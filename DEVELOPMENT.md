@@ -1,87 +1,165 @@
 # Development
 
-Scroll-driven agency site built with GSAP + ScrollTrigger, Lenis smooth scrolling, and Three.js.
-Everything is bundled locally, so the site has no runtime CDN dependencies (fonts load from
-Google Fonts). There are two bundles: `js/app.js` (site code, GSAP, Lenis) loads with the page,
-and `js/sculpture.js` (Three.js and the Services scene) is fetched in idle time after the intro.
+Scroll-driven agency site built with GSAP + ScrollTrigger and Lenis smooth scrolling. Everything is
+bundled locally into one script (`js/app.js`) and the fonts are self-hosted, so the site has no
+runtime CDN dependencies.
 
 ## Run it
 
 ```bash
 npm install        # once
-npm run build      # bundles src/ -> js/app.js + js/sculpture.js
+npm run build      # bundles src/ -> js/app.js
 npm run serve      # http://localhost:8080
 ```
 
-Opening `index.html` directly from disk also works, but a local server is recommended so the
-video and fonts behave like production. Use `npm run watch` while editing `src/` (it rebuilds
-`js/app.js`; run `npm run build:3d` after editing `src/sculpture.js`).
+Opening `index.html` directly from disk mostly works, but a local server is recommended so the
+video and fonts behave like production (browsers refuse `@font-face` files from `file://`). Use
+`npm run watch` while editing `src/`.
 
 ## Structure
 
 | Path | What it is |
 | --- | --- |
-| `index.html` | All markup and copy |
-| `css/style.css` | Design tokens, layout, responsive rules |
-| `src/main.js` | Lenis + ScrollTrigger setup, hero stage, nav, anchors, intro, render loop |
+| `index.html` | All markup and copy. The logo lives here as two `<symbol>`s (`#logo-mark`, `#logo-word`, traced from the brand PNG) reused with `<use>`; recolour it with CSS `fill` |
+| `css/style.css` | Design tokens, layout, responsive rules. One palette: near-black `--ink`, white type, the logo's blue (`--brand`, lifted to `--brand-2` on dark), `--card` gradient for every card |
+| `src/main.js` | Lenis + ScrollTrigger setup, hero stage, nav, floating call button, magnetic buttons, anchors, intro, render loop |
+| `src/torch.js` | The nav logo: solid white at rest; a cursor on or near it (full within 70px of its box, none past 240px) or a tap beside it on touch lights it like a torch: the side away from the light cools to silver, the edges facing it catch a white rim, a glint runs square to the light and a shadow falls on the glass away from it, and a faint pool of light (`.nav__pool`, its own layer, moved by transform) shows on the bar. Drawn with SVG masks and `<use>` copies (never a CSS filter); its ticker only runs while the light is moving |
+| `src/breakpoints.js` | The phone media query (`PHONE`: up to 760px wide, or a touch screen at most 500px tall, so a phone in landscape stays a phone) and its complements (`NOT_PHONE`, `TABLET`, `DESKTOP`, `PHONE_LAND`); every script imports these and the CSS phone blocks repeat the same condition lists |
+| `src/latch.js` | A scroll threshold with hysteresis: fires forward once the scroll passes a line and only undoes once it is a dead band back above it (used for the About text beats) |
+| `src/reveal.js` | Entrance reveals: headings marked up as `.line > .line__in` slide out of line masks, paragraphs rise line by line, blocks rise in sequence |
 | `src/viewport.js` | Cached CSS viewport size (what `100vh` resolves to), so phone toolbars can't shift the scroll maths |
-| `src/preloader.js` | Canvas preloader (spotlights, desk figure, silhouettes, 1% to 99% counter, zoom hand-off) |
-| `src/hero-gl.js` | WebGL ribbed-glass gradient (orange to lavender) that also paints the stepped funnel bars of transition 1 |
+| `src/preloader.js` | Loading screen (desktop and tablets), after the reference film: a hard close-up on the right lamp pulls back to reveal an indigo stage; the right giant rises and opens its eyes, the left lamp ignites with sparks, both beams swing onto the logo at the centre (assembling as faint glass in the dark and lit by the beams, see `logo-light.js`), the giants lean in, blink, settle, and the camera dives into the crossing beams; the hero's glass then fades in from the same light colour (`WASH`, passed to the shader's `uHand`). Canvas scene as a pure function of time in a 1600×900 design space, with the logo as DOM mapped into that space, so nothing is ever painted behind it. Keyframe tables are in reference seconds, stretched by `TS`. On phones (`PHONE` in `breakpoints.js`, either way up) it hands over to `preloader-mobile.js` |
+| `src/preloader-mobile.js` | The phones' loading screen, a portrait scene of its own: a torch catches at the top edge, its beam searches the wall while the logo assembles, then rises onto the logo, opens to take it in and a softer counter-beam crosses from below; the exit dives into the same `WASH` colour as desktop. Beams are sprites built once (one dithered `getImageData` at start-up), so a frame is a fill and a few `drawImage`s |
+| `src/logo-light.js` | Torch lighting for the loader logo, shared by both scenes. In the dark the logo is a faint glass rim; each lamp lights its own copy of the artwork through a CSS mask in the logo's units (a conic gradient for the beam, a radial one for distance), so a beam's edge can light half a piece or part of the word and two lamps add. Each lamp also leaves a glint (a band square to its light, on the side facing it) and a soft shadow on the wall away from it (blurred sprites built once, projected with `drawImage`). Masks are rewritten only when they change; no CSS filter or drop-shadow touches the logo (Safari draws a rectangle) |
+| `src/hero-gl.js` | WebGL ribbed-glass gradient (electric blue to violet) that also paints the stepped funnel bars of transition 1 |
 | `src/funnel.js` | Stepped-bar geometry for transition 1 (the hero funnel) |
-| `src/story.js` | About + Services sticky stage: 3D letter assembly, line draw, video pill split, portal into Services, curved card carousel |
-| `src/sculpture.js` | Three.js cel-shaded cobalt props (orbit rings, laptop, phone, gear, papers…) and white flakes for the Services stage. One canvas behind the title and the cards (everything passes behind them, as in the reference). Built as its own bundle |
-| `src/metrics.js` | `$11.2 Billion` counter and the striped bar charts |
-| `src/team.js` | Transition 2 (a page-attached stepped funnel drawn on one overlay canvas) and the team reveal/counters |
+| `src/story.js` | About stage: 3D letter assembly, line draw, video pill, text beats, then the pill becomes a portal that grows to full screen with the Impact header inside it |
+| `src/path-sample.js` | Points along SVG paths without per-call `getPointAtLength` walks: `samplePath` (the About line, sampled once per command) and `pathLookup` (a table in plain maths for loops that move something along a path every frame) |
+| `src/ease.js` | A cubic-bezier ease (the portal's grow curve), in place of the CustomEase plugin |
+| `src/metrics.js` | Impact bento: card reveal, count-ups, the uptime card's striped chart; the tag icons loop in CSS while the section is on screen |
+| `src/process.js` | "How we work": a pinned stage whose column of four stages scrolls up (each resting centred while the others dim) beside a tilted, parallaxing wall of CSS project mockups (wireframes built from `data-kind`) |
+| `src/capabilities.js` | "What we build": four cards with vector scenes (product scene with phone, browser and goal widget; tech orbit with deploy status; automation pipeline a deal card travels; growth chart with keyword rankings). Loops only run while on screen; the orbit turns are CSS animations. Phones get a numbered index instead (see below) |
 | `src/lines.js` | Splits a paragraph into rendered lines for line-by-line reveals |
-| `assets/` | Team portraits, founder avatar, About video loop (MP4 + WebM) and poster, Services dust texture |
+| `assets/` | Team portraits (`team-1-sm.jpg` is the About founder chip's small copy), About video loop (MP4 + WebM) and poster, About smoke texture, logo SVGs (`assets/logo/`: mark, full logo in black and white, favicon), fonts (`assets/fonts/`: Instrument Serif and Inter Tight, latin and latin-ext woff2 from Google Fonts, under the OFL in `assets/fonts/OFL.txt`; the `@font-face` rules open `style.css`) |
 
 ## Scroll lengths
 
-Each stage is a tall section with a `position: sticky` inner frame; its timeline is scrubbed by scroll.
-A few moments run on their own clock once reached, as they do in the reference: the About block's
-glide and its text reveals, and the Metrics reveal.
+Each pinned stage is a tall section with a `position: sticky` inner frame; its timeline is scrubbed
+by scroll. The About text beats run on their own clock once reached.
 
 - Hero + transition 1: `.hero { height: 300vh; margin-bottom: -230.5vh }`. The hero overlaps the
   About stage, which pins underneath it from 69.5vh of scroll, so the stepped funnel opens straight
   onto About. Timeline in `main.js` (1 unit = 1vh).
-- About + Services: `.story { height: 1096vh }`; timeline units in `story.js` are vh of scroll.
-  The first `LEAD` (116) units idle while the hero funnel plays over the stage; `STORY_MARKS` sets
-  where the About/Services nav links land.
-- Metrics: `.metrics { height: 100vh; margin-top: -128vh }` with a sticky frame. It slides up over
-  the story's closing black hold (transparent until it reveals), so it pins the moment the Services
-  fade completes; the reveal then plays in place on its own clock (about 3 s).
-- Transition 2 + Team: `.team` scrolls normally (no pin). While its top scrolls in, `team.js` draws the
-  transition on a fixed canvas: black below Metrics for 472px of scroll (at a 782px-tall viewport),
-  then a stepped edge climbing to the top over 169px with a funnel of bars that rides up with the
-  page, narrows and is gone by 882px. The team reveal is time-based, fired when the title is mid-screen.
-- Below 981px wide, Metrics scrolls normally (no sticky frame).
+- About + portal: `.story { height: 588vh }` = `TOTAL + 100` with `TOTAL = 488` in `story.js`
+  (timeline units are vh of scroll). The first `LEAD` (116) units idle while the hero funnel plays
+  over the stage; the portal wipes at 205, grows to full screen by 315, and the stage holds it until
+  it unpins at 488. `STORY_MARKS` sets where the About nav link lands.
+- Impact: `.metrics { margin-top: -57vh }`, so its cards slide up over the open portal's lower half
+  while the stage is still pinned; there is never a blank viewport between the two.
+- Process: `.process { height: 440vh }` with a sticky frame; one scrubbed timeline drives the stage
+  column (30% rest / 42% travel / 28% rest per step), the dimming, the progress rail and the two
+  mockup columns. Below 981px it unpins and stacks.
+- Capabilities, Team, Contact: normal flow; their reveals play once, when they scroll into view.
+
+## Phones (`PHONE` in breakpoints.js, either way up)
+
+Phones get their own composition, not the desktop squeezed. A phone is up to 760px wide, or a touch
+screen at most 500px tall, so a phone turned to landscape (844x390, 932x430) stays a phone and a
+rotation never crosses the breakpoint; a laptop or desktop with a mouse never matches it. The scripts
+mostly decide once at start-up (`isPhone()`); the About line, the Process wall and the Services index
+also follow a window resized across it. Turning a phone over keeps the reader's place: `main.js`
+scrolls back to the same share of the section they were in, since landscape pages are far shorter. The CSS lives in the phone blocks at the end of `style.css`,
+plus a landscape block (`PHONE_LAND`) that lays the stages out side by side: the About title left
+with the copy right and its own line (`LANDSCAPE_LINE`), Impact as a two-column ledger, each Process
+step's title beside its copy, the team in one row of four, the FAQ beside the resources, and a menu
+sheet with its links in two columns. Tablets (761-980px, taller than 500px) keep the desktop layout,
+unpinned.
+
+- **Loader:** the searchlight scene in `preloader-mobile.js`, with the same torch-lit logo.
+- **Nav:** the menu opens as a full-screen ink sheet with large serif links (01-04) that rise in one
+  after another, low in thumb reach; the page behind it is inert and held still (until the intro
+  hands over, closing it leaves scrolling to the intro), and widening past the phone layout closes
+  it. The bar clears the notch's safe-area insets in landscape. The logo flashes its torch on a tap
+  beside it.
+- **Hero:** a larger serif title; the two CTAs side by side as 52px buttons.
+- **About:** title in the upper third, then the blue line on its own portrait path (`PORTRAIT_LINE`
+  in a 390x250 viewBox, fitted by CSS to the gap between the title and the copy), then one paragraph
+  and the founder chip, clear of the call button. The copy reveals in one beat once the block has
+  glided into place. Scroll lengths and the portal hand-off are the desktop ones, except that the
+  title fades as the portal grows (its first letter would otherwise trail beside the header), the
+  header lines fade up as they rise, and the eyebrow and lede hold hidden until their own rise.
+- **Impact:** no cards: the five commitments as a ledger (icon, label, 01-05 index, the counting
+  number, one line of copy) on a sheet that slides up over the open portal; each row's hairline
+  draws in as it arrives, the uptime row keeps a small sparkline, and one full-width CTA closes it.
+- **How we work:** no mockup wall (never built); a vertical timeline whose rail fills with a reading
+  line at 60% of the screen. A step lights when the line reaches its node and only dims 48px back
+  above it.
+- **What we build:** no scenes and no loops: a numbered index (01-04), one row open at a time (an
+  accordion: `h3 > button[aria-expanded]`), each showing the copy, a tiny sketch of its desktop scene
+  drawn once by CSS transitions, and chips. No carousel.
+- **Team:** a 2x2 portrait grid, the second column set 48px lower.
+- **Contact:** hairline rows with 46px+ tap targets, a full-width CTA, larger FAQ toggles, and the
+  footer logo across most of the width.
+- **Book a call:** a 48px round button with a chat glyph (44px in landscape; the label stays for
+  screen readers), clear of the home indicator. It steps aside while Impact's CTA or the Services
+  rows (whose +/- toggles share its column) are on screen.
 
 ## Replacing placeholder content
 
-- **Team photos:** replace `assets/team/team-1.jpg` … `team-4.jpg` (4:5 crops work best; the 1st
-  and 3rd cards show a square crop, the 2nd and 4th a 313:400 crop, both centred slightly high)
-  and `assets/team/founder.jpg` (square).
-  The current images are rendered placeholders shot "through reeded glass".
-- **Names, roles, counters:** in `index.html` under `.team__grid` and `.founder`.
-  Counter targets are the `data-count` attributes.
-- **About video:** replace `assets/video/about-loop.mp4` / `.webm` and `about-poster.jpg`.
-- **Contact details:** the footer's `.contact__list` in `index.html` (general, support, phone/WhatsApp).
-- **Metrics:** values and bar heights live on each `.stat` (`data-count`, `--h` from 0 to 1).
+- **Team:** `assets/team/team-1.jpg` … `team-4.jpg` (4:5 crops work best). The About founder chip
+  shows `team-1-sm.jpg`, a 160x200 copy of the founder's portrait: replace both together. The
+  current images are rendered placeholders shot "through reeded glass"; every portrait gets the same
+  blue duotone in CSS, so mixed photo styles still read as one set. Names, roles and the focus line
+  live in `index.html` under `.team__grid`.
+- **About video:** replace `assets/video/about-loop.mp4` / `.webm` and `about-poster.jpg`. The loop
+  is turned to the site's blue with a CSS `hue-rotate` on `.about__video video`; remove that filter if
+  the replacement is already on-palette.
+- **Contact details:** the footer's `.contact__list` in `index.html` and the `#book` WhatsApp link at
+  the bottom of the page.
+- **Impact:** each `.card`'s number is a `.count` with `data-count`, `data-decimals`, `data-prefix`,
+  `data-suffix` (add `data-static` to show a small number without counting). The copy is written as
+  commitments (targets and cadences), not past results: keep it that way until there are real case
+  numbers to cite.
+- **Process mockups:** each `.mock` has a `data-kind` (`dash`, `phone`, `site`, `table`, `shop`,
+  `crm`), an accent `--acc` and a label. They are CSS wireframes standing in for real case studies:
+  to show real work, put an `<img>` inside the `.mock` (it fills the card) and drop the `data-kind`.
+- **Capabilities:** copy lives in each `.cap`; the scene is built by `capabilities.js` from
+  `data-cap` (`apps`, `dev`, `crm`, `seo`). The tech badges are the `TECH` list, the keyword rows the
+  `RANKS` list in that file.
 
 ## Keeping it smooth
 
 - Only `transform`, `opacity` and `clip-path` change while scrolling; nothing reads layout per frame
   (sizes are measured on refresh/resize and cached).
-- Lenis drives the scroll (`lerp: 0.06`) from GSAP's ticker; every ScrollTrigger scrubs with
+- Lenis drives the scroll (`lerp: 0.085`) from GSAP's ticker; every ScrollTrigger scrubs with
   `scrub: true`, so there is one smoothing stage, not two.
-- WebGL canvases only render while they can be seen: the hero stops once its funnel has collapsed,
-  and the Services scene stops before the portal opens and under the closing black fade.
+- Moments that run on their own clock once reached (the About text beats) go through `latch.js`:
+  they fire once the scroll passes their line and only undo once it is 12vh back above it, so a slow
+  scroll resting near a line never plays them back and forth. Everything else is scrubbed.
+- The hero WebGL canvas only renders while it can be seen and drops to 30 fps at rest.
+- Loops (tag icons, product scene, tech orbit, pipeline, growth chart, footer marquee) are paused
+  whenever their section is off screen, CSS ones included: the deploy pulse, the scroll hint (once it
+  has faded out) and the About smoke (only once the stage has pinned; until then it sits under the
+  hero glass) stop with them.
+- Prefer compositor-only loops: the tech orbit and Impact's tag icons are CSS animations of whole
+  elements (an `<svg>` itself, not shapes inside it: those re-lay the svg out every frame in
+  Chromium). Things that must move along a path read a `pathLookup` table, and text written by a loop
+  is only touched when it changes.
+- Never sample a long SVG path with `getPointAtLength` in a loop: each call walks the path from its
+  start. The About line is sampled once per command (`samplePath`) and cached across refreshes; it
+  used to cost ~200ms per pass, four passes during the loader.
+- The pinned Process stage gives each step its own layer (`will-change: opacity`, desktop only), so
+  dimming them never repaints the serif column, and skips style writes whose value hasn't changed.
+- Load: the fonts are preloaded from `assets/fonts/` (no render-blocking third-party stylesheet), the
+  About video is `preload="none"` until the hero intro has played (or the stage is reached), and the
+  founder chip uses a small copy of its portrait.
+- The loader logo's light is gradients and masks only: a CSS filter or drop-shadow there stalled
+  WebKit for 350-590ms at the hand-off to the hero.
 - Counters are locked to their final width (the serif's digits are proportional), so the text
   beside them never shifts.
-- Blur-in reveals clear their `filter` when they finish.
 
 ## Accessibility and motion
 
-- Split headings keep a readable `aria-label`; decorative canvases are `aria-hidden`.
+- Split headings keep a readable `aria-label`; decorative canvases and scenes are `aria-hidden`.
 - With `prefers-reduced-motion`, the preloader is skipped quickly, Lenis is disabled, and the
-  counters and reveals render in their final state.
+  counters, reveals and loops render in their final state.
