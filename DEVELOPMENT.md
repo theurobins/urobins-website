@@ -1,18 +1,23 @@
 # Development
 
-Scroll-driven agency site built with GSAP + ScrollTrigger and Lenis smooth scrolling. Everything is
-bundled locally into one script (`js/app.js`) and the fonts are self-hosted, so the site has no
+Scroll-driven agency site built with GSAP + ScrollTrigger and Lenis smooth scrolling, plus six static
+service pages for search. The home page's code is bundled locally into one script (`js/app.js`), the
+service pages share a 2 KB one (`js/page.js`), and the fonts are self-hosted, so the site has no
 runtime CDN dependencies.
 
 ## Run it
 
 ```bash
 npm install        # once
-npm run build      # bundles src/ -> js/app.js
+npm run build      # writes the service pages, their Markdown twins, 404.html, sitemap.xml, the llms
+                   # files, the agent skill and src/site-facts.js from content/site.mjs, bundles
+                   # src/ -> js/app.js + js/page.js, then stamps every page's CSS/JS links with a
+                   # content hash (?v=...). firebase.json runs this before every deploy
 npm run serve      # http://localhost:8080
 ```
 
-Opening `index.html` directly from disk mostly works, but a local server is recommended so the
+`npm run build:js` and `npm run build:pages` run the two halves on their own. Opening `index.html`
+directly from disk mostly works (the service pages use root paths, so they need the server), but a local server is recommended so the
 video and fonts behave like production (browsers refuse `@font-face` files from `file://`). Use
 `npm run watch` while editing `src/`.
 
@@ -40,7 +45,19 @@ video and fonts behave like production (browsers refuse `@font-face` files from 
 | `src/process.js` | "How we work": a pinned stage whose column of four stages scrolls up (each resting centred while the others dim) beside a tilted, parallaxing wall of CSS project mockups (wireframes built from `data-kind`) |
 | `src/capabilities.js` | "What we build": four cards with vector scenes (product scene with phone, browser and goal widget; tech orbit with deploy status; automation pipeline a deal card travels; growth chart with keyword rankings). Loops only run while on screen; the orbit turns are CSS animations. Phones get a numbered index instead (see below) |
 | `src/lines.js` | Splits a paragraph into rendered lines for line-by-line reveals |
-| `assets/` | Team portraits (`team-1-sm.jpg` is the About founder chip's small copy), About video loop (MP4 + WebM) and poster, About smoke texture, logo SVGs (`assets/logo/`: mark, full logo in black and white, favicon), fonts (`assets/fonts/`: Instrument Serif and Inter Tight, latin and latin-ext woff2 from Google Fonts, under the OFL in `assets/fonts/OFL.txt`; the `@font-face` rules open `style.css`) |
+| `content/site.mjs` | Copy and facts for the service pages, sitemap, `llms.txt` and `llms-full.txt`: the six services (title, meta description, hero, offer cards, reasons, steps, tools, FAQ, related services), the contact details and the five commitments |
+| `scripts/build-pages.mjs` | Writes `<slug>/index.html` and its Markdown twin `<slug>/index.md` for each service, `index.md` (the home page's twin), `404.html`, `sitemap.xml`, `llms.txt`, `llms-full.txt`, the agent skill in `.well-known/agent-skills/` and `src/site-facts.js` from `content/site.mjs`, with each page's JSON-LD (Organization, WebSite, WebPage, Service, BreadcrumbList, FAQPage). The logo and icon `<symbol>`s are copied from `index.html`, so their path data lives in one place. Generated files are committed (Firebase deploys the folder as is): edit the content file, never the output |
+| `web-development/` … `cloud-devops/` | The generated service pages (folder + `index.html`, so URLs end in a slash) |
+| `css/page.css` | Service pages and 404 only, loaded after `style.css` (whose tokens, nav, pills, section heads, FAQ and footer they reuse): the CSS ribbed-glass hero, offer cards, reasons, steps, commitments, tools, FAQ, related index and the reveal states |
+| `src/page.js` | The service pages' script (bundled to `js/page.js`): the phone menu sheet (same behaviour as the home page), nav hide on scroll, the floating call button, reveals and the marquee pause. No GSAP or Lenis |
+| `robots.txt`, `sitemap.xml`, `llms.txt`, `llms-full.txt`, `site.webmanifest`, `favicon.ico` | Crawl and discovery files. `robots.txt` allows everyone, names the AI search and assistant crawlers explicitly and declares Content Signals (`search`, `ai-input` and `ai-train` all `yes`, in both groups: a named crawler reads only its own group); `llms.txt` is the summary AI assistants read, `llms-full.txt` every page's copy as Markdown |
+| `index.md`, `<slug>/index.md` | Markdown twins of the pages, generated, for agents that ask for `Accept: text/markdown` (see below). Firebase serves them as `text/markdown` with a `rel="canonical"` Link header pointing at the HTML page, so search engines never treat them as duplicates |
+| `.well-known/agent-skills/` | An Agent Skills discovery index (`index.json`, with the SHA-256 digest of the skill) and one skill, `urobins-project-inquiry/SKILL.md`: how an AI agent should recommend Urobins and send a project inquiry for its user, with their approval |
+| `src/agent-tools.js`, `src/site-facts.js` | WebMCP: four tools an AI agent in the visitor's browser can call (list the services, get the contact options, open a page or section, draft an inquiry as email/WhatsApp links the visitor sends themselves). Registered on load by both page scripts when `document.modelContext` (or the older `navigator.modelContext`) exists; nothing happens elsewhere. `site-facts.js` is generated from the content file |
+| `assets/og/` | 1200x630 share images (home and one per service), referenced by `og:image`. Rendered once from an HTML template in the site's fonts and glass; a new service needs its own `<slug>.jpg` |
+| `assets/` | Team portraits (`team-1-sm.webp` is the About founder chip's small copy), About video loop (MP4 + WebM) and poster, About smoke texture, logo SVGs (`assets/logo/`: mark, full logo in black and white, favicon; `icon-192/512.png` and
+`apple-touch-icon.png` for the manifest and home screens, `icon-512.png` also being the logo in the
+structured data), fonts (`assets/fonts/`: Instrument Serif and Inter Tight, latin and latin-ext woff2 from Google Fonts, under the OFL in `assets/fonts/OFL.txt`; the `@font-face` rules open `style.css`) |
 
 ## Scroll lengths
 
@@ -106,16 +123,18 @@ unpinned.
 
 ## Replacing placeholder content
 
-- **Team:** `assets/team/team-1.jpg` … `team-4.jpg` (4:5 crops work best). The About founder chip
-  shows `team-1-sm.jpg`, a 160x200 copy of the founder's portrait: replace both together. The
+- **Team:** `assets/team/team-1.webp` … `team-4.webp` (4:5 crops, 800x1000, saved as WebP at about
+  quality 80: roughly half the size of a JPEG; keep new photos in WebP too). The About founder chip
+  shows `team-1-sm.webp`, a 160x200 copy of the founder's portrait: replace both together. The
   current images are rendered placeholders shot "through reeded glass"; every portrait gets the same
   blue duotone in CSS, so mixed photo styles still read as one set. Names, roles and the focus line
   live in `index.html` under `.team__grid`.
-- **About video:** replace `assets/video/about-loop.mp4` / `.webm` and `about-poster.jpg`. The loop
+- **About video:** replace `assets/video/about-loop.mp4` / `.webm` and `about-poster.webp`. The loop
   is turned to the site's blue with a CSS `hue-rotate` on `.about__video video`; remove that filter if
   the replacement is already on-palette.
-- **Contact details:** the footer's `.contact__list` in `index.html` and the `#book` WhatsApp link at
-  the bottom of the page.
+- **Contact details:** the footer's `.contact__list` in `index.html`, the `#book` WhatsApp link at
+  the bottom of the page and the JSON-LD in its `<head>`; for the service pages, 404 and llms files,
+  `SITE` in `content/site.mjs` (then `npm run build:pages`).
 - **Impact:** each `.card`'s number is a `.count` with `data-count`, `data-decimals`, `data-prefix`,
   `data-suffix` (add `data-static` to show a small number without counting). The copy is written as
   commitments (targets and cadences), not past results: keep it that way until there are real case
@@ -158,8 +177,61 @@ unpinned.
 - Counters are locked to their final width (the serif's digits are proportional), so the text
   beside them never shifts.
 
+## Service pages, SEO and AI discovery
+
+- **Where things rank from.** Each service has its own page, title, description, H1 and FAQ aimed at
+  one cluster of searches (`/web-development/`: "web development company in India"; `/mobile-app-development/`:
+  "app development company"; `/crm-development/`, `/seo-services/`, `/digital-marketing/`,
+  `/cloud-devops/`). The home page targets the brand and the broad "web and app development agency"
+  terms and links to every service page from the Services cards, the footer and the FAQ.
+- **Editing copy.** Change `content/site.mjs`, bump `SITE.updated` (it becomes the sitemap's
+  `<lastmod>`), run `npm run build:pages`. Keep copy as capabilities and commitments, never invented
+  results, clients or reviews; name tools and platforms only if the team really uses them.
+- **Adding a service.** Add an entry to `SERVICES` (copy an existing one), add its share image as
+  `assets/og/<slug>.jpg`, add it to the home page's Services cards, footer list and JSON-LD
+  `hasOfferCatalog` in `index.html`, add a canonical `Link` header for its `index.md` in `firebase.json`,
+  then rebuild. The sitemap, llms files, Markdown twins, agent skill, WebMCP tools, footers and related
+  lists pick it up automatically.
+- **Home page structured data** is hand-written in `index.html`'s `<head>`. Its FAQ entries must match
+  the visible FAQ in the footer word for word (and `HOME.faqs` in the content file, which feeds
+  `llms-full.txt`).
+- **After deploying:** submit `https://urobins.com/sitemap.xml` in Google Search Console and Bing
+  Webmaster Tools, and request indexing for each service page. `www.urobins.com` should redirect to
+  `urobins.com` (Firebase custom domain redirect or a Cloudflare redirect rule); it does not serve the
+  site on its own.
+- **Cloudflare's managed robots.txt** (AI Crawl Control) prepends its own rules to ours and can block
+  AI crawlers; leave it off or set to allow, or AI assistants cannot read the site to recommend it.
+- **Markdown for agents.** Cloudflare's own Markdown conversion needs a paid plan, so on the free
+  plan a Transform Rule does it: Rules > Transform Rules > URL Rewrite, filter
+  `any(http.request.headers["accept"][*] contains "text/markdown") and ends_with(http.request.uri.path, "/")`,
+  path rewritten (dynamic) to `concat(http.request.uri.path, "index.md")`. A request for `/seo-services/`
+  with `Accept: text/markdown` then gets `/seo-services/index.md`; browsers never send that header.
+  Check with `curl -H "Accept: text/markdown" https://urobins.com/`.
+- **Agent discovery.** The homepage sends `Link` headers (from `firebase.json`) to `llms.txt`, its
+  Markdown twin and the agent skills index. The site deliberately publishes no API catalog, OAuth or
+  OIDC metadata, auth.md, MCP or A2A cards, Web Bot Auth keys or DNS-AID records: there is no API,
+  login, agent or bot behind them, and empty or invented metadata would only mislead agents. Revisit
+  if the agency ever ships one (an AI quote assistant, a client portal).
+- **Deploy contents.** `firebase.json` (one folder up) keeps `src/`, `scripts/`, `content/`, the
+  package files, these two Markdown docs and the dotfiles (`.git`, `.gitignore`, `.vscode`) out of the
+  deploy while `.well-known/` and the pages' `index.md` twins go out; a new service page needs its own
+  canonical `Link` header entry there for its `index.md`. It also sets cache and security headers: fonts,
+  CSS and JS for a year (the CSS and JS links carry a content hash from `scripts/stamp-assets.mjs`, so a
+  changed file gets a new URL), images and video for a week, pages revalidated on every visit (Firebase's
+  CDN keeps them until the next deploy). Its `predeploy` hook runs `npm run build`, so a deploy can
+  never ship a page pointing at an old bundle. In Cloudflare, Caching > Browser Cache TTL should be
+  "Respect Existing Headers", or Cloudflare raises the pages' and text files' lifetimes to its own.
+
 ## Accessibility and motion
 
-- Split headings keep a readable `aria-label`; decorative canvases and scenes are `aria-hidden`.
+- Headings split into whole-word lines (`.line > .line__in`) need no label: their text reads in order.
+  Only the About title, split into letters, keeps an `aria-label` with the letters `aria-hidden`.
+  Decorative canvases and scenes are `aria-hidden`.
+- Landmarks: a skip link to `#main`, the header, `main`, the footer (`.contact`, outside `main`, so it
+  is the page's contentinfo) and the call button in its own labelled `aside`. The desktop Process
+  heading is visually hidden rather than `display: none`, so the stages keep their heading. Impact's
+  card labels and the team names are `h3`s.
+- Small type on ink stays above 4.5:1 (the phone team roles use the lifted `#8f8dff`, not `--brand-2`).
+  The pages pass axe-core (WCAG 2.2 AA + best practices) on desktop and phone.
 - With `prefers-reduced-motion`, the preloader is skipped quickly, Lenis is disabled, and the
   counters, reveals and loops render in their final state.

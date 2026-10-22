@@ -33,6 +33,25 @@ const BLOBS = [
   [0.88, 1.65, 0.88, 1.65, 0, 0.30, 0.30, [0.36, 0.86, 1.00], [0.70, 0.76, 1.00], 0.8, 0.85, 1, 1.4],
 ];
 const MAX_BLOBS = BLOBS.length;
+// the brand mark's six parallelograms (the #logo-mark paths), as edge lines for the shader: each edge's
+// outward unit normal and offset, so a point's distance outside a piece is its largest edge distance
+const MARK = [
+  [[70, 0], [127, 0], [175, 84], [117, 84]], [[150, 136], [208, 31], [266, 31], [208, 136]],
+  [[0, 191], [58, 86], [116, 86], [58, 191]], [[224, 217], [282, 112], [340, 112], [282, 217]],
+  [[75, 272], [133, 167], [191, 167], [133, 272]], [[165, 219], [223, 219], [270, 303], [213, 303]],
+];
+const MARK_LINES = new Float32Array(MARK.flatMap((pts) => {
+  const cx = pts.reduce((a, p) => a + p[0], 0) / 4, cy = pts.reduce((a, p) => a + p[1], 0) / 4;
+  return pts.flatMap((p, j) => {
+    const q = pts[(j + 1) % 4];
+    let nx = q[1] - p[1], ny = p[0] - q[0];
+    const l = Math.hypot(nx, ny);
+    nx /= l; ny /= l;
+    // face the normal away from the piece's centre
+    if (nx * (cx - p[0]) + ny * (cy - p[1]) > 0) { nx = -nx; ny = -ny; }
+    return [nx, ny, nx * p[0] + ny * p[1]];
+  });
+}));
 const lerp = (a, b, t) => a + (b - a) * t;
 
 const VERT = `
@@ -55,6 +74,12 @@ uniform float uLg;          // log2 of the rib zoom length: small = spacing grow
 uniform float uFan;         // px (at 1392 wide): ribs closer than this to the centre fan out instead of
                             // sharing the hourglass's asymptotes; 0 leaves its top/bottom wedges blank
 uniform vec4 uBars[${BAR_COUNT}];
+// phones: the brand mark seen through the fluted glass. Centre (css px, in the glass's own scrolling
+// space), height (px) and strength; its six pieces as four edge lines each (outward normal, offset) in
+// the mark's 340x303 units
+uniform vec4 uMark;
+uniform vec3 uMarkL[24];
+uniform vec3 uMarkCol;
 
 // the colour field is a stack of soft blobs; their centres, radii, colours and weights depend only
 // on time and the palette mix, so they're worked out once per frame in JS (see BLOBS above)
@@ -75,6 +100,20 @@ vec3 field(vec2 p) {
     col = mix(col, uBC[i], clamp(exp(-pow(dot(d * d, uK[i]), uP[i])) * uA[i], 0.0, 1.0));
   }
   return col;
+}
+
+// signed distance to the mark, in mark units: each piece is the intersection of its four half-planes
+float markSD(vec2 u) {
+  float d = 1e5;
+  for (int k = 0; k < 6; k++) {
+    float e = -1e5;
+    for (int j = 0; j < 4; j++) {
+      vec3 l = uMarkL[k * 4 + j];
+      e = max(e, dot(l.xy, u) - l.z);
+    }
+    d = min(d, e);
+  }
+  return d;
 }
 
 void main() {
@@ -120,6 +159,29 @@ void main() {
   float hl = exp(-dpx * dpx / (2.0 * wpx * wpx));
 
   vec3 col = field(vec2(frag.x / W, (ypx + uShift) / H));
+  // the mark behind the glass: every flute is a small cylindrical lens between two lines, so what is
+  // behind it is shifted and mirrored across the flute (and smeared sideways a little). Sampled at the
+  // displaced point, the mark breaks into slices that slide as the ribs focus and the page scrolls
+  if (uMark.w > 0.001) {
+    vec2 g = vec2(frag.x, ypx + uShift) - uMark.xy;
+    if (dot(g, g) < 2.6 * uMark.z * uMark.z) {
+      float v = n - floor(n + 0.5);
+      float pl = uPitch * min(lam > 1e5 ? 1.0 : 1.0 + R / lam, 2.5);
+      float sc = 303.0 / uMark.z;
+      float dx = -v * pl * 1.7 * sign(c.x);
+      float a = 0.0, d0 = 1e5;
+      for (int i = -1; i <= 1; i++) {
+        float d = markSD((g + vec2(dx + float(i) * 0.5 * pl, 0.0)) * sc + vec2(170.0, 151.5)) / sc;
+        a += clamp(0.5 - d / 1.8, 0.0, 1.0);
+        d0 = min(d0, d);
+      }
+      // a flute focuses the light through its middle, so each slice is brightest along its centre
+      a *= (1.0 / 3.0) * (1.1 - 1.4 * v * v);
+      float glow = exp(-max(d0, 0.0) / (0.2 * uMark.z));
+      col = mix(col, uMarkCol, clamp(a * 0.62 * uMark.w, 0.0, 1.0));
+      col += glow * 0.13 * uMark.w * uMarkCol;
+    }
+  }
   float l = dot(col, vec3(0.299, 0.587, 0.114));
   col += hl * 0.07 * (1.0 - smoothstep(0.55, 0.95, l)) * (1.0 + 1.5 * uFlash);
   col = 1.0 - (1.0 - col) * (1.0 - uFlash * vec3(0.83, 0.4, 0.31));
@@ -131,7 +193,8 @@ void main() {
 export class HeroGL {
   constructor(canvas) {
     this.canvas = canvas;
-    this.state = { mix: 0, heroBottom: 1, shift: 0, pitch: 1400, hyp: 12, flash: 0, reveal: 0, lg: 30, fan: 0, hand: [0.035, 0.035, 0.043] };
+    // mark: [centre x, centre y, height, strength], strength 0 = none (desktop)
+    this.state = { mix: 0, heroBottom: 1, shift: 0, pitch: 1400, hyp: 12, flash: 0, reveal: 0, lg: 30, fan: 0, hand: [0.035, 0.035, 0.043], mark: [0, 0, 0, 0] };
     this.bars = new Float32Array(BAR_COUNT * 4);
     const gl = canvas.getContext('webgl', { antialias: false, alpha: true, premultipliedAlpha: true, depth: false, stencil: false, powerPreference: 'high-performance' });
     if (!gl) { this.failed = true; canvas.classList.add('is-fallback'); return; }
@@ -169,7 +232,9 @@ export class HeroGL {
       shift: u('uShift'), pitch: u('uPitch'), hyp: u('uHyp'), flash: u('uFlash'), reveal: u('uReveal'), bars: u('uBars'),
       lg: u('uLg'), fan: u('uFan'), hand: u('uHand'),
       base: u('uBase'), n: u('uN'), C: u('uC'), K: u('uK'), BC: u('uBC'), A: u('uA'), P: u('uP'),
+      mark: u('uMark'), markCol: u('uMarkCol'),
     };
+    gl.uniform3fv(u('uMarkL'), MARK_LINES);
     this.fC = new Float32Array(MAX_BLOBS * 2);
     this.fK = new Float32Array(MAX_BLOBS * 2);
     this.fBC = new Float32Array(MAX_BLOBS * 3);
@@ -250,6 +315,11 @@ export class HeroGL {
     gl.uniform1f(u.lg, state.lg);
     gl.uniform1f(u.fan, state.fan);
     gl.uniform4fv(u.bars, this.bars);
+    // the mark drifts a few px behind the ribs, so its slices shimmer even at rest: a cool white light
+    // behind the glass, warming to lilac with the violet palette
+    const [mx, my, mh, ma] = state.mark;
+    gl.uniform4f(u.mark, mx + 3 * Math.sin(time * 0.37), my + 1.5 * Math.sin(time * 0.29 + 1), mh, ma);
+    gl.uniform3f(u.markCol, lerp(0.86, 0.94, state.mix), lerp(0.89, 0.88, state.mix), 1.0);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
 }

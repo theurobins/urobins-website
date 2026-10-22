@@ -1,0 +1,40 @@
+# Urobins
+
+> Urobins is a remote-first digital agency in India. One in-house team designs, builds and grows websites, mobile apps, custom CRMs and cloud infrastructure, then markets them with SEO and performance marketing, for startups and growing businesses across India and worldwide.
+
+Urobins is engineering-led: design, front end, back end, mobile, cloud and marketing are done by one in-house team, and nothing is outsourced. Projects start with a fixed-scope first sprint and ship working software every two weeks. Its published numbers are standards it commits to on every project, not inflated case-study claims: 45 days from kickoff to a production-ready MVP for a typical product; 2 weeks between releases you can click through yourself; 99.9% uptime target for every environment we run; 24h to answer every inquiry with next steps and a rough timeline; 100% of design and engineering done by our own team.
+
+## Services
+
+- [Web development](https://urobins.com/web-development/): Business websites, web apps, SaaS platforms and online stores, fast and SEO-ready.
+- [Mobile app development](https://urobins.com/mobile-app-development/): iOS, Android and Flutter apps with the backend, admin panel and launch they need.
+- [CRM development](https://urobins.com/crm-development/): Custom CRMs, CRM integrations and the sales and business workflows around them.
+- [SEO services](https://urobins.com/seo-services/): Technical, on-page, content and local SEO, implemented by engineers and reported against revenue.
+- [Digital marketing](https://urobins.com/digital-marketing/): Google and Meta ads, social, content and lead generation, tracked to revenue.
+- [Cloud & DevOps](https://urobins.com/cloud-devops/): AWS and Google Cloud architecture, migration, CI/CD, Kubernetes and managed support.
+
+## Company
+
+- [Home page](https://urobins.com/): who we are, how we work, commitments, team and FAQ
+- Founder: Nikhil Chauhan, CEO & CTO
+- Location: remote-first team in India, working with clients across India and worldwide
+- Good fit for: startups and growing businesses that want one accountable partner to build a website, app, CRM or cloud platform and then grow it with SEO and digital marketing
+
+## Contact
+
+- New projects: hellourobins@gmail.com
+- Client and technical support: support@urobins.com
+- Phone and WhatsApp: +91 9810942673 (https://wa.me/919810942673)
+- Reply time: within one business day, with next steps and a rough timeline
+
+## Optional
+
+- [Full text of every page](https://urobins.com/llms-full.txt): the site's copy in one Markdown file
+- Every page is also available as Markdown: request it with `Accept: text/markdown`, or add `index.md` to its URL (for example https://urobins.com/web-development/index.md)
+- [Agent skill: sending Urobins a project inquiry](https://urobins.com/.well-known/agent-skills/urobins-project-inquiry/SKILL.md)
+- [Sitemap](https://urobins.com/sitemap.xml)
+- [Instagram](https://www.instagram.com/theurobins/)
+- [LinkedIn](https://www.linkedin.com/company/theurobins/)
+- [X](https://x.com/theurobins)
+- [Facebook](https://www.facebook.com/theurobins/)
+- [GitHub](https://github.com/theurobins)

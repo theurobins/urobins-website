@@ -30,6 +30,12 @@ const ease = {
   in3: (x) => x * x * x,
 };
 const clamp01 = (x) => Math.min(1, Math.max(0, x));
+// the pieces fly in like masses on a damped spring, launched at their slots: fast in, about 7% past,
+// then settled (zeta 0.85, launch speed 1.3, eight natural periods' worth of time over the tween)
+const SNAP = (() => {
+  const z = 0.85, v = 1.3, T = 8, wd = Math.sqrt(1 - z * z), k = (z - v) / wd;
+  return (p) => (p >= 1 ? 1 : 1 - Math.exp(-z * p * T) * (Math.cos(wd * p * T) + k * Math.sin(wd * p * T)));
+})();
 const lerp = (a, b, k) => a + (b - a) * k;
 function kf(table, t, e = ease.io) {
   if (t <= table[0][0]) return table[0][1];
@@ -117,8 +123,8 @@ const BEAM_STOPS = [
 const toDeg = (r) => (r * 180) / Math.PI;
 
 export function runPreloader({ el, reduced, onReveal, onDone }) {
-  // phones get a portrait scene of their own (preloader-mobile.js): this stage is a landscape shot
-  if (isPhone()) return runMobilePreloader({ el, reduced, onReveal, onDone, wash: WASH, grain: makeGrain });
+  // phones get a scene of their own (preloader-mobile.js): this stage is a landscape shot
+  if (isPhone()) return runMobilePreloader({ el, reduced, onReveal, onDone, grain: makeGrain });
   const canvas = el.querySelector('.preloader__canvas');
   const ctx = canvas.getContext('2d', { alpha: false });
   const logo = el.querySelector('.preloader__logo');
@@ -494,7 +500,8 @@ export function runPreloader({ el, reduced, onReveal, onDone }) {
   tl.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.25, ease: 'none' }, 0)
     .to(count, { opacity: 1, y: 0, duration: 0.9, ease: 'expo.out' }, T(0.5))
     .to(c, { v: 100, duration: T(HOLD) - T(0.6), ease: 'power2.inOut', onUpdate: setCount }, T(0.6))
-    .to(pieces, { x: 0, y: 0, opacity: 1, duration: 1.2, ease: 'expo.out', stagger: (i) => (i % 6) * 0.08 }, T(0.9))
+    .to(pieces, { x: 0, y: 0, duration: 1.3, ease: SNAP, stagger: (i) => (i % 6) * 0.08 }, T(0.9))
+    .to(pieces, { opacity: 1, duration: 0.35, ease: 'power1.out', stagger: (i) => (i % 6) * 0.08 }, T(0.9))
     .to(wordClip, { attr: { width: 290 }, duration: 1.0, ease: 'power3.inOut' }, T(1.45));
 
   const exit = () => {

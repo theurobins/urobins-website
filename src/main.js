@@ -13,6 +13,7 @@ import { revealLines, revealText, revealRise, resplitTexts, setReduced, LINE_FRO
 import { splitLines } from './lines.js';
 import { vp, measureViewport } from './viewport.js';
 import { PHONE, isPhone } from './breakpoints.js';
+import { registerAgentTools } from './agent-tools.js';
 
 gsap.registerPlugin(ScrollTrigger);
 // mobile toolbars resize the viewport height constantly; don't recompute every trigger for that.
@@ -23,6 +24,8 @@ ScrollTrigger.config({ ignoreMobileResize: true, autoRefreshEvents: 'visibilityc
 
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 setReduced(reduced);
+// tools for AI agents in the browser (WebMCP), where the browser supports them
+registerAgentTools({ onHome: true });
 document.documentElement.classList.add('js');
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 window.scrollTo(0, 0);
@@ -110,6 +113,25 @@ ScrollTrigger.create({
 });
 applyHero();
 
+// phones, upright: the band of glass between the nav and the headline holds the brand mark, seen
+// through the flutes (hero-gl.js). Placed from the laid-out boxes, so it stays clear of both
+const navEl = document.getElementById('nav');
+const markIn = { a: 0 };
+const placeMark = () => {
+  const m = hero.state.mark;
+  m[3] = 0;
+  if (!isPhone() || vh < vw * 1.25) { m[2] = 0; return; }
+  const top = navEl.getBoundingClientRect().bottom;
+  // the content's laid-out top: its box less the scroll shift it carries
+  const bottom = heroContent.getBoundingClientRect().top + (-hs.y + hs.out) * vh;
+  const room = bottom - top;
+  if (room < 150) { m[2] = 0; return; }
+  m[0] = vw / 2;
+  m[1] = top + room * 0.5;
+  m[2] = Math.min(room * 0.44, vw * 0.36, 210);
+  m[3] = markIn.a;
+};
+
 // electric -> violet: plays on its own a while after the intro, or as soon as the visitor scrolls
 const colorTween = gsap.to(auto, { mix: 1, duration: 3.2, ease: 'power3.inOut', paused: true, onUpdate: applyHero });
 const startColor = () => { if (!colorTween.isActive() && colorTween.progress() === 0) colorTween.play(); };
@@ -132,7 +154,7 @@ const torch = initTorch({ reduced });
 // on phones the menu is a full-screen sheet, so it behaves as one: focus moves into it, the page and
 // the call button behind it go inert and stop scrolling, and Escape closes it and hands focus back
 // to the toggle
-const behind = [document.querySelector('main'), book];
+const behind = [document.querySelector('main'), document.querySelector('body > footer'), book];
 let locked = false;
 // Lenis stays stopped until the intro hands the page over, so closing a sheet opened during the intro
 // leaves it to the intro to start it
@@ -233,6 +255,16 @@ document.addEventListener('click', (e) => {
     window.scrollTo({ top: y, behavior: reduced ? 'auto' : 'smooth' });
   }
 });
+// a link from another page (a service page's "/#process") lands on its section once the intro has
+// handed the page over: the page itself always loads at the top, under the loader
+const landOnHash = () => {
+  const { hash } = window.location;
+  if (!/^#[\w-]+$/.test(hash) || hash === '#top') return;
+  const y = anchorY(hash);
+  if (y == null) return;
+  if (lenis) lenis.scrollTo(y, { duration: Math.min(2.6, 0.9 + y / (vh * 8)) });
+  else window.scrollTo({ top: y, behavior: reduced ? 'auto' : 'smooth' });
+};
 
 // ---------- render loop ----------
 let heroLive = false; // the preloader covers the hero until it hands over
@@ -271,7 +303,7 @@ const coarse = window.matchMedia('(pointer: coarse)').matches;
 // scroll would land in another section: keep the reader's place as their share of the section they
 // were in. Section boxes are cached on refresh (sticky pins leave the sections themselves static), and
 // the place is taken from the last scroll before the turn, since the browser may clamp it after
-const stops = [...document.querySelectorAll('main > section, main > footer')];
+const stops = [...document.querySelectorAll('main > section, body > footer')];
 let edges = [], settledY = 0, turning = false, place = null;
 const pageTop = (el) => { let y = 0; for (; el; el = el.offsetParent) y += el.offsetTop; return y; };
 ScrollTrigger.addEventListener('refresh', () => {
@@ -306,6 +338,7 @@ window.addEventListener('resize', () => {
     process.resize();
     caps.resize();
     torch.resize();
+    placeMark();
     applyHero();
     ScrollTrigger.refresh();
     if (turning) {
@@ -328,12 +361,15 @@ if (document.fonts && document.fonts.ready) {
       subLines = splitLines(T.sub, 'hl');
       if (!reduced) gsap.set(subLines, { opacity: 0, y: 12 });
     }
+    placeMark();
     ScrollTrigger.refresh();
   });
 }
 
-function heroIntro() {
+// hand: the colour the loader's last frame leaves on screen, which the glass fades in from
+function heroIntro(hand = WASH) {
   introStarted = true;
+  placeMark();
   const tl = gsap.timeline();
   tl.add(() => { heroLive = true; }, 0);
   // pill pop: grow linearly to full size, ease into a small overshoot, then settle
@@ -341,27 +377,29 @@ function heroIntro() {
     tl.set(el, { scale: 0, opacity: 1, transformOrigin: origin }, at)
       .to(el, { keyframes: [{ scale: 1, duration: 0.3, ease: 'none' }, { scale: ov, duration: 0.1, ease: 'sine.out' }, { scale: 1, duration: 0.22, ease: 'sine.inOut' }] }, at);
   };
-  // the glass fades in from the light the preloader's dive ended on, while its ribs focus from wide
-  // to fine and a faint hourglass curvature relaxes to straight ribs: one slow, continuous settle
+  // the glass fades in from the colour the preloader ended on, while its ribs focus from wide to fine
+  // and a faint hourglass curvature relaxes to straight ribs: one continuous settle
   tl.set(hero.state, { reveal: 0, hyp: 0.55, flash: 0, lg: 30, fan: 0, pitch: () => hero.restPitch * 2.4 }, 0)
-    .add(() => { hero.state.hand = WASH; }, 0)
-    .to(hero.state, { reveal: 1, duration: 1.15, ease: 'power2.inOut' }, 0.05)
-    .to(hero.state, { hyp: 0, duration: 2.6, ease: 'power3.inOut' }, 0.05)
-    .to(hero.state, { pitch: () => hero.restPitch, duration: 2.8, ease: 'power3.out', onComplete: () => { heroSettled = true; introDone = true; } }, 0.05);
-  tl.to(navBar, { opacity: 1, y: 0, duration: 1.0, ease: 'power3.out', clearProps: 'transform' }, 0.5);
+    .add(() => { hero.state.hand = hand; }, 0)
+    .to(hero.state, { reveal: 1, duration: 0.85, ease: 'power2.inOut' }, 0.05)
+    .to(hero.state, { hyp: 0, duration: 1.8, ease: 'power3.inOut' }, 0.05)
+    .to(hero.state, { pitch: () => hero.restPitch, duration: 1.9, ease: 'power3.out', onComplete: () => { heroSettled = true; introDone = true; } }, 0.05)
+    // the mark comes up behind the glass as the ribs focus on it
+    .to(markIn, { a: 1, duration: 1.5, ease: 'power2.inOut', onUpdate: () => { if (hero.state.mark[2]) hero.state.mark[3] = markIn.a; } }, 0.25);
+  tl.to(navBar, { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out', clearProps: 'transform' }, 0.4);
   // headline lines slide up out of their masks, then the copy rises line by line
-  tl.to(T.lines, { yPercent: 0, rotate: 0, duration: 1.4, ease: 'expo.out', stagger: 0.14, clearProps: 'willChange' }, 0.7)
-    .to(subLines, { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out', stagger: 0.07 }, 1.4);
-  T.ctas.forEach((el, i) => pop(el, 1.75 + i * 0.12, 1.06, '50% 50%'));
-  tl.to(T.hint, { opacity: 1, duration: 0.8 }, 2.4);
+  tl.to(T.lines, { yPercent: 0, rotate: 0, duration: 1.15, ease: 'expo.out', stagger: 0.11, clearProps: 'willChange' }, 0.5)
+    .to(subLines, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', stagger: 0.06 }, 1.1);
+  T.ctas.forEach((el, i) => pop(el, 1.4 + i * 0.1, 1.06, '50% 50%'));
+  tl.to(T.hint, { opacity: 1, duration: 0.8 }, 1.9);
   tl.add(() => {
     document.body.classList.remove('is-loading');
     scrollReady = true;
     if (lenis && !locked) lenis.start();
-  }, 1.9)
+  }, 1.5)
     // hand the pills back to CSS once they have settled
-    .add(() => { gsap.set(T.ctas, { clearProps: 'transform' }); story.buffer(); }, 2.7)
-    .add(startColor, 4.6);
+    .add(() => { gsap.set(T.ctas, { clearProps: 'transform' }); story.buffer(); landOnHash(); }, 2.3)
+    .add(startColor, 4.2);
 }
 
 if (reduced) {
@@ -370,12 +408,14 @@ if (reduced) {
   introStarted = true;
   Object.assign(hero.state, { reveal: 1, hyp: 0, flash: 0, lg: 30, fan: 0, pitch: hero.restPitch });
   auto.mix = 1;
+  markIn.a = 1;
+  placeMark();
   applyHero();
   subLines = splitLines(T.sub, 'hl');
   runPreloader({
     el: document.getElementById('preloader'),
     reduced: true,
-    onDone: () => document.body.classList.remove('is-loading'),
+    onDone: () => { document.body.classList.remove('is-loading'); landOnHash(); },
   });
 } else {
   gsap.set(T.lines, { ...LINE_FROM, willChange: 'transform' });

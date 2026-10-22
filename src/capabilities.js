@@ -6,16 +6,12 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { revealRise } from './reveal.js';
 import { pathLookup } from './path-sample.js';
-import { PHONE, isPhone } from './breakpoints.js';
+import { PHONE } from './breakpoints.js';
+import { TECH_INNER, TECH_OUTER, techMark } from './tech-icons.js';
 
 // loops rewrite counters every frame: only touch the DOM when the text actually changes
 const setText = (el, v) => { v = String(v); if (el.textContent !== v) el.textContent = v; };
 const lines = (ws) => ws.map((w) => `<s style="--w:${w}"></s>`).join('');
-const TECH = [
-  ['JS', '#f7df1e', '#111', 0], ['TS', '#3178c6', '#fff', 60], ['<span class="atom"></span>', '#20232a', '#61dafb', 120],
-  ['Node', '#2f9e44', '#fff', 180], ['AWS', '#ff9900', '#111', 240], ['PG', '#336791', '#fff', 300],
-  ['Next', '#111', '#fff', 30], ['W', '#21759b', '#fff', 110], ['Dock', '#0db7ed', '#fff', 190], ['Figma', '#1e1e1e', '#f24e1e', 270],
-];
 const CHART_H = [42, 58, 50, 74, 90, 108, 122, 152, 178];
 const RANKS = [['crm for startups', 14, 1], ['cloud migration partner', 9, 2], ['mobile app agency', 22, 3]];
 
@@ -35,9 +31,10 @@ const scenes = {
     <div class="toast"><i>✓</i><div><strong>Payment received</strong><s style="--w:.5"></s></div></div>
   </div>`,
   dev: () => {
-    const badges = (ring, items) => items.map(([t, bg, fg, a]) => `<div class="orbit__arm" style="--a:${a}deg;--d:${ring}"><div class="orbit__badge" style="--bg:${bg};--fg:${fg}">${t}</div></div>`).join('');
-    return `<div class="orbit"><div class="orbit__ring" style="--d:var(--r1)">${badges('var(--r1)', TECH.slice(0, 6))}</div>` +
-      `<div class="orbit__ring orbit__ring--2" style="--d:var(--r2)">${badges('var(--r2)', TECH.slice(6))}</div>` +
+    // spaced evenly round each ring, the outer set half a step off the inner
+    const badges = (ring, items, from) => items.map((t, i) => `<div class="orbit__arm" style="--a:${(from + (i * 360) / items.length).toFixed(1)}deg;--d:${ring}"><div class="orbit__badge" style="--bg:${t[1]}">${techMark(t)}</div></div>`).join('');
+    return `<div class="orbit"><div class="orbit__ring" style="--d:var(--r1)">${badges('var(--r1)', TECH_INNER, 0)}</div>` +
+      `<div class="orbit__ring orbit__ring--2" style="--d:var(--r2)">${badges('var(--r2)', TECH_OUTER, 180 / TECH_OUTER.length)}</div>` +
       `<div class="orbit__core"><svg viewBox="0 0 340 303" aria-hidden="true"><use href="#logo-mark"/></svg></div>` +
       `<div class="deploy"><span class="deploy__step"><i></i>Build</span><span class="deploy__step"><i></i>Test</span><span class="deploy__step"><i></i>Deploy</span></div></div>`;
   },
@@ -82,6 +79,7 @@ function buildIndex(section, cards) {
   const items = cards.map((card, i) => {
     const data = INDEX[card.dataset.cap] || { chips: [] };
     const tag = card.querySelector('.tag'), title = card.querySelector('.cap__title'), text = card.querySelector('.cap__text');
+    const more = card.querySelector('.cap__more');
     const ic = tag ? tag.querySelector('.tag__ic').outerHTML : '';
     const kind = tag ? tag.textContent.trim() : '';
     const n = String(i + 1).padStart(2, '0');
@@ -102,6 +100,8 @@ function buildIndex(section, cards) {
     inner.append(text);
     inner.insertAdjacentHTML('beforeend', (data.sketch ? sketches[data.sketch]() : steps) +
       `<ul class="cap__chips">${data.chips.map((c) => `<li>${c}</li>`).join('')}</ul>`);
+    // the links to the service pages close the open row
+    if (more) inner.append(more);
     title.after(panel);
     return { card, btn: title.querySelector('button') };
   });
@@ -135,33 +135,52 @@ function buildIndex(section, cards) {
   items.forEach((it, i) => { it.card.querySelector('.cap__panel').inert = i > 0; });
   items[0].card.classList.add('is-open');
   items[0].btn.setAttribute('aria-expanded', 'true');
+  return () => {
+    clearTimeout(rt);
+    if (hold) gsap.ticker.remove(hold);
+  };
 }
 
 export function initCapabilities({ reduced }) {
   const section = document.querySelector('.caps');
   if (!section) return { resize() { } };
   const cards = [...section.querySelectorAll('.cap')];
-  if (isPhone()) {
-    buildIndex(section, cards);
-    revealRise(cards, { trigger: section.querySelector('.caps__grid'), start: 'top 86%', y: 24, stagger: 0.08 });
-    return { resize() { } };
-  }
+  // phones get the index, everything wider the cards with their scenes. Crossing the breakpoint
+  // either way (a window resized, devtools' device mode toggled) tears one down and builds the other
+  // from the cards' original markup, so a desktop never keeps the phone index
+  const markup = cards.map((c) => c.innerHTML);
+  const narrow = window.matchMedia(PHONE);
+  let teardown = null, first = true;
+  const build = () => {
+    if (teardown) {
+      teardown();
+      cards.forEach((c, i) => { c.innerHTML = markup[i]; c.classList.remove('is-open'); });
+      section.classList.remove('caps--index', 'is-live');
+    }
+    if (narrow.matches) {
+      teardown = buildIndex(section, cards);
+      if (first) revealRise(cards, { trigger: section.querySelector('.caps__grid'), start: 'top 86%', y: 24, stagger: 0.08 });
+    } else {
+      teardown = buildScenes(section, cards, reduced);
+      if (first) revealRise(cards, { trigger: section, start: 'top 72%', stagger: 0.12 });
+    }
+    first = false;
+  };
+  build();
+  narrow.addEventListener('change', build);
+  return { resize() { } };
+}
+
+// the cards' scenes and their loops, which only run while the section is on screen; returns their teardown
+function buildScenes(section, cards, reduced) {
   cards.forEach((c) => { c.querySelector('.cap__visual').innerHTML = (scenes[c.dataset.cap] || (() => ''))(); });
-  revealRise(cards, { trigger: section, start: 'top 72%', stagger: 0.12 });
-  // a window narrowed to a phone swaps to the index for good: the scenes and their loops go with it
   const loops = [];
   let live = null;
-  const narrow = window.matchMedia(PHONE);
-  const toIndex = () => {
-    if (!narrow.matches) return;
-    narrow.removeEventListener('change', toIndex);
+  const teardown = () => {
     loops.forEach((l) => l.kill());
     loops.length = 0;
     if (live) live.kill();
-    section.classList.remove('is-live');
-    buildIndex(section, cards);
   };
-  narrow.addEventListener('change', toIndex);
   const q = (s) => section.querySelector(s);
   const qa = (s) => [...section.querySelectorAll(s)];
   if (reduced) {
@@ -172,7 +191,7 @@ export function initCapabilities({ reduced }) {
     qa('.rk').forEach((e) => { e.textContent = e.dataset.to; });
     qa('.deploy__step').forEach((s) => s.classList.add('is-done'));
     gsap.set(q('.toast'), { opacity: 1 });
-    return { resize() { } };
+    return teardown;
   }
 
   // --- product scene: the goal ring fills, the courier rides the route while the time counts down,
@@ -292,5 +311,5 @@ export function initCapabilities({ reduced }) {
     toggleClass: { targets: section, className: 'is-live' },
     onToggle: (self) => loops.forEach((l) => (self.isActive ? l.play() : l.pause())),
   });
-  return { resize() { } };
+  return teardown;
 }

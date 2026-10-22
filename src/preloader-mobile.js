@@ -1,405 +1,631 @@
-// Loading screen on phones (breakpoints.js, either way up). The giants' two-lamp stage is a wide
-// shot that crops badly on a phone, so phones get a scene of their own with the same story, light
-// finding the logo: a torch catches at the top edge with a few sparks and its beam sweeps the dark
-// wall, searching; the logo assembles as faint glass in the dark and is lit wherever the light
-// crosses it, with a glint and a shadow from each beam (logo-light.js, shared with the desktop
-// scene); the beam finds it and settles over it while a softer counter-beam rises from below to cross
-// it; then the beam opens and the camera dives into the light, ending on the wash the hero's glass
-// fades in from.
-// A pure function of time in screen space, drawn from sprites built once (no per-frame gradients,
-// shadows, filters or pixel reads). The camera zooms about the logo's centre, so the logo DOM only
-// ever scales in place and nothing is painted behind it but soft light.
+// Loading screen on phones (breakpoints.js, either way up). The giants' two-lamp stage is a wide shot,
+// so phones get a scene of their own, made for a tall screen: the logo is machined. It starts as a
+// blueprint on a dot grid (its construction box, dashed outlines and the 61deg slant every piece shares),
+// then a laser from above cuts the six pieces out one by one and rasters the wordmark. Every cut glows
+// hot and cools into plain, near-white metal, and throws sparks that fly, fall under gravity and bounce on the
+// progress bar. A glint runs across the finished metal, and then the laser slices the screen open along
+// the logo's own slant and the two halves part over the page.
+// Drawn on the canvas in screen space: the metal is baked once into a sprite (a plain fill and
+// bevels) and lit per frame on a small working canvas; the blueprint is cached once it has drawn in; the
+// sparks are a small particle simulation.
 import gsap from 'gsap';
-import { createLogoLight } from './logo-light.js';
 
-const HOLD = 5.4;                     // seconds: the settled pose the scene holds until the fonts are in
-const DIVE_DUR = 0.95;                // seconds: the dive into the light
-const LOGO_Y = 0.47;                  // the logo's centre, as a fraction of the height
-const TORCH = [0.72, 0.09];           // the torch, as fractions of the viewport
-const COUNTER = [0.02, 1.2];         // the counter-beam's lamp, below the frame
-const IGNITE = 0.55;
 const DEG = Math.PI / 180;
+const INK = [8, 7, 26];
+// the plate's colour, which the page's glass fades in from (main.js)
+export const MOBILE_HAND = INK.map((v) => v / 255);
+const LOGO_Y = 0.46;                  // the logo's centre, as a fraction of the height
+const PAD = 6;                        // logo units of margin round the metal sprites
+const MS = 0.3636, WS = 0.3064;       // the mark's and the word's scale inside the 430x120 logo box
+// the six pieces in logo units (the #logo-mark parallelograms, placed as in the loader's SVG)
+const PIECES = [
+  [[70, 0], [127, 0], [175, 84], [117, 84]], [[150, 136], [208, 31], [266, 31], [208, 136]],
+  [[0, 191], [58, 86], [116, 86], [58, 191]], [[224, 217], [282, 112], [340, 112], [282, 217]],
+  [[75, 272], [133, 167], [191, 167], [133, 272]], [[165, 219], [223, 219], [270, 303], [213, 303]],
+].map((pts) => pts.map(([x, y]) => [x * MS, 5 + y * MS]));
+const WORD = { l: 150.5, r: 419.2, t: 27.6, b: 90.9 };
+const BOX = { l: 0, r: 419.2, t: 5, b: 115.2 };
+// the slant every piece shares: up and to the right at 61deg
+const SLANT = Math.atan2(-105, 58);
+const TI = '#eef0f4';                 // the metal: plain and near-white
 
-const ease = {
-  io: (x) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2),
-  out2: (x) => 1 - (1 - x) * (1 - x),
-  in2: (x) => x * x,
-  in3: (x) => x * x * x,
-};
+// ---------- timeline (seconds) ----------
+const DRAFT = [0.2, 1.05];            // the blueprint draws in
+const CUT0 = 0.85, CUT = 0.24, HOP = 0.06;
+const pieceAt = (k) => CUT0 + k * (CUT + HOP);
+const CUT_END = pieceAt(5) + CUT;
+const RASTER = [CUT_END + 0.1, CUT_END + 1.1];
+const GLINT = [RASTER[1] + 0.12, RASTER[1] + 0.85];
+const HOLD = GLINT[1] + 0.1;          // the finished logo the scene holds until the fonts are in
+const SLICE = 0.32;                   // the exit: the laser crosses the screen, the cut glows a beat,
+const PART = [0.48, 1.12];            // then the halves part
+const EXIT = 1.18;
+
 const clamp01 = (x) => Math.min(1, Math.max(0, x));
-function kf(table, t, e = ease.io) {
-  if (t <= table[0][0]) return table[0][1];
-  for (let i = 1; i < table.length; i++) {
-    const [t1, v1] = table[i];
-    if (t <= t1) {
-      const [t0, v0] = table[i - 1];
-      return v0 + (v1 - v0) * e((t - t0) / (t1 - t0));
-    }
+const lerp = (a, b, k) => a + (b - a) * k;
+const smooth = (x) => x * x * (3 - 2 * x);
+const io3 = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+
+// a closed outline measured along its length, so the laser can stop anywhere on it
+function outline(pts) {
+  const seg = [];
+  let L = 0;
+  pts.forEach((a, j) => {
+    const b = pts[(j + 1) % pts.length], l = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    seg.push({ a, b, d: L, l });
+    L += l;
+  });
+  return { seg, L };
+}
+function pointAt(P, d) {
+  d = Math.min(Math.max(d, 0), P.L);
+  for (const s of P.seg) {
+    if (d <= s.d + s.l) { const k = (d - s.d) / s.l; return [lerp(s.a[0], s.b[0], k), lerp(s.a[1], s.b[1], k)]; }
   }
-  return table[table.length - 1][1];
+  return P.seg[0].a;
 }
-// a smooth path through a table of points: a cubic spline flattened at turning points, so the beam
-// never overshoots a key (the same spline the desktop scene moves its lamps with)
-function spline(table, t) {
-  const n = table.length;
-  if (t <= table[0][0]) return table[0][1].slice();
-  if (t >= table[n - 1][0]) return table[n - 1][1].slice();
-  let i = 0;
-  while (i < n - 2 && table[i + 1][0] <= t) i++;
-  const [t0, p0] = table[i], [t1, p1] = table[i + 1];
-  const h = t1 - t0, u = (t - t0) / h;
-  const tan = (j, k) => {
-    const [ta, a] = table[Math.max(0, j - 1)], [tb, b] = table[j], [tc, c] = table[Math.min(n - 1, j + 1)];
-    const d1 = tb === ta ? 0 : (b[k] - a[k]) / (tb - ta), d2 = tc === tb ? 0 : (c[k] - b[k]) / (tc - tb);
-    return d1 === 0 || d2 === 0 || d1 * d2 < 0 ? 0 : (d1 + d2) / 2;
-  };
-  const u2 = u * u, u3 = u2 * u;
-  const h00 = 2 * u3 - 3 * u2 + 1, h10 = u3 - 2 * u2 + u, h01 = -2 * u3 + 3 * u2, h11 = u3 - u2;
-  return p0.map((v, k) => h00 * v + h10 * h * tan(i, k) + h01 * p1[k] + h11 * h * tan(i + 1, k));
+function trace(x, P, d0, d1) {
+  x.beginPath();
+  const p = pointAt(P, d0);
+  x.moveTo(p[0], p[1]);
+  for (const s of P.seg) if (s.d > d0 && s.d < d1) x.lineTo(s.a[0], s.a[1]);
+  const q = pointAt(P, d1);
+  x.lineTo(q[0], q[1]);
 }
+const OUTLINES = PIECES.map(outline);
 
-// ---------- keyframes (seconds; points are fractions of the viewport) ----------
-// the torch searches the dark wall (up and left, down the left side, across the bottom), crossing the
-// logo as it goes, then rises onto it, aimed just under its centre so the hot spot pools beneath it
-const AIM = [
-  [IGNITE, [0.5, 0.2]], [1.55, [0.16, 0.3]], [2.5, [0.2, 0.7]], [3.35, [0.82, 0.67]], [4.25, [0.5, 0.5]],
-];
-// narrow while it searches; it opens to take in the whole logo, then closes snugly on it
-const HALF = [[0, 10], [3.4, 11], [4.2, 30], [5.0, 26.5]];
-// the beam stretches out of the lamp as the torch catches
-const REACH = [[IGNITE, 0.15], [1.7, 1]];
-// the softer counter-beam rises from below the frame and swings across onto the logo
-const AIM_B = [[2.9, [0.3, 0.3]], [4.5, [0.62, 0.48]]];
-const POWER_B = [[2.9, 0], [4.1, 1]];
-const HALF_B = 11;
-
-export function runMobilePreloader({ el, reduced, onReveal, onDone, wash, grain }) {
+export function runMobilePreloader({ el, reduced, onReveal, onDone, grain }) {
   const canvas = el.querySelector('.preloader__canvas');
-  const ctx = canvas.getContext('2d', { alpha: false });
-  const logo = el.querySelector('.preloader__logo');
-  const lighting = createLogoLight(el);
-  const { pieces, wordClip } = lighting;
+  const ctx = canvas.getContext('2d');
   const bar = el.querySelector('.preloader__bar');
   const fill = bar.querySelector('i');
   const count = el.querySelector('.preloader__count');
   const num = el.querySelector('.preloader__num');
   el.style.setProperty('--grain', `url(${grain().toDataURL()})`);
-  const washRgb = `rgb(${wash.map((v) => Math.round(v * 255)).join(',')})`;
+  const wordPath = new Path2D(document.querySelector('#logo-word path').getAttribute('d'));
+  const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
 
-  // the logo's SVG is a 430x120 box with its artwork centred on (210, 60); the settled beam's angle is
-  // sized from each piece's centre and four points along the word
-  const MARK_S = 0.3636;
-  const pieceBox = [[122, 42], [208, 83], [58, 138], [282, 164], [133, 219], [220, 261]].map(([x, y]) => [x * MARK_S, 5 + y * MARK_S]);
-  const wordBox = [[160, 60], [245, 60], [330, 60], [415, 60]];
+  let W = 0, H = 0, dpr = 1, cx = 0, cy = 0, ls = 1, floor = 0, k = 1, SW = 1, SH = 1;
+  let metal, work, gridSpr, bg, bgReady = false;
+  const glowSpr = mk(128, 128);
+  {
+    const x = glowSpr.getContext('2d');
+    const g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+    for (let i = 0; i <= 16; i++) g.addColorStop(i / 16, `rgba(214,210,255,${Math.pow(1 - i / 16, 2.4).toFixed(4)})`);
+    x.fillStyle = g;
+    x.fillRect(0, 0, 128, 128);
+  }
 
-  let W = 0, H = 0, dpr = 1, cx = 0, cy = 0, ls = 1, hk = 1, logoTr = '', logoOp = '';
+  // logo units -> screen (css px), and the transform that draws in logo units
+  const sx = (x) => cx + (x - 210) * ls, sy = (y) => cy + (y - 60) * ls;
+  const toLogo = (c) => c.setTransform(dpr * ls, 0, 0, dpr * ls, dpr * (cx - 210 * ls), dpr * (cy - 60 * ls));
+  const poly = (x, pts) => { x.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) x.lineTo(pts[i][0], pts[i][1]); x.closePath(); };
+  const fillLogo = (x) => {
+    x.beginPath();
+    PIECES.forEach((p) => poly(x, p));
+    x.fill();
+    x.save();
+    x.translate(150, 27);
+    x.scale(WS, WS);
+    x.fill(wordPath, 'evenodd');
+    x.restore();
+  };
+
+  // ---- sprites, rebuilt for each size ----
+  function build() {
+    k = ls * dpr;
+    SW = Math.ceil((430 + 2 * PAD) * k); SH = Math.ceil((120 + 2 * PAD) * k);
+    const inLogo = (x) => x.setTransform(k, 0, 0, k, PAD * k, PAD * k);
+    // the silhouette, then the metal: a plain fill and bevels (the edges facing the upper left catch the
+    // light, the others fall into shade)
+    const sil = mk(SW, SH);
+    { const x = sil.getContext('2d'); inLogo(x); x.fillStyle = '#fff'; fillLogo(x); }
+    metal = mk(SW, SH);
+    const m = metal.getContext('2d');
+    m.drawImage(sil, 0, 0);
+    m.globalCompositeOperation = 'source-in';
+    m.fillStyle = TI;
+    m.fillRect(0, 0, SW, SH);
+    m.globalCompositeOperation = 'source-atop';
+    const b = Math.max(1, 0.9 * dpr);
+    const edge = (dx, dy, col) => {
+      const e = mk(SW, SH), x = e.getContext('2d');
+      x.drawImage(sil, 0, 0);
+      x.globalCompositeOperation = 'destination-out';
+      x.drawImage(sil, dx, dy);
+      x.globalCompositeOperation = 'source-in';
+      x.fillStyle = col;
+      x.fillRect(0, 0, SW, SH);
+      return e;
+    };
+    m.drawImage(edge(b, b, 'rgba(255,255,255,0.85)'), 0, 0);
+    m.drawImage(edge(-b, -b, 'rgba(8,8,24,0.6)'), 0, 0);
+    work = mk(SW, SH);
+
+    // the dot grid, centred on the logo and fading towards the edges
+    gridSpr = mk(canvas.width, canvas.height);
+    const gx = gridSpr.getContext('2d');
+    const step = 22, R = Math.hypot(W, H) * 0.62;
+    for (let x = cx % step; x < W; x += step) {
+      for (let y = cy % step; y < H; y += step) {
+        const a = 0.3 * (1 - smooth(clamp01((Math.hypot(x - cx, y - cy) / R - 0.15) / 0.8)));
+        if (a < 0.01) continue;
+        gx.fillStyle = `rgba(150,150,255,${a.toFixed(3)})`;
+        gx.fillRect((x - 0.6) * dpr, (y - 0.6) * dpr, 1.2 * dpr, 1.2 * dpr);
+      }
+    }
+    bg = mk(canvas.width, canvas.height);
+    bgReady = false;
+  }
+
   function resize() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     W = window.innerWidth; H = window.innerHeight;
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
     cx = W / 2; cy = H * LOGO_Y;
-    // about three quarters of a phone's width, never oversized on a small tablet or a landscape phone
+    // about three quarters of a phone's width, never oversized on a small tablet or a phone on its side
     ls = Math.min(W * 0.74, 440, H * 0.9) / 420;
-    // the settled beam must take in the whole logo; on a phone in landscape the logo spans a wider
-    // angle from the torch, so every beam angle opens up in proportion
-    const tx = TORCH[0] * W, ty = TORCH[1] * H;
-    const aimAng = Math.atan2(0.5 * H - ty, 0.5 * W - tx);
-    const span = [...pieceBox, ...wordBox].map(([bx, by]) => {
-      const d = Math.atan2(cy + (by - 60) * ls - ty, cx + (bx - 210) * ls - tx) - aimAng;
-      return Math.abs(Math.atan2(Math.sin(d), Math.cos(d))) / DEG;
-    });
-    hk = Math.max(1, (Math.max(...span) + 2) / 25.5);
+    floor = bar.getBoundingClientRect().top;
+    build();
   }
 
-  // ---- sprites built once ----
-  const sprite = (w, h, paint) => {
-    const c = document.createElement('canvas');
-    c.width = w; c.height = h;
-    paint(c.getContext('2d'));
-    return c;
-  };
-  // a smooth falloff curve sampled densely: a few hand-placed stops leave visible creases where the
-  // slope changes
-  const falloff = (g, rgb, curve) => {
-    for (let i = 0; i <= 24; i++) g.addColorStop(i / 24, `rgba(${rgb},${curve(i / 24).toFixed(4)})`);
-  };
-  // the light's long, faint falloffs fall between 8-bit steps and show as rings once scaled up: dither
-  // each sprite's alpha once, here, so the steps break into the grain
-  const dither = (c, rgb) => {
-    const x = c.getContext('2d');
-    const img = x.getImageData(0, 0, c.width, c.height), d = img.data;
-    for (let i = 0; i < d.length; i += 4) {
-      if (d[i + 3] === 0) continue;
-      d[i] = rgb[0]; d[i + 1] = rgb[1]; d[i + 2] = rgb[2];
-      d[i + 3] = Math.max(0, Math.min(255, d[i + 3] + (Math.random() + Math.random() - 1) * 2.5));
-    }
-    x.putImageData(img, 0, 0);
-    return c;
-  };
-  // a cone of light pointing right from (0, BH/2), with its edges at a slope of BT. Stacked cones of
-  // slowly widening angle give an edge that is crisp by the lamp and softens with distance, like real
-  // light, and a few faint shafts inside give it some air. The shape is built as a white mask first and
-  // the light's falloff (in rings from the lamp, so the far end is round, not a straight cut) is laid
-  // over it in one pass: painting the falloff into every layer rounds each one at the same radii,
-  // which stacks into visible rings
-  const BL = 512, BH = 512, BT = 0.4;
-  const beamSpr = sprite(BL, BH, (x) => {
-    x.fillStyle = '#fff';
-    const cone = (lo, hi, a) => {
-      x.globalAlpha = a;
-      x.beginPath();
-      x.moveTo(0, BH / 2 - 2); x.lineTo(BL, BH / 2 + lo * BL); x.lineTo(BL, BH / 2 + hi * BL); x.lineTo(0, BH / 2 + 2);
-      x.closePath(); x.fill();
-    };
-    for (let i = 0; i < 12; i++) { const tn = BT * (0.8 + (0.4 * i) / 11); cone(-tn, tn, 0.1); }
-    cone(-BT * 0.4, BT * 0.4, 0.2);
-    for (const [c, w, a] of [[-0.62, 0.05, 0.1], [-0.3, 0.08, 0.07], [-0.05, 0.035, 0.12], [0.22, 0.06, 0.08], [0.5, 0.04, 0.1], [0.7, 0.07, 0.06]]) {
-      cone(BT * (c - w), BT * (c + w), a);
-    }
-    const g = x.createRadialGradient(0, BH / 2, 0, 0, BH / 2, BL);
-    falloff(g, [228, 226, 255], (r) => Math.pow(1 - r, 1.8) * (0.62 + 0.38 * Math.exp(-12 * r)));
+  // ---- the blueprint: the plate, the grid, the construction drawing and its notes ----
+  const LABEL = '500 9.5px "Inter Tight", "Helvetica Neue", Arial, sans-serif';
+  function renderBg(t) {
+    const x = bg.getContext('2d');
+    const q = smooth(clamp01((t - DRAFT[0]) / (DRAFT[1] - DRAFT[0])));
+    x.setTransform(1, 0, 0, 1, 0, 0);
     x.globalAlpha = 1;
-    x.globalCompositeOperation = 'source-in';
-    x.fillStyle = g;
-    x.fillRect(0, 0, BL, BH);
-  });
-  dither(beamSpr, [228, 226, 255]);
-  const radial = (rgb, curve) => dither(sprite(256, 256, (x) => {
-    const g = x.createRadialGradient(128, 128, 0, 128, 128, 128);
-    falloff(g, rgb, curve);
-    x.fillStyle = g;
-    x.fillRect(0, 0, 256, 256);
-  }), rgb);
-  const glowSpr = radial([214, 210, 255], (r) => Math.pow(1 - r, 2.6));
-  const ambSpr = radial([40, 34, 108], (r) => Math.pow(1 - r, 1.6));
-  // the torch's lens: a hot core sitting towards the beam (+x) on a face that cools to its rim
-  const lensSpr = sprite(128, 128, (x) => {
-    const g = x.createRadialGradient(86, 64, 0, 64, 64, 64);
-    g.addColorStop(0, '#fff');
-    g.addColorStop(0.3, '#fbfbff');
-    g.addColorStop(0.75, '#d9d8ff');
-    g.addColorStop(1, '#a9abef');
-    x.fillStyle = g;
-    x.beginPath(); x.arc(64, 64, 64, 0, Math.PI * 2); x.fill();
-  });
-  const specks = sprite(256, 256, (x) => {
-    x.fillStyle = 'rgba(176,184,255,0.5)';
-    for (let i = 0; i < 120; i++) {
-      const a = Math.random() * Math.PI * 2, r = (1 + Math.random() * 1.2) * 58;
-      x.fillRect(128 + Math.cos(a) * r, 128 + Math.sin(a) * r, 1.6, 1.6);
-    }
-  });
-  // ignition sparks (velocity in widths per second) and dust that only shows where the light is
-  const sparks = Array.from({ length: 30 }, () => {
-    const a = Math.random() * Math.PI * 2, v = 0.35 + Math.random() * 0.75;
-    return { vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.8 + 0.12, life: 0.7 + Math.random() * 0.6, r: 1 + Math.random() * 1.3, c: Math.random() < 0.5 ? '#9ea6ff' : '#eef0ff' };
-  });
-  const dust = Array.from({ length: 70 }, () => ({
-    x: Math.random(), y: Math.random(), ph: Math.random() * 6.3, sp: 0.5 + Math.random(), r: 0.8 + Math.random() * 1.2,
-  }));
+    x.fillStyle = `rgb(${INK})`;
+    x.fillRect(0, 0, bg.width, bg.height);
+    const amb = x.createRadialGradient(cx * dpr, cy * dpr, 0, cx * dpr, cy * dpr, Math.max(W, H) * 0.75 * dpr);
+    amb.addColorStop(0, 'rgba(44,38,120,0.55)');
+    amb.addColorStop(0.5, 'rgba(30,26,90,0.25)');
+    amb.addColorStop(1, 'rgba(20,18,60,0)');
+    x.fillStyle = amb;
+    x.fillRect(0, 0, bg.width, bg.height);
+    x.globalAlpha = clamp01((t - 0.05) / 0.5);
+    x.drawImage(gridSpr, 0, 0);
+    if (q <= 0) { x.globalAlpha = 1; return; }
 
-  // ---- light ----
-  // 0..1: how far inside a beam a point is; `soft` widens the edge (degrees) and `fade` dims it along the beam
-  function inBeam(px, py, b, soft = 5, fade = false) {
-    const dx = px - b.x, dy = py - b.y, d = Math.hypot(dx, dy);
-    // the drawn beam fades out just past its pool, but its light carries on a little further
-    if (d > (fade ? 1 : 1.6) * b.len) return 0;
-    const diff = Math.abs(((((Math.atan2(dy, dx) - b.ang) / DEG) % 360) + 540) % 360 - 180);
-    const v = diff < b.half - 1 ? 1 : diff < b.half - 1 + soft ? 1 - (diff - b.half + 1) / soft : 0;
-    return v * (fade ? 1 - d / b.len : clamp01((1.6 * b.len - d) / (0.4 * b.len)));
+    toLogo(x);
+    const px = 1 / ls;
+    x.lineCap = 'round';
+    // the construction box: its lines run out from the logo across the whole screen
+    const reachX = (W / ls) * q, reachY = (H / ls) * q;
+    x.globalAlpha = 0.2;
+    x.strokeStyle = '#9d9bff';
+    x.lineWidth = 0.6 * px;
+    x.beginPath();
+    for (const y of [BOX.t, BOX.b]) { x.moveTo(BOX.l - reachX, y); x.lineTo(BOX.r + reachX, y); }
+    for (const v of [BOX.l, BOX.r]) { x.moveTo(v, BOX.t - reachY); x.lineTo(v, BOX.b + reachY); }
+    x.stroke();
+    // a cross at each corner
+    x.globalAlpha = 0.55 * q;
+    x.lineWidth = 0.8 * px;
+    x.beginPath();
+    for (const [v, y] of [[BOX.l, BOX.t], [BOX.r, BOX.t], [BOX.l, BOX.b], [BOX.r, BOX.b]]) {
+      x.moveTo(v - 5 * px, y); x.lineTo(v + 5 * px, y); x.moveTo(v, y - 5 * px); x.lineTo(v, y + 5 * px);
+    }
+    x.stroke();
+    // the pieces as dashed outlines, drawn round from their first corner
+    x.globalAlpha = 0.5;
+    x.strokeStyle = '#a9a7ff';
+    x.lineWidth = 0.75 * px;
+    x.setLineDash([3 * px, 2.5 * px]);
+    OUTLINES.forEach((P) => { trace(x, P, 0, P.L * q); x.stroke(); });
+    x.setLineDash([]);
+    // the wordmark in hairline, left to right
+    x.save();
+    x.beginPath();
+    x.rect(WORD.l - 2, WORD.t - 4, (WORD.r - WORD.l + 4) * q, WORD.b - WORD.t + 8);
+    x.clip();
+    x.globalAlpha = 0.32;
+    x.translate(150, 27);
+    x.scale(WS, WS);
+    x.lineWidth = (0.7 * px) / WS;
+    x.stroke(wordPath);
+    x.restore();
+    // the slant, measured off the left piece's lower corner: both edges run on outside it
+    const a = clamp01((q - 0.55) / 0.45);
+    if (a > 0) {
+      const [vx, vy] = PIECES[2][0];
+      x.globalAlpha = 0.5 * a;
+      x.strokeStyle = '#a9a7ff';
+      x.lineWidth = 0.7 * px;
+      x.setLineDash([2 * px, 2 * px]);
+      x.beginPath();
+      x.moveTo(vx, vy); x.lineTo(vx - 20, vy);
+      x.moveTo(vx, vy); x.lineTo(vx + Math.cos(Math.PI + SLANT) * 20, vy + Math.sin(Math.PI + SLANT) * 20);
+      x.stroke();
+      x.setLineDash([]);
+      x.beginPath();
+      x.arc(vx, vy, 12, Math.PI + SLANT, Math.PI);
+      x.stroke();
+    }
+    // the notes, in screen space so they stay at reading size
+    x.setTransform(dpr, 0, 0, dpr, 0, 0);
+    x.font = LABEL;
+    x.fillStyle = '#b4b2ff';
+    x.globalAlpha = 0.6 * a;
+    if (a > 0) {
+      const [vx, vy] = PIECES[2][0];
+      const m = Math.PI + SLANT / 2;
+      x.textAlign = 'right';
+      x.fillText('61°', sx(vx + Math.cos(m) * 16) - 2, sy(vy + Math.sin(m) * 16) + 8);
+    }
+    x.globalAlpha = 0.5 * clamp01((q - 0.3) / 0.5);
+    x.textAlign = 'left';
+    x.fillText('URB-01  ·  MARK + WORDMARK', sx(BOX.l), sy(BOX.t) - 10);
+    x.textAlign = 'right';
+    x.fillText('Ti-6Al-4V  ·  Grade 5', sx(BOX.r), sy(BOX.b) + 18);
+    x.globalAlpha = 1;
+    bgReady = q >= 1;
   }
-  function aimBeam(lamp, p, half, reach, power) {
-    const dx = p[0] - lamp[0], dy = p[1] - lamp[1], dist = Math.hypot(dx, dy);
-    return { x: lamp[0], y: lamp[1], ang: Math.atan2(dy, dx), half, dist, len: dist * 1.3 * reach, power, reach };
+
+  // ---- the laser: where its head is (logo units), how hard it fires, and whether it is cutting ----
+  function laser(t) {
+    if (t < CUT0 - 0.22) return null;
+    const p0 = PIECES[0][0];
+    // it fires up on the first corner
+    if (t < CUT0) return { x: p0[0], y: p0[1], p: smooth(clamp01((t - CUT0 + 0.22) / 0.2)), cut: false };
+    for (let i = 0; i < 6; i++) {
+      const s = pieceAt(i);
+      if (t < s) {
+        // a quick, dim hop to the next piece's corner
+        const a = PIECES[i - 1][0], b = PIECES[i][0], u = smooth(clamp01((t - s + HOP) / HOP));
+        return { x: lerp(a[0], b[0], u), y: lerp(a[1], b[1], u), p: 0.35, cut: false };
+      }
+      if (t < s + CUT) {
+        const [x, y] = pointAt(OUTLINES[i], OUTLINES[i].L * ((t - s) / CUT));
+        return { x, y, p: 1, cut: true };
+      }
+    }
+    if (t < RASTER[0]) {
+      const a = PIECES[5][0], u = smooth(clamp01((t - CUT_END) / (RASTER[0] - CUT_END)));
+      return { x: lerp(a[0], WORD.l, u), y: lerp(a[1], WORD.t, u), p: 0.35, cut: false };
+    }
+    // the wordmark is rastered: the head sweeps up and down as it crosses
+    if (t < RASTER[1]) {
+      const u = (t - RASTER[0]) / (RASTER[1] - RASTER[0]);
+      return { x: lerp(WORD.l, WORD.r, u), y: lerp(WORD.t, WORD.b, 0.5 - 0.5 * Math.cos(u * Math.PI * 14)), p: 1, cut: true };
+    }
+    // then it shuts off and the beam draws back up
+    const off = 1 - clamp01((t - RASTER[1]) / 0.25);
+    return off > 0 ? { x: WORD.r, y: WORD.t, p: off, cut: false } : null;
   }
-  function drawBeam(b, alpha) {
-    if (alpha <= 0.005 || b.len < 1) return;
-    const sx = b.len / BL, sy = (Math.tan(Math.min(b.half, 75) * DEG) / BT) * sx;
-    ctx.save();
-    ctx.translate(b.x, b.y);
-    ctx.rotate(b.ang);
-    ctx.scale(sx, sy);
-    ctx.globalAlpha = alpha;
-    ctx.drawImage(beamSpr, 0, -BH / 2);
-    ctx.restore();
+
+  // ---- sparks: flung from the cut, slowed by the air, pulled down, bouncing on the bar ----
+  const sparks = [];
+  let spawn = 0;
+  function emit(x, y, rate, dt) {
+    spawn += rate * dt;
+    while (spawn >= 1 && sparks.length < 360) {
+      spawn -= 1;
+      // most fly out in a fan above the cut, the rest any way at all
+      const fan = Math.random() < 0.7;
+      const ang = fan ? -Math.PI / 2 + (Math.random() * 2 - 1) * 1.3 : Math.random() * Math.PI * 2;
+      const v = 120 + 620 * Math.pow(Math.random(), 1.4);
+      sparks.push({ x, y, vx: Math.cos(ang) * v, vy: Math.sin(ang) * v, age: 0, life: 0.3 + Math.random() * 0.65 });
+    }
+    if (spawn >= 1) spawn = 0;
   }
-  // where the beam meets the wall: a soft pool, longer along the beam than across it
-  function drawPool(b, alpha) {
-    if (alpha <= 0.005) return;
-    const r = b.dist * Math.tan(b.half * DEG);
-    const px = b.x + Math.cos(b.ang) * b.dist * b.reach, py = b.y + Math.sin(b.ang) * b.dist * b.reach;
-    ctx.save();
-    ctx.translate(px, py);
-    ctx.rotate(b.ang);
-    ctx.globalAlpha = alpha;
-    ctx.drawImage(glowSpr, -r * 1.35, -r * 1.05, r * 2.7, r * 2.1);
-    ctx.restore();
+  function stepSparks(dt) {
+    const drag = Math.exp(-0.9 * dt);
+    for (let i = sparks.length - 1; i >= 0; i--) {
+      const s = sparks[i];
+      s.age += dt;
+      if (s.age >= s.life) { sparks.splice(i, 1); continue; }
+      s.vx *= drag;
+      s.vy = s.vy * drag + 1500 * dt;
+      s.x += s.vx * dt;
+      s.y += s.vy * dt;
+      if (s.y > floor && s.vy > 0) {
+        s.y = floor - (s.y - floor) * 0.3;
+        s.vy *= -0.32;
+        s.vx *= 0.72;
+        s.age += 0.08;
+      }
+    }
   }
-  function drawTorch(x, y, r, power, flare, ang) {
-    if (power <= 0.01) return;
+  function drawSparks(fade = 1) {
+    if (!sparks.length || fade <= 0) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.globalCompositeOperation = 'lighter';
-    const hr = r * (4.2 + 2.4 * flare);
-    ctx.globalAlpha = Math.min(1, 0.8 * power + 0.3 * flare);
-    ctx.drawImage(glowSpr, x - hr, y - hr, hr * 2, hr * 2);
+    ctx.lineCap = 'round';
+    for (const s of sparks) {
+      // white-hot, then lilac, then the brand blue as it cools
+      const T = 1 - s.age / s.life;
+      ctx.strokeStyle = T > 0.55 ? '#fff' : T > 0.25 ? '#c4c0ff' : '#6461ff';
+      ctx.globalAlpha = Math.min(1, T * 2) * fade;
+      ctx.lineWidth = 0.8 + 0.9 * T;
+      // a streak as long as the distance it covers in a frame or so, like a spark on film
+      ctx.beginPath();
+      ctx.moveTo(s.x - s.vx * 0.018, s.y - s.vy * 0.018);
+      ctx.lineTo(s.x, s.y);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
-    ctx.globalAlpha = power * 0.8;
-    const sr = (r / 58) * 128 * 2.2;
-    ctx.drawImage(specks, x - sr, y - sr, sr * 2, sr * 2);
-    // the head turned towards the beam: its housing shows as a dark crescent behind the lens, and the
-    // lens's hot core sits on the side the light leaves from, so it reads as a torch, not a ball
-    const ux = Math.cos(ang), uy = Math.sin(ang);
-    ctx.globalAlpha = Math.min(1, 1.4 * power);
-    ctx.fillStyle = '#25266a';
-    ctx.beginPath(); ctx.arc(x - ux * 0.2 * r, y - uy * 0.2 * r, 1.08 * r, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // ---- the metal, lit on the working canvas: cut pieces, the rastered word, heat, the laser's own
+  // reflection and the glint ----
+  function renderMetal(t, head) {
+    const w = work.getContext('2d');
+    w.setTransform(1, 0, 0, 1, 0, 0);
+    w.globalCompositeOperation = 'source-over';
+    w.globalAlpha = 1;
+    w.clearRect(0, 0, SW, SH);
+    const inLogo = () => w.setTransform(k, 0, 0, k, PAD * k, PAD * k);
+    let any = false;
+    PIECES.forEach((p, i) => {
+      const e = pieceAt(i) + CUT;
+      if (t <= e) return;
+      w.save();
+      inLogo();
+      w.beginPath(); poly(w, p); w.clip();
+      w.setTransform(1, 0, 0, 1, 0, 0);
+      w.globalAlpha = smooth(clamp01((t - e) / 0.14));
+      w.drawImage(metal, 0, 0);
+      w.restore();
+      any = true;
+    });
+    const scan = t > RASTER[0] ? lerp(WORD.l, WORD.r, clamp01((t - RASTER[0]) / (RASTER[1] - RASTER[0]))) : 0;
+    if (scan > WORD.l) {
+      w.save();
+      inLogo();
+      w.beginPath(); w.rect(WORD.l - 3, -PAD, scan - WORD.l + 3, 120 + 2 * PAD); w.clip();
+      w.setTransform(1, 0, 0, 1, 0, 0);
+      w.drawImage(metal, 0, 0);
+      w.restore();
+      any = true;
+    }
+    if (!any) return false;
+    inLogo();
+    w.globalCompositeOperation = 'source-atop';
+    // fresh cuts glow white and cool through violet into the metal
+    PIECES.forEach((p, i) => {
+      const h = Math.exp(-(t - pieceAt(i) - CUT) / 0.38);
+      if (t <= pieceAt(i) + CUT || h < 0.01) return;
+      w.fillStyle = `rgba(${Math.round(lerp(150, 255, h))},${Math.round(lerp(130, 250, h))},255,${(0.9 * h).toFixed(3)})`;
+      w.beginPath(); poly(w, p); w.fill();
+    });
+    if (scan > WORD.l) {
+      const h = t < RASTER[1] ? 1 : Math.exp(-(t - RASTER[1]) / 0.35);
+      if (h > 0.01) {
+        const g = w.createLinearGradient(scan - 70, 0, scan, 0);
+        g.addColorStop(0, 'rgba(150,130,255,0)');
+        g.addColorStop(0.7, `rgba(190,175,255,${(0.45 * h).toFixed(3)})`);
+        g.addColorStop(1, `rgba(255,250,255,${(0.9 * h).toFixed(3)})`);
+        w.fillStyle = g;
+        w.fillRect(scan - 70, -PAD, 70, 120 + 2 * PAD);
+      }
+    }
+    // the laser's point is the brightest thing in the room: the metal round it reflects it
+    if (head && head.p > 0.05) {
+      const g = w.createRadialGradient(head.x, head.y, 0, head.x, head.y, 55);
+      g.addColorStop(0, `rgba(235,233,255,${(0.5 * head.p).toFixed(3)})`);
+      g.addColorStop(1, 'rgba(235,233,255,0)');
+      w.fillStyle = g;
+      w.fillRect(head.x - 55, head.y - 55, 110, 110);
+    }
+    // the glint: a band of light sweeps across the finished logo, leaning with the slant a little,
+    // then a slow sheen keeps the metal alive while the scene holds
+    const glint = (gx, a) => {
+      const tilt = Math.tan(14 * DEG) * 60;
+      const g = w.createLinearGradient(gx - 70 - tilt, 0, gx + 70 + tilt, 120);
+      g.addColorStop(0, 'rgba(255,255,255,0)');
+      g.addColorStop(0.36, `rgba(255,255,255,${(0.08 * a).toFixed(3)})`);
+      g.addColorStop(0.47, `rgba(255,255,255,${(0.55 * a).toFixed(3)})`);
+      g.addColorStop(0.5, `rgba(255,255,255,${(0.95 * a).toFixed(3)})`);
+      g.addColorStop(0.53, `rgba(255,255,255,${(0.55 * a).toFixed(3)})`);
+      g.addColorStop(0.64, `rgba(255,255,255,${(0.08 * a).toFixed(3)})`);
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      w.fillStyle = g;
+      w.fillRect(-PAD, -PAD, 430 + 2 * PAD, 120 + 2 * PAD);
+    };
+    if (t > GLINT[0] && t < GLINT[1]) glint(lerp(-90, 520, io3((t - GLINT[0]) / (GLINT[1] - GLINT[0]))), 1);
+    if (t > HOLD) glint(210 + 150 * Math.sin((t - HOLD) * 0.9 - Math.PI / 2), 0.35 * clamp01((t - HOLD) / 0.6));
+    w.globalCompositeOperation = 'source-over';
+    return true;
+  }
+  function drawMetal(t, head, scale = 1, alpha = 1) {
+    if (!renderMetal(t, head) || alpha <= 0) return;
+    const ox = cx + (-PAD - 210) * ls * scale, oy = cy + (-PAD - 60) * ls * scale;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(work, ox * dpr, oy * dpr, SW * scale, SH * scale);
     ctx.globalAlpha = 1;
-    ctx.fillStyle = `rgb(${Math.round(176 + 79 * power)},${Math.round(184 + 71 * power)},255)`;
-    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
-    ctx.globalAlpha = power;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(ang);
-    ctx.drawImage(lensSpr, -r, -r, 2 * r, 2 * r);
-    ctx.restore();
+  }
+
+  // the kerf: the cut line round each piece, white-hot at the head and cooling behind it, fading out
+  // once the piece has turned to metal
+  function drawKerfs(t) {
+    toLogo(ctx);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    const px = 1 / ls;
+    OUTLINES.forEach((P, i) => {
+      const s = pieceAt(i), f = clamp01((t - s) / CUT);
+      if (f <= 0) return;
+      const done = t - s - CUT;
+      const cool = f < 1 ? 0.5 : 0.5 * clamp01(1 - (done - 0.25) / 0.6);
+      if (cool > 0.01) {
+        ctx.globalAlpha = cool;
+        ctx.strokeStyle = '#aaa8ff';
+        ctx.lineWidth = 1 * px;
+        trace(ctx, P, 0, P.L * f);
+        ctx.stroke();
+      }
+      const hot = f < 1 ? 1 : Math.exp(-done / 0.18);
+      if (hot < 0.02) return;
+      const d1 = P.L * f, d0 = f < 1 ? Math.max(0, d1 - 0.3 * P.L) : 0;
+      for (const [lw, a, c] of [[5, 0.22, '#9c98ff'], [1.5, 0.95, '#fff']]) {
+        ctx.globalAlpha = a * hot;
+        ctx.strokeStyle = c;
+        ctx.lineWidth = lw * px;
+        trace(ctx, P, d0, d1);
+        ctx.stroke();
+      }
+    });
     ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  // the beam comes straight down from above the screen onto its point, which flares and lights the
+  // plate round it
+  function drawBeam(hx, hy, p, t) {
+    if (p <= 0.01) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.globalCompositeOperation = 'lighter';
+    const flick = 0.85 + 0.15 * Math.sin(t * 97) * Math.sin(t * 61);
+    ctx.globalAlpha = 0.2 * p;
+    ctx.drawImage(glowSpr, hx - 120, hy - 120, 240, 240);
+    const g = ctx.createLinearGradient(0, 0, 0, hy);
+    g.addColorStop(0, 'rgba(150,146,255,0)');
+    g.addColorStop(0.75, `rgba(180,176,255,${(0.3 * p).toFixed(3)})`);
+    g.addColorStop(1, `rgba(255,255,255,${(0.95 * p).toFixed(3)})`);
+    ctx.fillStyle = g;
+    ctx.globalAlpha = 0.28;
+    ctx.fillRect(hx - 4, 0, 8, hy);
+    ctx.globalAlpha = 1;
+    ctx.fillRect(hx - 0.7, 0, 1.4, hy);
+    const r = 24 * flick * (0.4 + 0.6 * p);
+    ctx.globalAlpha = p;
+    ctx.drawImage(glowSpr, hx - r, hy - r, 2 * r, 2 * r);
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(hx, hy, 2.1 * p, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
   }
 
   // ---- the frame ----
-  function draw(tau, dive) {
-    const t = Math.min(tau, HOLD);
-    // the settled pose breathes a little while the fonts load
-    const idle = Math.max(0, tau - HOLD);
-    // a slow pull-back across the whole scene, so the frame is never quite still, then the dive
-    const k = (1 + 0.12 * Math.pow(1 - t / HOLD, 2)) * (1 + 5.5 * ease.in3(dive));
+  function draw(t, dt) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = '#08071a';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.setTransform(dpr * k, 0, 0, dpr * k, dpr * cx * (1 - k), dpr * cy * (1 - k));
+    if (!bgReady) renderBg(t);
+    ctx.drawImage(bg, 0, 0);
+    const head = laser(t);
+    const hx = head ? sx(head.x) : 0, hy = head ? sy(head.y) : 0;
+    drawMetal(t, head);
+    drawKerfs(t);
+    if (head && head.cut) emit(hx, hy, 240, dt);
+    stepSparks(dt);
+    drawSparks();
+    if (head) drawBeam(hx, hy, head.p, t);
+  }
 
-    const power = ease.out2(clamp01((t - IGNITE) / 0.6));
-    const flare = Math.sin(Math.PI * clamp01((t - IGNITE) / 0.7)) * (t < IGNITE + 0.7 ? 1 : 0);
-    // the stage only comes up as the torch catches
-    const R = Math.max(W, H * 0.6) * 0.95;
-    ctx.globalAlpha = 0.2 + 0.55 * power;
-    ctx.drawImage(ambSpr, cx - R, cy + H * 0.03 - R * 1.1, R * 2, R * 2.2);
-
-    const torch = [TORCH[0] * W, TORCH[1] * H];
-    const aim = spline(AIM, t);
-    aim[0] = (aim[0] + Math.sin(idle * 0.7) * 0.012) * W;
-    aim[1] = (aim[1] + Math.sin(idle * 0.5 + 1) * 0.006) * H;
-    const main = aimBeam(torch, aim, kf(HALF, t) * hk + 34 * ease.in2(dive), kf(REACH, t, ease.out2), power);
-    const powerB = kf(POWER_B, t);
-    const aimB = spline(AIM_B, t);
-    const counter = aimBeam([COUNTER[0] * W, COUNTER[1] * H], [aimB[0] * W, aimB[1] * H], HALF_B + 20 * ease.in2(dive), 1, powerB);
-
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = 0.16 * power;
-    const tg = W * 0.6;
-    ctx.drawImage(glowSpr, torch[0] - tg, torch[1] - tg, tg * 2, tg * 2);
-    drawBeam(main, power * (0.62 + 0.38 * dive));
-    drawPool(main, power * main.reach * (0.3 + 0.4 * dive));
-    drawBeam(counter, powerB * (0.47 + 0.3 * dive));
-    drawPool(counter, powerB * (0.21 + 0.25 * dive));
-
-    // dust drifting up through the light
-    ctx.fillStyle = '#eceaff';
-    for (const m of dust) {
-      const x = (m.x + Math.sin(tau * 0.35 * m.sp + m.ph) * 0.03) * W;
-      const y = ((((m.y - tau * 0.012 * m.sp) % 1) + 1) % 1) * H;
-      const v = power * inBeam(x, y, main, 8, true) + powerB * 0.6 * inBeam(x, y, counter, 8, true);
-      if (v < 0.03) continue;
-      ctx.globalAlpha = Math.min(1, v) * 0.75;
-      ctx.fillRect(x - m.r / 2, y - m.r / 2, m.r, m.r);
-    }
-
-    // the torch catches with a burst of sparks that drift and fall
-    const ds = t - IGNITE - 0.05;
-    if (ds > 0 && ds < 1.4) {
-      const drag = (1 - Math.exp(-3.2 * ds)) / 3.2;
-      for (const p of sparks) {
-        if (ds > p.life) continue;
-        ctx.globalAlpha = Math.pow(1 - ds / p.life, 1.4) * 0.95;
-        ctx.fillStyle = p.c;
-        ctx.fillRect(torch[0] + p.vx * W * drag - p.r / 2, torch[1] + (p.vy * drag + 0.16 * ds * ds) * W - p.r / 2, p.r, p.r);
+  // the exit: the laser slices the plate along the logo's slant, and the two halves part along the
+  // line square to it, the bar and the counter riding off with the lower one
+  const ux = Math.cos(SLANT), uy = Math.sin(SLANT), nx = -uy, ny = ux;
+  function drawExit(t, e, dt) {
+    const Lc = Math.hypot(W, H) * 0.6;
+    const cut = clamp01(e / SLICE);
+    const s = lerp(-Lc, Lc, smooth(cut));
+    const hx = cx + ux * s, hy = cy + uy * s;
+    const D = io3(clamp01((e - PART[0]) / (PART[1] - PART[0]))) * Math.hypot(W, H) * 0.58;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const edgeHot = cut < 1 ? 1 : Math.exp(-(e - SLICE) / 0.3);
+    for (const side of [-1, 1]) {
+      const ox = side * nx * D, oy = side * ny * D;
+      ctx.save();
+      ctx.setTransform(dpr, 0, 0, dpr, dpr * ox, dpr * oy);
+      ctx.beginPath();
+      ctx.moveTo(cx - ux * Lc * 2, cy - uy * Lc * 2);
+      ctx.lineTo(cx + ux * Lc * 2, cy + uy * Lc * 2);
+      ctx.lineTo(cx + ux * Lc * 2 + side * nx * Lc * 3, cy + uy * Lc * 2 + side * ny * Lc * 3);
+      ctx.lineTo(cx - ux * Lc * 2 + side * nx * Lc * 3, cy - uy * Lc * 2 + side * ny * Lc * 3);
+      ctx.closePath();
+      ctx.clip();
+      ctx.setTransform(1, 0, 0, 1, dpr * ox, dpr * oy);
+      ctx.drawImage(bg, 0, 0);
+      // the cut edge, glowing and cooling
+      if (D > 0.5 && edgeHot > 0.02) {
+        ctx.setTransform(dpr, 0, 0, dpr, dpr * ox, dpr * oy);
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = '#c9c6ff';
+        ctx.globalAlpha = 0.8 * edgeHot;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cx - ux * Lc * 2, cy - uy * Lc * 2);
+        ctx.lineTo(cx + ux * Lc * 2, cy + uy * Lc * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'source-over';
       }
+      ctx.restore();
     }
-    ctx.globalCompositeOperation = 'source-over';
-    // the logo's light, in its own units (the camera's pre-zoom space shifted to the logo and divided by
-    // its scale): each beam as drawn, its light carrying a little past the drawn beam's end, as above,
-    // and the shadows it casts on the wall, fading with the logo in the dive
-    const lo = dive > 0 ? 1 - clamp01((dive - 0.22) / 0.38) : 1;
-    const lamp = (b, size) => ({
-      x: 210 + (b.x - cx) / ls, y: 60 + (b.y - cy) / ls, ang: b.ang, half: b.half * DEG, size: size / ls,
-      power: b.power * clamp01((1.6 * b.len - Math.hypot(cx - b.x, cy - b.y)) / (0.4 * b.len || 1)),
-    });
-    const torchR = Math.min(W, H) * 0.036;
-    const lamps = [lamp(main, torchR * 2), lamp(counter, torchR * 3)];
-    // the dive scales the logo up: its light holds still from here, so the masks are not redrawn at
-    // every new size
-    if (!dive) lighting.update(lamps);
-    ctx.save();
-    ctx.translate(cx - 210 * ls, cy - 60 * ls);
-    ctx.scale(ls, ls);
-    lighting.shadows(ctx, lamps, lo);
-    ctx.restore();
-    drawTorch(torch[0], torch[1], torchR, power, flare, main.ang);
-
-    // the dive: the light fills the frame
-    const washA = dive > 0 ? clamp01((dive - 0.4) / 0.45) : 0;
-    if (washA > 0) {
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.globalAlpha = washA;
-      ctx.fillStyle = washRgb;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // the slice itself, white behind the head and cooling back along the line
+    if (D < 1) {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.globalCompositeOperation = 'lighter';
+      const g = ctx.createLinearGradient(cx - ux * Lc, cy - uy * Lc, hx, hy);
+      g.addColorStop(0, 'rgba(160,156,255,0.25)');
+      g.addColorStop(0.8, 'rgba(200,198,255,0.6)');
+      g.addColorStop(1, 'rgba(255,255,255,1)');
+      ctx.strokeStyle = g;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(cx - ux * Lc, cy - uy * Lc);
+      ctx.lineTo(hx, hy);
+      ctx.stroke();
+      ctx.globalCompositeOperation = 'source-over';
     }
-    ctx.globalAlpha = 1;
-
-    // the logo scales in place with the camera, lit by the beams
-    const tr = `translate(${cx.toFixed(2)}px, ${cy.toFixed(2)}px) scale(${(ls * k).toFixed(4)}) translate(-210px, -60px)`;
-    if (tr !== logoTr) { logoTr = tr; logo.style.transform = tr; }
-    const op = lo.toFixed(3);
-    if (op !== logoOp) { logoOp = op; logo.style.opacity = op; }
+    // the finished logo lifts towards the camera and fades as the plate opens
+    const lift = smooth(clamp01((e - 0.25) / 0.6));
+    drawMetal(t, null, 1 + 0.12 * lift, 1 - lift);
+    if (cut < 1) emit(hx, hy, 320, dt);
+    stepSparks(dt);
+    drawSparks(1 - clamp01((e - 0.75) / 0.4));
+    if (cut < 1) drawBeam(hx, hy, 1, t);
+    const by = { x: nx * D, y: ny * D };
+    gsap.set([count, bar], by);
   }
 
   // ---- clocks ----
-  const st = { tau: 0, dive: 0 };
-  const tick = () => draw(st.tau, st.dive);
+  const st = { t: 0, e: -1 };
+  const tick = (time, deltaTime) => {
+    const dt = Math.min((deltaTime || 16) / 1000, 1 / 30);
+    if (st.e >= 0) drawExit(st.t, st.e, dt);
+    else draw(st.t, dt);
+  };
   resize();
-  window.addEventListener('resize', resize);
+  const onResize = () => { resize(); };
+  window.addEventListener('resize', onResize);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { bgReady = false; });
   let clock = null;
   const finish = () => {
     gsap.ticker.remove(tick);
     clock && clock.kill();
-    window.removeEventListener('resize', resize);
-    // free the canvas's backing store now rather than whenever it is collected
-    canvas.width = canvas.height = 1;
+    window.removeEventListener('resize', onResize);
+    // free the canvases' backing stores now rather than whenever they are collected
+    for (const c of [canvas, metal, work, gridSpr, bg]) if (c) c.width = c.height = 1;
     el.remove();
     onDone && onDone();
   };
 
-  // the logo assembles in the dark: pieces slide in along their own slants (each layer's copy of a
-  // piece together), the wordmark is revealed left to right
-  const OFF = [[-0.485, -0.875], [-0.485, 0.875], [0.485, -0.875], [-0.485, 0.875], [0.485, -0.875], [0.485, 0.875]];
   if (reduced) {
-    wordClip.setAttribute('width', '290');
+    st.t = HOLD;
+    renderBg(DRAFT[1] + 1);
     draw(HOLD, 0);
     num.textContent = '100';
     fill.style.transform = 'scaleX(1)';
     gsap.timeline({ delay: 0.6 })
-      .add(() => { onReveal && onReveal(); })
+      .add(() => { onReveal && onReveal(MOBILE_HAND); })
       .to(el, { opacity: 0, duration: 0.5, ease: 'none' })
       .add(finish);
     return null;
   }
 
-  pieces.forEach((p, i) => gsap.set(p, { x: OFF[i % 6][0] * 60, y: OFF[i % 6][1] * 60, opacity: 0 }));
-  gsap.set(wordClip, { attr: { width: 0 } });
   gsap.set(fill, { scaleX: 0, transformOrigin: '0% 50%' });
   gsap.set(count, { opacity: 0, y: 40 });
   gsap.ticker.add(tick);
-  // the scene clock runs through the settled pose and idles there until the exit
-  clock = gsap.to(st, { tau: 40, duration: 40, ease: 'none' });
+  // the scene clock runs through the finished pose and idles there until the exit
+  clock = gsap.to(st, { t: 40, duration: 40, ease: 'none' });
 
   const c = { v: 0 };
   let shown = -1;
@@ -410,24 +636,21 @@ export function runMobilePreloader({ el, reduced, onReveal, onDone, wash, grain 
   };
   const tl = gsap.timeline();
   tl.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.25, ease: 'none' }, 0)
-    .to(count, { opacity: 1, y: 0, duration: 0.9, ease: 'expo.out' }, 0.5)
-    .to(c, { v: 100, duration: HOLD - 0.6, ease: 'power2.inOut', onUpdate: setCount }, 0.6)
-    .to(pieces, { x: 0, y: 0, opacity: 1, duration: 1.3, ease: 'expo.out', stagger: (i) => (i % 6) * 0.09 }, 1.1)
-    .to(wordClip, { attr: { width: 290 }, duration: 1.1, ease: 'power3.inOut' }, 1.7);
+    .to(count, { opacity: 1, y: 0, duration: 0.9, ease: 'expo.out' }, 0.4)
+    .to(c, { v: 100, duration: HOLD - 0.5, ease: 'power1.inOut', onUpdate: setCount }, 0.5);
 
   const exit = () => {
-    const r = count.getBoundingClientRect();
     el.classList.add('is-out');
+    // the canvas draws the plate itself from here, so the page can show where it opens
+    el.style.background = 'transparent';
     gsap.timeline()
-      .to(st, { dive: 1, duration: DIVE_DUR, ease: 'none' }, 0)
-      .to(count, { scale: 5, opacity: 0, transformOrigin: `${cx - r.left}px ${cy - r.top}px`, duration: 0.6, ease: 'power2.in' }, 0.1)
-      .to(bar, { opacity: 0, duration: 0.3 }, 0.2)
-      // the frame is a flat wash now: the hero starts drawing in the same colour underneath
-      .add(() => { onReveal && onReveal(); }, DIVE_DUR - 0.18)
-      .to(el, { opacity: 0, duration: 0.3, ease: 'none' }, DIVE_DUR - 0.1)
-      .add(finish);
+      .fromTo(st, { e: 0 }, { e: EXIT, duration: EXIT, ease: 'none' }, 0)
+      // the glass starts fading in from the plate's colour under it as the slice begins, so it is
+      // there when the halves part
+      .add(() => { onReveal && onReveal(MOBILE_HAND); }, 0)
+      .add(finish, EXIT);
   };
-  // leave once the scene has settled and the fonts the hero needs are in (but never wait long)
+  // leave once the logo is finished and the fonts the hero needs are in (but never wait long)
   const posed = new Promise((r) => tl.call(r, null, HOLD));
   const fonts = document.fonts && document.fonts.ready ? document.fonts.ready.catch(() => { }) : Promise.resolve();
   const cap = new Promise((r) => setTimeout(r, HOLD * 1000 + 1500));

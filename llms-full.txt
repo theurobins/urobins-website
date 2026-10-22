@@ -1,0 +1,382 @@
+# Urobins: full site text
+
+> Urobins is a remote-first digital agency in India. One in-house team designs, builds and grows websites, mobile apps, custom CRMs and cloud infrastructure, then markets them with SEO and performance marketing, for startups and growing businesses across India and worldwide.
+
+Website: https://urobins.com/ · Last updated: 2026-10-22
+
+## About
+
+Urobins is an engineering-led digital agency, based in India and working worldwide. We design, build, and ship custom websites, mobile apps, and CRM workflows end to end, from architecture and code through launch, monitoring, and iteration.
+
+Every system runs on secure cloud infrastructure with monitoring, backups, and uptime designed in from day one. Growth work is just as transparent: clear SEO and performance marketing plans, shared dashboards, and reporting tied to revenue.
+
+Founder: Nikhil Chauhan, CEO & CTO. Remote-first team in India, working with clients across India and worldwide.
+
+## Commitments
+
+These are targets and cadences, not claimed past results.
+
+- **45 days** from kickoff to a production-ready MVP for a typical product
+- **2 weeks** between releases you can click through yourself
+- **99.9%** uptime target for every environment we run
+- **24h** to answer every inquiry with next steps and a rough timeline
+- **100%** of design and engineering done by our own team
+
+## How we work
+
+1. **Discover**: A technical audit of your product, users and systems, then the architecture and a roadmap you can hold us to. A fixed-scope first sprint: working software inside the first two weeks, not a deck.
+2. **Build**: Design and engineering move together: UX, front end, back end and QA, shipped in two-week releases you can click through. Production-ready in about 45 days for a typical MVP.
+3. **Launch**: Cloud infrastructure, monitoring, backups and a go-live checklist, so launch day is the quietest day of the project.
+4. **Scale**: SEO, performance marketing and CRM automation turn a launched product into a growing business, reported against revenue.
+
+## Services
+
+- [Web development](https://urobins.com/web-development/): Business websites, web apps, SaaS platforms and online stores, fast and SEO-ready.
+- [Mobile app development](https://urobins.com/mobile-app-development/): iOS, Android and Flutter apps with the backend, admin panel and launch they need.
+- [CRM development](https://urobins.com/crm-development/): Custom CRMs, CRM integrations and the sales and business workflows around them.
+- [SEO services](https://urobins.com/seo-services/): Technical, on-page, content and local SEO, implemented by engineers and reported against revenue.
+- [Digital marketing](https://urobins.com/digital-marketing/): Google and Meta ads, social, content and lead generation, tracked to revenue.
+- [Cloud & DevOps](https://urobins.com/cloud-devops/): AWS and Google Cloud architecture, migration, CI/CD, Kubernetes and managed support.
+
+## Web development built to rank and convert
+
+Urobins designs and builds custom websites and web applications for startups and growing businesses: marketing sites, SaaS platforms, client portals and online stores, engineered for speed, search and accessibility from the first commit, with clean code you own.
+
+### What we build
+
+- **Custom web applications**: SaaS products, dashboards, client portals and internal tools with secure sign-in, role-based access, APIs and a database designed to keep growing.
+- **Business and marketing websites**: Fast, responsive company websites that explain what you do in seconds, on a CMS your team can edit without calling a developer.
+- **E-commerce development**: Online stores with clear product pages, a quick checkout, payment gateways such as Razorpay and Stripe, and inventory, shipping and invoicing integrations.
+- **WordPress and headless CMS**: Custom WordPress themes and headless builds that keep editing simple, stay secure with updates and backups, and load fast on every device.
+- **Progressive web apps**: App-like experiences in the browser: installable, offline-ready and able to send notifications, without shipping to two app stores.
+- **Redesigns, migrations and speed**: Audit, redesign or re-platform an existing site without losing rankings: redirect maps, Core Web Vitals fixes and accessibility upgrades.
+
+### Why Urobins
+
+- **Performance is a requirement**: We set budgets for page weight and load time at the start and test against Core Web Vitals (LCP, INP and CLS) before every release, on real mid-range phones.
+- **SEO and accessibility from day one**: Semantic HTML, structured data, clean URLs, XML sitemaps and WCAG 2.2 AA checks are part of the build, not an add-on after launch.
+- **Code you own**: Readable, documented code in your repository, with CI/CD and hosting set up in your own accounts. No lock-in to us or to a page builder.
+- **One team, design to deployment**: UX, UI, front end, back end and cloud sit in one in-house team, so nothing gets lost in a hand-off between agencies.
+
+### How we work
+
+1. **Discover**: Goals, audience, content and a technical audit of what exists, ending in a sitemap, an architecture plan and a fixed-scope first sprint.
+2. **Design**: Wireframes and a UI system in Figma, designed mobile first, with the copy and conversion paths worked out before any code.
+3. **Build**: Front end, back end and CMS in two-week releases you can click through on a staging link, with speed and accessibility checks on each.
+4. **Launch and grow**: A go-live checklist, redirects, analytics and Search Console, then ongoing support, testing and SEO.
+
+### Tools and technologies
+
+Next.js, React, TypeScript, JavaScript, Node.js, PostgreSQL, WordPress, Headless CMS, Firebase, Cloudflare, AWS, Figma
+
+### FAQ
+
+**How much does website development cost in India?**
+It depends on scope: a focused business website and a custom web application are very different builds. We price each project after a short discovery call and send a written proposal with a fixed scope for the first phase and a timeline, rather than an open-ended hourly estimate.
+
+**How long does it take to build a website?**
+A business website usually takes a few weeks. A custom web application typically reaches a production-ready MVP in about 45 days, with a working build to review every two weeks along the way.
+
+**Which technologies do you use for web development?**
+Mostly Next.js and React with TypeScript on the front end, Node.js and PostgreSQL on the back end, and WordPress or a headless CMS when your team needs to edit content. We choose the stack per project and explain why in writing.
+
+**Will my website be fast and SEO-friendly?**
+Yes. Every build ships with semantic HTML, structured data, an XML sitemap, clean URLs, optimised images and Core Web Vitals checks, so search engines can crawl it and visitors never wait.
+
+**Can you redesign my website without losing Google rankings?**
+Yes. We crawl the current site first, map every URL to its new home with 301 redirects, keep the content that ranks and watch Search Console closely after launch.
+
+**Do you work with clients outside India?**
+Yes. We are a remote-first team in India and work with clients across India and abroad, over video calls, WhatsApp and a shared project channel.
+
+URL: https://urobins.com/web-development/
+
+## Mobile app development for iOS and Android
+
+We design, build and launch mobile apps for iOS and Android, native in Swift and Kotlin or cross-platform in Flutter, together with the backend, admin panel and analytics they need to run. You test a real build on your own phone every two weeks.
+
+### What we build
+
+- **Cross-platform apps in Flutter**: One codebase for iOS and Android with native performance: the right fit for most startup and business apps that need both stores quickly.
+- **Native iOS and Android apps**: Swift and Kotlin builds for apps that lean on the camera, Bluetooth, background location, health data or heavy graphics.
+- **App UI and UX design**: User research, flows and a design system in Figma, with clickable prototypes tested before development starts.
+- **Backend, APIs and admin panels**: Secure APIs, databases, authentication, push notifications and an admin dashboard, so your team can run the app day to day.
+- **Payments, maps and integrations**: In-app payments and subscriptions, maps and live tracking, chat, and connections to your CRM, ERP or existing systems.
+- **Launch, support and growth**: App Store and Google Play submission, crash monitoring, analytics, regular updates and app store optimisation after launch.
+
+### Why Urobins
+
+- **A build on your phone every two weeks**: Progress is something you install and use, not a slide. Each release goes to TestFlight or a Google Play test track for you to try.
+- **Native where it matters**: We recommend Flutter or native per feature and budget, and explain the trade-off in writing before you commit.
+- **Built for the real world**: Offline states, slow networks, older phones, accessibility settings and store review rules are planned for, not discovered at launch.
+- **The whole product, one team**: Design, mobile, backend, cloud and marketing are in-house, so the app, its API and its launch campaign are built together.
+
+### How we work
+
+1. **Discover**: Users, features and monetisation mapped into a scoped MVP, a technical architecture and a release plan.
+2. **Design**: User flows, UI design and a clickable prototype you can tap through on your own phone.
+3. **Build and test**: Two-week sprints with test builds, automated tests and QA on real iOS and Android devices.
+4. **Launch and improve**: Store listings and submission, crash and analytics monitoring, then regular updates based on what users actually do.
+
+### Tools and technologies
+
+Flutter, Swift, Kotlin, iOS, Android, Firebase, Node.js, TypeScript, PostgreSQL, Google Cloud, AWS, Figma
+
+### FAQ
+
+**How much does it cost to develop a mobile app in India?**
+It depends on the features, the platforms and the backend the app needs. After a short discovery call we send a written proposal with a fixed scope for the first release and a timeline, so you know what you are paying for before we start.
+
+**How long does mobile app development take?**
+A focused MVP usually reaches production in about 45 days. Larger apps ship in phases, with a new test build on your phone every two weeks.
+
+**Should I choose Flutter or native iOS and Android development?**
+For most business and startup apps, Flutter gives you both platforms from one codebase at a lower cost. Native Swift and Kotlin make sense when an app depends heavily on device hardware or platform-specific features. We recommend one after discovery and explain why.
+
+**Do you publish the app on the App Store and Google Play?**
+Yes. We prepare the store listings, screenshots and privacy details, handle submission and review, and publish under your own developer accounts, so you own the app.
+
+**Do you provide app maintenance after launch?**
+Yes. We monitor crashes and performance, ship updates for new iOS and Android versions, fix issues and keep adding features in regular releases.
+
+**Can you build the backend and admin panel too?**
+Yes. We build the API, database, authentication, notifications and an admin dashboard, and host them on secure cloud infrastructure with monitoring and backups.
+
+URL: https://urobins.com/mobile-app-development/
+
+## Custom CRM development and workflow automation
+
+We build custom CRMs and automate the work around them: capturing leads from every channel, routing them to the right person, following up on WhatsApp and email, and reporting revenue in one place. Or we connect and extend the CRM you already use.
+
+### What we build
+
+- **Custom CRM software**: A CRM shaped around how you sell: your stages, fields, roles and approvals, on web and mobile, without paying for seats and features you never use.
+- **CRM integration and customisation**: Connect and extend the CRM you already use, such as HubSpot, Zoho CRM or Salesforce, with custom fields, workflows and two-way data sync.
+- **Lead capture and routing**: Leads from your website, ads, WhatsApp, calls and marketplaces land in one pipeline, de-duplicated and assigned automatically.
+- **Sales and marketing automation**: Follow-up sequences, reminders, quotes and proposals triggered by what each lead does, over WhatsApp, email and SMS.
+- **Business process automation**: Approvals, onboarding, invoicing and reporting moved from spreadsheets into automated workflows with an audit trail.
+- **Dashboards and reporting**: Live pipeline, conversion and revenue dashboards, so sales, marketing and leadership read the same numbers.
+
+### Why Urobins
+
+- **Built around your process**: We map how leads and deals really move before configuring anything, so the CRM matches the work instead of adding to it.
+- **Integrations that hold**: APIs and webhooks with retries, logging and alerts, so a failed sync is noticed in minutes, not at month end.
+- **Secure by design**: Role-based access, encrypted data, backups and audit logs, hosted in a cloud account you own.
+- **Adoption, not just delivery**: Training, short screen-recorded guides and a review a few weeks after launch to fix whatever still slows your team down.
+
+### How we work
+
+1. **Map**: Workshops with sales, support and finance to map stages, data, hand-offs and the reports leaders need.
+2. **Design**: The data model, permissions, automations and integrations designed and agreed in writing.
+3. **Build and migrate**: Two-week releases, with your existing contacts and deals cleaned, de-duplicated and migrated.
+4. **Train and improve**: Training, guides, monitoring and regular improvements once real data is flowing.
+
+### Tools and technologies
+
+Node.js, TypeScript, React, PostgreSQL, REST APIs & webhooks, WhatsApp Business Platform, HubSpot, Zoho CRM, Salesforce, Firebase, AWS, Google Cloud
+
+### FAQ
+
+**Should we build a custom CRM or use HubSpot, Zoho or Salesforce?**
+If an off-the-shelf CRM fits your process with light configuration, we will say so and set it up. A custom CRM pays off when your workflow is unusual, when per-seat pricing gets expensive, or when you need deep integration with your own systems.
+
+**How long does custom CRM development take?**
+A focused CRM with the core pipeline, roles and integrations typically reaches production in about 45 days, then grows in two-week releases.
+
+**Can you migrate our data from spreadsheets or another CRM?**
+Yes. We clean, de-duplicate and map your contacts, companies and deals, run a test import, and migrate with a rollback plan.
+
+**Can the CRM send WhatsApp messages automatically?**
+Yes. Through the official WhatsApp Business Platform the CRM can send approved template messages for follow-ups, reminders and notifications, and log every conversation against the lead.
+
+**Who owns the CRM and the data?**
+You do. The code, the database and the cloud accounts are yours, and we document everything so your own team or another vendor can take it over.
+
+URL: https://urobins.com/crm-development/
+
+## SEO services built on engineering
+
+Rankings start with a site that search engines can crawl, understand and trust. We fix the technical foundations, then grow organic traffic with content and on-page work aimed at the searches your customers actually make, and report it against leads and revenue.
+
+### What we build
+
+- **Technical SEO audits**: Crawling, indexing, site architecture, redirects, canonicals, duplicate content and JavaScript rendering, fixed in order of impact.
+- **Core Web Vitals and site speed**: Faster LCP, INP and CLS through image, font, script and server work, measured on real-user data in Search Console.
+- **On-page SEO and content**: Keyword research, search intent mapping, page briefs and content that answers real questions better than the pages ranking today.
+- **Local SEO**: Google Business Profile, local landing pages, citations and reviews for businesses that serve specific cities or regions.
+- **Schema and AI search visibility**: Structured data, clear entity information and an llms.txt file, so search engines and AI assistants can understand and cite your business.
+- **E-commerce and programmatic SEO**: Category, product and location pages at scale, with internal linking and quality controls, so they earn rankings rather than penalties.
+
+### Why Urobins
+
+- **We implement, not only advise**: Our developers make the fixes in your codebase or CMS, so audit findings turn into changes within a sprint.
+- **Reporting tied to revenue**: Rankings, traffic, leads and revenue in one shared dashboard, with a monthly review against your goals.
+- **White-hat only**: No link schemes, no doorway pages and no tricks that risk a penalty. Durable rankings come from a better site and better answers.
+- **Ready for AI search**: Clear structure, schema and factual content help your brand appear in AI overviews and assistant answers, not only in the blue links.
+
+### How we work
+
+1. **Audit**: A technical crawl, a Search Console and analytics review, and competitor and keyword research.
+2. **Prioritise**: A roadmap ranked by impact and effort, with the target pages and keywords agreed.
+3. **Implement**: Technical fixes, on-page updates and new content shipped in two-week cycles.
+4. **Measure and grow**: Monthly reporting on rankings, traffic, leads and revenue, then the next round of priorities.
+
+### Tools and technologies
+
+Google Search Console, Google Analytics 4, Google Tag Manager, Looker Studio, Bing Webmaster Tools, PageSpeed Insights, Schema.org, Google Business Profile, Next.js, WordPress
+
+### FAQ
+
+**How long does SEO take to show results?**
+Technical fixes can show up within weeks of being crawled. Competitive rankings and steady organic leads usually build over three to six months or more, depending on your site, your competitors and how much useful content you publish.
+
+**Do you guarantee first-page Google rankings?**
+No, and be wary of anyone who does: nobody controls Google. We commit to the work, the transparency and the reporting, and we measure success in qualified traffic, leads and revenue.
+
+**What does a technical SEO audit include?**
+Crawling and indexing, site architecture, internal links, page speed and Core Web Vitals, mobile usability, structured data, on-page elements, content gaps and backlinks, delivered as a prioritised list of fixes that we can also implement.
+
+**Do you offer local SEO in India?**
+Yes. For businesses that serve specific cities we optimise your Google Business Profile, build location pages, clean up citations and set up a steady review process.
+
+**Can you help us appear in ChatGPT, Perplexity and Google AI Overviews?**
+We make your site easy for AI systems to read and cite: clear facts, structured data, an llms.txt file, fast pages and content that answers questions directly. Nobody can guarantee a mention, but these are the signals those systems rely on.
+
+**How do you report on SEO?**
+In a shared dashboard with rankings, organic traffic, conversions and revenue, plus a monthly review of what changed and what comes next.
+
+URL: https://urobins.com/seo-services/
+
+## Digital marketing measured in revenue
+
+Paid ads, social media, content and email, planned around the customers you want and tracked all the way to a sale. We build the landing pages and the tracking ourselves, so every campaign can be traced to leads and revenue.
+
+### What we build
+
+- **Performance marketing and PPC**: Google Search, Performance Max, YouTube and Meta campaigns built around cost per lead and return on ad spend, not clicks.
+- **Social media marketing**: Content calendars, creative and community management on Instagram, LinkedIn, Facebook and X, plus paid social to reach beyond your followers.
+- **Lead generation funnels**: Landing pages, lead magnets, forms and WhatsApp or email follow-up that turn ad clicks into qualified enquiries in your CRM.
+- **Content marketing**: Articles, guides, case studies and video scripts that answer buyer questions and serve SEO, sales and social at once.
+- **Email and WhatsApp marketing**: Segmented newsletters, nurture sequences and broadcast campaigns, with consent and deliverability handled properly.
+- **Analytics and conversion tracking**: Google Analytics 4, Google Tag Manager, the Meta Conversions API and server-side tracking, so you can trust the numbers you budget on.
+
+### Why Urobins
+
+- **Tracking first**: We fix analytics and conversion tracking before scaling spend, so optimisation decisions rest on real data.
+- **Landing pages we build**: Fast, focused pages designed and coded in-house and tested against each other, instead of sending paid traffic to a generic homepage.
+- **Revenue, not vanity metrics**: Reports show cost per lead, pipeline and revenue next to impressions and clicks, in a dashboard you can open any time.
+- **Connected to sales**: Leads flow straight into your CRM with their source attached, so you see which campaigns produce customers, not just form fills.
+
+### How we work
+
+1. **Audit and plan**: Audience, competitors, current channels and tracking reviewed; goals, budget split and KPIs agreed.
+2. **Set up**: Tracking, landing pages, creative and campaigns built and checked before a rupee is spent.
+3. **Launch and test**: Campaigns go live with structured tests on audiences, creative and pages.
+4. **Optimise and scale**: Weekly optimisation, monthly reviews against revenue, and budget moved to what works.
+
+### Tools and technologies
+
+Google Ads, Meta Ads, LinkedIn Ads, YouTube Ads, Google Analytics 4, Google Tag Manager, Meta Conversions API, Looker Studio, WhatsApp Business Platform, Figma
+
+### FAQ
+
+**What digital marketing services does Urobins offer?**
+Performance marketing on Google and Meta, social media marketing, content marketing, email and WhatsApp marketing, landing pages and lead generation funnels, and analytics and conversion tracking, plus SEO from the same team.
+
+**How much should we spend on ads?**
+It depends on your market, margins and goals. We usually start with a test budget large enough to learn from within a few weeks, then scale the campaigns that hit your target cost per lead.
+
+**How soon will paid ads show results?**
+Campaigns bring traffic from the first day. Most accounts settle into a stable cost per lead after a few weeks of testing and optimisation.
+
+**Do you create the ad creatives and landing pages?**
+Yes. Our designers make the static and video creative and our developers build and test the landing pages, so the whole funnel is in one team’s hands.
+
+**How do you report on marketing performance?**
+In a shared dashboard with spend, leads, cost per lead, conversions and revenue, plus a monthly review against your goals.
+
+**Do you work with B2B as well as B2C brands?**
+Yes. B2B campaigns lean on LinkedIn, search and content with longer nurture sequences; B2C leans on Meta, Google and fast landing pages. We plan the mix around how your customers buy.
+
+URL: https://urobins.com/digital-marketing/
+
+## Cloud and DevOps that stays up
+
+We design, migrate and run secure cloud infrastructure on AWS and Google Cloud, with CI/CD pipelines, containers, monitoring and backups in place before your first user signs in, so releases are routine and outages are rare.
+
+### What we build
+
+- **Cloud architecture and consulting**: Scalable, secure designs on AWS, Google Cloud or Firebase, sized for today’s traffic with a clear path to the next stage.
+- **Cloud migration**: Move from shared hosting, on-premise servers or another cloud with a tested plan, minimal downtime and a rollback at every step.
+- **CI/CD pipelines**: Automated builds, tests and deployments with preview environments, so shipping is a routine merge rather than a risky event.
+- **Containers and Kubernetes**: Docker images and Kubernetes or serverless setups that scale with demand and keep every environment identical, laptop to production.
+- **Monitoring, backups and security**: Uptime and error monitoring, alerting, automated backups, patching, secrets management and least-privilege access.
+- **Managed cloud and cost optimisation**: Ongoing support with agreed response times, plus regular reviews that remove idle resources and right-size your cloud bill.
+
+### Why Urobins
+
+- **A 99.9% uptime target**: Every environment we run has monitoring, alerts and backups configured before go-live, with a written runbook for incidents.
+- **Infrastructure as code**: Environments defined in code and versioned, so they can be reviewed, rebuilt and audited instead of configured by hand.
+- **Security by default**: Encrypted data, private networks, least-privilege roles and patched images are the starting point, not an upgrade.
+- **Your accounts, your keys**: Everything runs in cloud accounts you own, documented so your team can operate it with or without us.
+
+### How we work
+
+1. **Assess**: Current hosting, costs, risks and release process reviewed; uptime, recovery and budget targets agreed.
+2. **Design**: Architecture, networking, security and CI/CD designed and written down as infrastructure as code.
+3. **Migrate and automate**: Environments built, data migrated after a rehearsal, and pipelines and monitoring switched on.
+4. **Run and optimise**: Monitoring, patching, backups and incident response, with regular cost and performance reviews.
+
+### Tools and technologies
+
+AWS, Google Cloud, Firebase, Cloudflare, Docker, Kubernetes, CI/CD pipelines, Linux, Node.js, PostgreSQL
+
+### FAQ
+
+**Which cloud platforms do you work with?**
+Mainly AWS, Google Cloud and Firebase, with Cloudflare for DNS, CDN and security. We recommend a platform based on your workload, your team and your budget.
+
+**Can you migrate our website or app to the cloud without downtime?**
+We plan migrations to keep downtime to minutes or less: a rehearsal on a copy, data sync, a scheduled cut-over and a rollback plan if anything looks wrong.
+
+**What does managed cloud support include?**
+Monitoring and alerting, security patching, backups and restore tests, scaling, and incident response with agreed response times and a 99.9% uptime target.
+
+**Can you reduce our cloud costs?**
+Usually, yes. We look for idle and oversized resources, storage and data-transfer waste, missing committed-use discounts and architecture changes, then report the savings.
+
+**Do you set up CI/CD for existing projects?**
+Yes. We add automated builds, tests and deployments to your existing repositories, with preview environments and safe rollbacks.
+
+URL: https://urobins.com/cloud-devops/
+
+## Frequently asked questions
+
+**What services does Urobins offer?**
+Web development, mobile app development, custom CRM development and automation, cloud and DevOps, SEO, and digital marketing, all from one in-house team.
+
+**Where is Urobins based?**
+Urobins is a remote-first agency in India. We work with startups and businesses across India and worldwide, over video calls, WhatsApp and a shared project channel.
+
+**How long does a typical project take?**
+Most MVPs launch in about 45 days. Larger platforms ship in phased releases, with a working build to review every two weeks.
+
+**How much does a website or app cost?**
+It depends on scope, so we do not publish a price list. Tell us what you are building and we reply within one business day with next steps and a rough timeline; a written proposal follows a short discovery call.
+
+**Do you work with existing codebases?**
+Yes. We start with a technical audit, then improve, migrate, or extend what you already have instead of rebuilding by default.
+
+**What does cloud support include after launch?**
+Monitoring, security patching, backups, and scaling, with a 99.9% uptime target and agreed response times.
+
+**How do you report on SEO and marketing?**
+You get a shared dashboard with rankings, traffic, conversions, and spend, plus a monthly review against your revenue goals.
+
+## Contact
+
+- New projects: hellourobins@gmail.com
+- Client and technical support: support@urobins.com
+- Phone and WhatsApp: +91 9810942673 (https://wa.me/919810942673)
+- Reply time: within one business day, with next steps and a rough timeline
+- Social: Instagram https://www.instagram.com/theurobins/, LinkedIn https://www.linkedin.com/company/theurobins/, X https://x.com/theurobins, Facebook https://www.facebook.com/theurobins/, GitHub https://github.com/theurobins

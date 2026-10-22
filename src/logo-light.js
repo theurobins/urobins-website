@@ -1,21 +1,23 @@
-// Torch lighting for the loading screen's logo, shared by both scenes. The lamps are the only light:
-// in the dark the logo is a faint glass rim, and it takes its real colours (blue mark, white word)
-// wherever, and as much as, a beam reaches it, so a beam can light half a piece or part of the word.
+// Torch lighting for the desktop loading screen's logo. The lamps are the only light: in the dark the
+// logo is a faint glass rim, and it turns to a plain, near-white metal (mark and word alike) wherever,
+// and as much as, a beam reaches it, so a beam can light half a piece or part of the word.
 // Each lamp lights its own copy of the artwork through a CSS mask in the logo's own space (one light
 // spans mark and word): a conic gradient centred on the lamp for the beam (full on its axis, a little
 // less towards its edge, then a soft fringe just past the drawn beam's edge), times a radial falloff
 // with distance from the lamp. The two lit copies stack, so two lights add like screens. Each lamp
 // also leaves:
-// - a glint, a third copy in pale colours under the same mask and a band square to the light, on the
-//   side of the logo facing the lamp, so it slides and turns as the lamp moves;
+// - a bevel on the edges that face the lamp inside its lit copy (the logo less a copy of itself
+//   nudged away from the light), catching it like a machined chamfer;
+// - a glint, a third copy in near-white under the same mask and a narrow streak where the lamp's
+//   mirror image falls: near-vertical, leaning a little towards the lamp;
 // - a shadow on the wall behind, drawn by the canvas scene: the logo's silhouette, blurred once into a
 //   sprite per part, projected away from the lamp, longer the bigger (closer) the lamp and the more
 //   it grazes, and as dark as that lamp's light on the part.
 // Units are the logo SVG's (its 430x120 viewBox, which is also its CSS box). Lamps arrive as
 // { x, y, ang, half, power, size }: position, beam axis and half-angle (radians), 0-1 power, and the
-// lamp's diameter. A frame rewrites only four gradient masks (and only when they change), on copies
-// that paint into the logo's own layer (see the CSS); it reads no layout and draws the shadows with
-// drawImage alone.
+// lamp's diameter. A frame rewrites only four gradient masks and, per lamp, one nudge (each only when
+// it changes), on copies that paint into the logo's own layer (see the CSS); it
+// reads no layout and draws the shadows with drawImage alone.
 import gsap from 'gsap';
 
 const DEG = Math.PI / 180;
@@ -28,9 +30,12 @@ const IN = 0.5 * DEG, OUT = 7 * DEG, CORE = 0.88;
 const RING = [0, 0.5, 1, 1.2, 1.4, 1.6, 1.8, 2];  // where the profile is sampled (see cone())
 const FALL = 2.2;                          // the falloff's radius, in lamp-to-logo distances
 const RAD = [[0, 1], [0.6, 1], [0.7, 0.9], [0.8, 0.8], [0.9, 0.72], [1, 0.65]];
-const BAND = [[0, 0], [0.25, 0.08], [0.4, 0.45], [0.5, 1], [0.6, 0.45], [0.75, 0.08], [1, 0]];
-const BAND_W = 50;                         // the glint's half-width
-const GLINT = 0.9;
+// the glint's streak across its width: a hot core in a soft skirt
+const BAND = [[0, 0], [0.22, 0.05], [0.38, 0.25], [0.46, 0.7], [0.5, 1], [0.54, 0.7], [0.62, 0.25], [0.78, 0.05], [1, 0]];
+const BAND_W = 62;                         // the glint's half-width
+const GLINT = 0.95;
+const RIM = 1.9;                           // the bevel's width
+const NS = 'http://www.w3.org/2000/svg';
 // shadows: blur and padding of the silhouettes (logo units), their resolution, and the three passes
 // that stretch each shadow away from its lamp (its penumbra grows with distance from the logo)
 const BLUR = 5.5, PAD = 19, SPX = 1.6;
@@ -65,6 +70,24 @@ function cone(half) {
 export function createLogoLight(el) {
   const box = el.querySelector('.preloader__logo');
   const glass = box.querySelector('.ldr-glass');
+  const defs = glass.querySelector('defs');
+  const node = (tag, attrs, parent) => {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  };
+  // a fresh copy of the artwork (mark and word), every use painted one way
+  const art = (from, fill) => {
+    const g = document.createElementNS(NS, 'g');
+    for (const part of ['.mark', '.word']) g.appendChild(from.querySelector(`:scope > ${part}`).cloneNode(true));
+    if (fill) paint(g, fill);
+    return g;
+  };
+  const paint = (g, fill) => g.querySelectorAll('use').forEach((u) => { u.style.fill = fill; u.style.stroke = 'none'; });
+  // the shadows read the glass's own pieces: take them before the copies below add more
+  const glassPieces = [...glass.querySelectorAll(':scope > .mark .piece')];
+
   // the lit copies, then the glints, one of each per lamp: copies of the glass artwork without its defs
   const layer = (kind) => {
     const c = glass.cloneNode(true);
@@ -73,7 +96,19 @@ export function createLogoLight(el) {
     box.appendChild(c);
     return c;
   };
-  const lamps = [0, 1].map(() => ({ lit: layer('lit'), cache: ['', ''], x: 0, y: 0, ang: 0, p: 0, R: 1, prof: cone(0) }));
+  const lamps = [0, 1].map((i) => {
+    const L = { lit: layer('lit'), cache: ['', ''], x: 0, y: 0, ang: 0, p: 0, R: 1, prof: cone(0), nudgeAt: '' };
+    // the bevel's mask: the artwork, less itself nudged away from the lamp
+    const mask = node('mask', { id: `ldrRim${i}`, maskUnits: 'userSpaceOnUse', x: -60, y: -60, width: 550, height: 240 }, defs);
+    mask.appendChild(art(glass, '#fff'));
+    L.nudge = mask.appendChild(art(glass, '#000'));
+    // into the lit copy, over its plain fill (the CSS): the bevel
+    const c = L.lit;
+    const rim = art(c, 'rgba(255,255,255,0.9)');
+    rim.setAttribute('mask', `url(#ldrRim${i})`);
+    c.appendChild(rim);
+    return L;
+  });
   lamps.forEach((L) => { L.shine = layer('shine'); });
   // every piece in every copy, copy by copy, for the assembly tweens
   const pieces = [...box.querySelectorAll('.piece')];
@@ -124,8 +159,15 @@ export function createLogoLight(el) {
       // the light through that point, laid along the light's direction as CSS measures it
       const k = clamp(0.3 * Math.sqrt(60 / Math.max(10, src.size)), 0.18, 0.42);
       const gx = clamp(C[0] + (x - C[0]) * k, 12, 408), gy = clamp(C[1] + (y - C[1]) * k, 14, 106);
+      // the bevel on the edges facing the lamp
+      const ld = Math.hypot(x - C[0], y - C[1]) || 1;
+      const nudge = `translate(${(((C[0] - x) / ld) * RIM).toFixed(2)} ${(((C[1] - y) / ld) * RIM).toFixed(2)})`;
+      if (nudge !== L.nudgeAt) { L.nudgeAt = nudge; L.nudge.setAttribute('transform', nudge); }
+      // the streak stands near-vertical, leaning a little towards the lamp
       let wx = gx - x, wy = gy - y;
-      const wl = Math.hypot(wx, wy) || 1;
+      let wl = Math.hypot(wx, wy) || 1;
+      wx = 0.7 * (Math.sign(wx) || 1) + 0.3 * (wx / wl); wy = 0.3 * (wy / wl);
+      wl = Math.hypot(wx, wy) || 1;
       wx /= wl; wy /= wl;
       const span = Math.abs(BOX[0] * wx) + Math.abs(BOX[1] * wy);
       const t = (gx - BOX[0] / 2) * wx + (gy - BOX[1] / 2) * wy + span / 2;
@@ -137,11 +179,10 @@ export function createLogoLight(el) {
   // ---- shadows: a blurred silhouette per part, built once ----
   const markD = [...glass.querySelectorAll('defs [id^="ldr-p"]')].map((p) => p.getAttribute('d'));
   const wordD = document.querySelector('#logo-word path').getAttribute('d');
-  const glassPieces = pieces.slice(0, markD.length);
   const parts = [...markD.map((d, i) => ({ d, xf: PART_XF.mark, el: glassPieces[i] })), { d: wordD, xf: PART_XF.word, word: true }];
   parts.forEach((pt) => {
     const [tx, ty, ps] = pt.xf;
-    const bb = (pt.el || glass.querySelector('.word use')).getBBox();
+    const bb = (pt.el || glass.querySelector(':scope > .word use')).getBBox();
     pt.x0 = tx + bb.x * ps - PAD; pt.y0 = ty + bb.y * ps - PAD;
     pt.w = bb.width * ps + 2 * PAD; pt.h = bb.height * ps + 2 * PAD;
     pt.cx = tx + (bb.x + bb.width / 2) * ps; pt.cy = ty + (bb.y + bb.height / 2) * ps;

@@ -217,6 +217,38 @@ em {
   overflow: hidden;
 }
 
+/* keyboard users can jump past the nav; the link only shows while it has focus (above the loader) */
+.skip {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  left: calc(12px + env(safe-area-inset-left, 0px));
+  z-index: 110;
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--ink);
+  font: 500 14px/1 var(--sans);
+  transform: translateY(calc(-100% - 30px));
+  transition: transform 0.3s cubic-bezier(.2, .8, .2, 1);
+}
+
+.skip:focus {
+  transform: none;
+}
+
+/* read by screen readers and search engines, not drawn */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 .eyebrow {
   font: 500 12.5px/1 var(--sans);
   letter-spacing: 0.08em;
@@ -591,26 +623,29 @@ a.pill:hover .arr {
   stroke-width: 3.6;
 }
 
-/* lit: the logo's own blue with a hairline of caught light on each piece's edge, and a white word */
+/* lit: mark and word in one plain, near-white metal, with the faint hairline every edge keeps;
+   logo-light.js lays the bevel over it. Widths are in each group's units, so the rims match on screen */
 .preloader__logo .ldr-lit .mark use {
-  fill: #2420ff;
-  stroke: rgba(255, 255, 255, 0.3);
+  fill: #eef0f4;
+  stroke: rgba(255, 255, 255, 0.2);
   stroke-width: 2.4;
 }
 
 .preloader__logo .ldr-lit .word use {
-  fill: #e4e3f4;
+  fill: #eef0f4;
+  stroke: rgba(255, 255, 255, 0.2);
+  stroke-width: 2.85;
 }
 
-/* the glint: the blue goes pale and glossy, the word pure white and a hair bolder, as a bright edge blooms */
+/* the glint: the metal flashes near-white and a hair bolder, as a bright edge blooms */
 .preloader__logo .ldr-shine .mark use {
-  fill: #bdbbff;
-  stroke: rgba(255, 255, 255, 0.7);
-  stroke-width: 2.4;
+  fill: #f7f8fb;
+  stroke: #fff;
+  stroke-width: 4.2;
 }
 
 .preloader__logo .ldr-shine .word use {
-  fill: #fff;
+  fill: #f7f8fb;
   stroke: #fff;
   stroke-width: 5;
 }
@@ -645,20 +680,27 @@ a.pill:hover .arr {
   will-change: transform;
 }
 
-/* phones: the searchlight scene (preloader-mobile.js). Fixed gutters rather than viewport fractions,
-   and the vignette lifts as the dive starts so the wash it ends on is flat, edge to edge. Every phone
-   block uses PHONE from breakpoints.js: up to 760px wide, or a touch screen at most 500px tall, so a
-   phone turned to landscape keeps the phone design and a mouse never gets it */
+/* phones: the laser-cut scene (preloader-mobile.js), drawn wholly on the canvas, so the DOM logo the
+   desktop scene lights stays hidden. Fixed gutters rather than viewport fractions; the vignette and the
+   grain lift as the plate is sliced open, so the page shows through clean. Every phone block uses PHONE
+   from breakpoints.js: up to 760px wide, or a touch screen at most 500px tall, so a phone turned to
+   landscape keeps the phone design and a mouse never gets it */
 @media (max-width: 760px), (pointer: coarse) and (max-height: 500px) {
   .preloader {
     background: #08071a;
   }
 
-  .preloader::before {
-    transition: opacity 0.6s ease;
+  .preloader__logo {
+    display: none;
   }
 
-  .preloader.is-out::before {
+  .preloader::before,
+  .preloader::after {
+    transition: opacity 0.4s ease;
+  }
+
+  .preloader.is-out::before,
+  .preloader.is-out::after {
     opacity: 0;
   }
 
@@ -731,7 +773,7 @@ a.pill:hover .arr {
   gap: 2px;
 }
 
-.nav__menu a {
+.nav__menu > a {
   flex: none;
   white-space: nowrap;
   padding: 10px 13px;
@@ -741,7 +783,7 @@ a.pill:hover .arr {
   transition: background-color 0.25s, color 0.25s;
 }
 
-.nav__menu a:hover {
+.nav__menu > a:hover {
   color: #fff;
   background: rgba(255, 255, 255, 0.07);
 }
@@ -785,6 +827,168 @@ a.pill:hover .arr {
 
 .nav.is-open .nav__toggle span:last-child {
   transform: translateY(-3.25px) rotate(-45deg);
+}
+
+/* phones only: a WhatsApp button beside the quote button in the bar, and on the sheet the ways to
+   reach us; the CTA reads "Contact" on wider screens, "Get a quote" on phones. The brand marks are
+   white on glass, as the footer's social links */
+.nav__wa,
+.nav__reach,
+.nav__cta-quote {
+  display: none;
+}
+
+@media (max-width: 760px), (pointer: coarse) and (max-height: 500px) {
+  .nav__cta-full {
+    display: none;
+  }
+
+  .nav__cta-quote {
+    display: inline;
+  }
+
+  .nav__bar {
+    gap: 8px;
+    padding-left: 16px;
+  }
+
+  .nav__logo {
+    flex: none;
+  }
+
+  .nav__right {
+    flex: none;
+    gap: 6px;
+  }
+
+  .nav__wa {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+    color: #fff;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.25s;
+  }
+
+  .nav__wa:active {
+    background: rgba(255, 255, 255, 0.16);
+  }
+
+  .nav__wa svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+  }
+
+  /* the sheet's reach block: availability, the address, then WhatsApp and a call side by side */
+  .nav__reach {
+    display: grid;
+    gap: 14px;
+    margin-top: 26px;
+    opacity: 0;
+    translate: 0 16px;
+    transition: opacity 0.3s, translate 0s linear 0.3s;
+  }
+
+  .nav.is-open .nav__reach {
+    opacity: 1;
+    translate: none;
+    transition: opacity 0.7s cubic-bezier(.2, .8, .2, 1) 0.36s, translate 0.9s cubic-bezier(.2, .8, .2, 1) 0.36s;
+  }
+
+  .nav__avail {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font: 500 12.5px/1 var(--sans);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  .nav__avail i {
+    position: relative;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #3ddc84;
+    box-shadow: 0 0 8px rgba(61, 220, 132, 0.7);
+  }
+
+  .nav__avail i::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: #3ddc84;
+    animation: status-ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  .nav__mail {
+    justify-self: start;
+    font: 400 17px/1.3 var(--sans);
+    color: #fff;
+    text-decoration: underline;
+    text-decoration-color: rgba(255, 255, 255, 0.3);
+    text-underline-offset: 4px;
+  }
+
+  .nav__reach-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .nav__reach-row a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    height: 50px;
+    border-radius: 14px;
+    font: 500 15px/1 var(--sans);
+    color: #fff;
+    background: rgba(255, 255, 255, 0.07);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .nav__reach-row svg {
+    width: 18px;
+    height: 18px;
+    fill: #fff;
+  }
+
+  /* the narrowest phones: the logo, the quote and the menu */
+  @media (max-width: 349px) {
+    .nav__wa {
+      display: none;
+    }
+  }
+}
+
+@keyframes status-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+
+  70%,
+  100% {
+    transform: scale(3.2);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav__avail i::after {
+    animation: none;
+    opacity: 0;
+  }
 }
 
 /* ---------- Nav torch ---------- */
@@ -2066,6 +2270,45 @@ body.is-scrolled .hero__scroll {
   color: rgba(255, 255, 255, 0.68);
 }
 
+/* links to the service pages, under each card's copy (and inside a row's panel on phones) */
+.cap__more {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cap__more a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px 0 15px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  font: 500 13.5px/1 var(--sans);
+  color: rgba(255, 255, 255, 0.92);
+  white-space: nowrap;
+  transition: background-color 0.3s, box-shadow 0.3s, color 0.3s;
+}
+
+.cap__more a:hover {
+  background: var(--brand-2);
+  box-shadow: inset 0 0 0 1px var(--brand-2);
+  color: #fff;
+}
+
+.cap__more .arr {
+  transition: transform 0.4s cubic-bezier(.2, .8, .2, 1);
+}
+
+.cap__more a:hover .arr {
+  transform: translate(2px, -2px);
+}
+
 .cap__visual {
   position: relative;
   flex: 1;
@@ -2579,11 +2822,10 @@ body.is-scrolled .hero__scroll {
   width: 46px;
   height: 46px;
   border-radius: 13px;
+  overflow: hidden;
   background: var(--bg);
-  color: var(--fg);
-  font: 700 12.5px/1 var(--sans);
-  letter-spacing: -0.01em;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  /* a hairline rim keeps the dark tiles off the dark card */
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 12px 30px rgba(0, 0, 0, 0.45);
   will-change: transform;
   /* its arm is turned by --a: undo that so it reads upright, then counter-turn with its ring */
   rotate: calc(var(--a) * -1);
@@ -2595,24 +2837,15 @@ body.is-scrolled .hero__scroll {
   animation-duration: 70s;
 }
 
-.orbit__badge .atom {
-  position: relative;
+.orbit__badge svg {
   width: 24px;
   height: 24px;
 }
 
-.orbit__badge .atom::before,
-.orbit__badge .atom::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border: 1.6px solid #61dafb;
-  border-radius: 50%;
-  transform: scaleY(0.4) rotate(0deg);
-}
-
-.orbit__badge .atom::after {
-  transform: scaleY(0.4) rotate(60deg);
+/* a mark that is its own tile (JavaScript, TypeScript) fills the badge */
+.orbit__badge svg.is-full {
+  width: 100%;
+  height: 100%;
 }
 
 .orbit__core {
@@ -3143,6 +3376,18 @@ body.is-scrolled .hero__scroll {
   color: rgba(255, 255, 255, 0.66);
 }
 
+.faq details p a {
+  color: #fff;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.3);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.25s;
+}
+
+.faq details p a:hover {
+  text-decoration-color: currentColor;
+}
+
 .resources li {
   border-bottom: 1px solid var(--line);
 }
@@ -3198,6 +3443,51 @@ body.is-scrolled .hero__scroll {
   fill: #fff;
 }
 
+/* the social row sits above the copyright, both set to the right edge */
+.contact__meta {
+  display: grid;
+  justify-items: end;
+  gap: 18px;
+}
+
+.social {
+  display: flex;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.social a {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.72);
+  transition: background-color 0.3s, border-color 0.3s, color 0.3s, transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.social svg {
+  width: 17px;
+  height: 17px;
+  fill: currentColor;
+}
+
+.social a:hover,
+.social a:focus-visible {
+  background: var(--brand-2);
+  border-color: var(--brand-2);
+  color: #fff;
+  transform: translateY(-3px);
+}
+
+.social a:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 980px), (pointer: coarse) and (max-height: 500px) {
   .nav {
@@ -3238,7 +3528,7 @@ body.is-scrolled .hero__scroll {
     translate: 0 0;
   }
 
-  .nav__menu a {
+  .nav__menu > a {
     padding: 13px 14px;
     font-size: 15px;
   }
@@ -3426,9 +3716,20 @@ body.is-scrolled .hero__scroll {
    ledger on a sheet that slides up over the open portal, and How we work is a scrubbed timeline. */
 @media (min-width: 761px) and (pointer: fine), (min-width: 761px) and (pointer: none), (min-width: 761px) and (min-height: 501px) {
 
-  .metrics__cta,
-  .process__title {
+  .metrics__cta {
     display: none;
+  }
+
+  /* the Process heading is only drawn on phones; elsewhere it stays in the outline (as .sr-only), so
+     the four stages sit under their own heading rather than Impact's */
+  .process__title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 }
 
@@ -3934,8 +4235,7 @@ body.is-scrolled .hero__scroll {
   }
 
   .nav__menu::after {
-    content: "Engineering and growth for ambitious brands";
-    content: "Engineering and growth for ambitious brands" / "";
+    content: none;
     margin-top: 30px;
     font: 400 13px/1.4 var(--sans);
     color: rgba(255, 255, 255, 0.45);
@@ -3948,7 +4248,7 @@ body.is-scrolled .hero__scroll {
     transition: opacity 0.8s 0.45s;
   }
 
-  .nav__menu a {
+  .nav__menu > a {
     display: flex;
     align-items: baseline;
     gap: 16px;
@@ -3963,7 +4263,7 @@ body.is-scrolled .hero__scroll {
     transition: opacity 0.3s, translate 0s linear 0.3s, color 0.25s;
   }
 
-  .nav__menu a::before {
+  .nav__menu > a::before {
     counter-increment: navi;
     content: counter(navi, decimal-leading-zero);
     flex: none;
@@ -3973,35 +4273,35 @@ body.is-scrolled .hero__scroll {
     color: rgba(255, 255, 255, 0.42);
   }
 
-  .nav__menu a:hover {
+  .nav__menu > a:hover {
     background: none;
   }
 
-  .nav__menu a:active {
+  .nav__menu > a:active {
     color: var(--brand-2);
   }
 
-  .nav.is-open .nav__menu a {
+  .nav.is-open .nav__menu > a {
     opacity: 1;
     translate: none;
     transition: opacity 0.7s cubic-bezier(.2, .8, .2, 1) var(--d, 0s), translate 0.9s cubic-bezier(.2, .8, .2, 1) var(--d, 0s), color 0.25s;
   }
 
   /* the links sit low, in thumb reach */
-  .nav__menu a:nth-child(1) {
+  .nav__menu > a:nth-child(1) {
     --d: 0.08s;
     margin-top: auto;
   }
 
-  .nav__menu a:nth-child(2) {
+  .nav__menu > a:nth-child(2) {
     --d: 0.15s;
   }
 
-  .nav__menu a:nth-child(3) {
+  .nav__menu > a:nth-child(3) {
     --d: 0.22s;
   }
 
-  .nav__menu a:nth-child(4) {
+  .nav__menu > a:nth-child(4) {
     --d: 0.29s;
   }
 
@@ -4152,10 +4452,11 @@ body.is-scrolled .hero__scroll {
     letter-spacing: -0.01em;
   }
 
+  /* the brand blue lifted further, so the small type passes AA contrast on ink (6.6:1) */
   .member__role {
     margin-top: 6px;
     font: 500 13px/1.3 var(--sans);
-    color: var(--brand-2);
+    color: #8f8dff;
   }
 
   .member__focus {
@@ -4294,6 +4595,25 @@ body.is-scrolled .hero__scroll {
     display: grid;
     gap: 18px;
     margin-top: 88px;
+  }
+
+  .contact__meta {
+    justify-items: start;
+    gap: 22px;
+  }
+
+  .social {
+    gap: 8px;
+  }
+
+  .social a {
+    width: 48px;
+    height: 48px;
+  }
+
+  .social svg {
+    width: 19px;
+    height: 19px;
   }
 
   .contact__mark {
@@ -4635,6 +4955,14 @@ body.is-scrolled .hero__scroll {
   color: rgba(255, 255, 255, 0.84);
 }
 
+.caps--index .cap__more {
+  margin: -10px 0 28px;
+}
+
+.caps--index .cap__more a {
+  height: 40px;
+}
+
 @keyframes faq-in {
   from {
     opacity: 0;
@@ -4645,7 +4973,8 @@ body.is-scrolled .hero__scroll {
 @media (max-width: 760px) and (prefers-reduced-motion: reduce), (pointer: coarse) and (max-height: 500px) and (prefers-reduced-motion: reduce) {
 
   .nav__menu,
-  .nav__menu a {
+  .nav__menu > a,
+  .nav__reach {
     transition: none !important;
   }
 
@@ -4894,8 +5223,27 @@ body.is-scrolled .hero__scroll {
   }
 
   .nav__menu::before,
-  .nav__menu::after {
+  .nav__menu::after,
+  .nav__reach {
     grid-column: 1 / -1;
+  }
+
+  .nav__reach {
+    margin-top: 16px;
+    grid-template-columns: repeat(3, auto);
+    justify-content: start;
+    align-items: center;
+    column-gap: 22px;
+    white-space: nowrap;
+  }
+
+  .nav__reach-row {
+    grid-template-columns: auto auto;
+  }
+
+  .nav__reach-row a {
+    height: 40px;
+    padding: 0 16px;
   }
 
   .nav__menu::before {
@@ -4906,12 +5254,12 @@ body.is-scrolled .hero__scroll {
     margin-top: 18px;
   }
 
-  .nav__menu a {
+  .nav__menu > a {
     padding: 12px 0 10px;
     font-size: clamp(30px, 10vh, 44px);
   }
 
-  .nav__menu a:nth-child(1) {
+  .nav__menu > a:nth-child(1) {
     margin-top: 0;
   }
 }
