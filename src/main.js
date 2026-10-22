@@ -14,6 +14,7 @@ import { splitLines } from './lines.js';
 import { vp, measureViewport } from './viewport.js';
 import { PHONE, isPhone } from './breakpoints.js';
 import { registerAgentTools } from './agent-tools.js';
+import { initGuard } from './guard.js';
 
 gsap.registerPlugin(ScrollTrigger);
 // mobile toolbars resize the viewport height constantly; don't recompute every trigger for that.
@@ -26,6 +27,7 @@ const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 setReduced(reduced);
 // tools for AI agents in the browser (WebMCP), where the browser supports them
 registerAgentTools({ onHome: true });
+initGuard();
 document.documentElement.classList.add('js');
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 window.scrollTo(0, 0);

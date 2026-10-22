@@ -12,8 +12,10 @@ npm install        # once
 npm run build      # writes the service pages, their Markdown twins, 404.html, sitemap.xml, the llms
                    # files, the agent skill and src/site-facts.js from content/site.mjs, bundles
                    # src/ -> js/app.js + js/page.js, then stamps every page's CSS/JS links with a
-                   # content hash (?v=...). firebase.json runs this before every deploy
-npm run serve      # http://localhost:8080
+                   # content hash (?v=...), then writes the deployable copy to dist/ (see below).
+                   # firebase.json runs this before every deploy
+npm run serve      # http://localhost:8080, the readable sources
+npm run serve:dist # http://localhost:8080, exactly what deploys (run the build first)
 ```
 
 `npm run build:js` and `npm run build:pages` run the two halves on their own. Opening `index.html`
@@ -44,6 +46,7 @@ video and fonts behave like production (browsers refuse `@font-face` files from 
 | `src/metrics.js` | Impact bento: card reveal, count-ups, the uptime card's striped chart; the tag icons loop in CSS while the section is on screen |
 | `src/process.js` | "How we work": a pinned stage whose column of four stages scrolls up (each resting centred while the others dim) beside a tilted, parallaxing wall of CSS project mockups (wireframes built from `data-kind`) |
 | `src/capabilities.js` | "What we build": four cards with vector scenes (product scene with phone, browser and goal widget; tech orbit with deploy status; automation pipeline a deal card travels; growth chart with keyword rankings). Loops only run while on screen; the orbit turns are CSS animations. Phones get a numbered index instead (see below) |
+| `src/guard.js` | A deterrent on every page (both page scripts call it): the context menu, the developer-tools, view-source and save-page shortcuts, and dragging media out are swallowed; `style.css` also turns off iOS's long-press "Save Image". It only raises the bar (browser menus and `view-source:` still work) and is off on localhost so development and screenshot tests keep their tools |
 | `src/lines.js` | Splits a paragraph into rendered lines for line-by-line reveals |
 | `content/site.mjs` | Copy and facts for the service pages, sitemap, `llms.txt` and `llms-full.txt`: the six services (title, meta description, hero, offer cards, reasons, steps, tools, FAQ, related services), the contact details and the five commitments |
 | `scripts/build-pages.mjs` | Writes `<slug>/index.html` and its Markdown twin `<slug>/index.md` for each service, `index.md` (the home page's twin), `404.html`, `sitemap.xml`, `llms.txt`, `llms-full.txt`, the agent skill in `.well-known/agent-skills/` and `src/site-facts.js` from `content/site.mjs`, with each page's JSON-LD (Organization, WebSite, WebPage, Service, BreadcrumbList, FAQPage). The logo and icon `<symbol>`s are copied from `index.html`, so their path data lives in one place. Generated files are committed (Firebase deploys the folder as is): edit the content file, never the output |
@@ -212,10 +215,13 @@ unpinned.
   OIDC metadata, auth.md, MCP or A2A cards, Web Bot Auth keys or DNS-AID records: there is no API,
   login, agent or bot behind them, and empty or invented metadata would only mislead agents. Revisit
   if the agency ever ships one (an AI quote assistant, a client portal).
-- **Deploy contents.** `firebase.json` (one folder up) keeps `src/`, `scripts/`, `content/`, the
-  package files, these two Markdown docs and the dotfiles (`.git`, `.gitignore`, `.vscode`) out of the
-  deploy while `.well-known/` and the pages' `index.md` twins go out; a new service page needs its own
-  canonical `Link` header entry there for its `index.md`. It also sets cache and security headers: fonts,
+- **Deploy contents.** `firebase.json` (one folder up) deploys `dist/`, which `scripts/dist.mjs` (the
+  last build step, git-ignored) fills from the project: everything except `src/`, `scripts/`,
+  `content/`, the package files, these two Markdown docs and the dotfiles (`.git`, `.gitignore`,
+  `.vscode`), so `.well-known/` and the pages' `index.md` twins go out. On the way the stylesheets are
+  minified and the HTML loses its comments (inline `<style>` blocks are minified too), so the notes in
+  the sources never ship; JS is already minified by esbuild. Edit the sources, never `dist/`. A new
+  service page needs its own canonical `Link` header entry in `firebase.json` for its `index.md`. It also sets cache and security headers: fonts,
   CSS and JS for a year (the CSS and JS links carry a content hash from `scripts/stamp-assets.mjs`, so a
   changed file gets a new URL), images and video for a week, pages revalidated on every visit (Firebase's
   CDN keeps them until the next deploy). Its `predeploy` hook runs `npm run build`, so a deploy can

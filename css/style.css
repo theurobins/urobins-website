@@ -180,6 +180,16 @@ video {
   max-width: 100%;
 }
 
+/* no dragging media out, no long-press "Save Image" on iOS (the rest is in src/guard.js) */
+img,
+video,
+svg,
+canvas {
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
 p,
 h1,
 h2,

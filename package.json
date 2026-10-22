@@ -5,12 +5,14 @@
   "description": "Urobins agency website: scroll-driven home page (GSAP + Lenis) and static service pages",
   "scripts": {
     "start": "npm run serve",
-    "build": "npm run build:pages && npm run build:js && npm run stamp",
+    "build": "npm run build:pages && npm run build:js && npm run stamp && npm run dist",
     "build:pages": "node scripts/build-pages.mjs",
     "build:js": "esbuild src/main.js --bundle --minify --format=iife --target=es2019 --outfile=js/app.js && esbuild src/page.js --bundle --minify --format=iife --target=es2019 --outfile=js/page.js",
     "stamp": "node scripts/stamp-assets.mjs",
+    "dist": "node scripts/dist.mjs",
     "watch": "esbuild src/main.js --bundle --format=iife --target=es2019 --outfile=js/app.js --watch",
-    "serve": "npx http-server . -p 8080 -c-1"
+    "serve": "npx http-server . -p 8080 -c-1",
+    "serve:dist": "npx http-server dist -p 8080 -c-1"
   },
   "dependencies": {
     "gsap": "3.13.0",

@@ -3,12 +3,14 @@
 // and stay light.
 import { PHONE, isPhone } from './breakpoints.js';
 import { registerAgentTools } from './agent-tools.js';
+import { initGuard } from './guard.js';
 
 const root = document.documentElement;
 root.classList.add('js');
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 // tools for AI agents in the browser (WebMCP), where the browser supports them
 registerAgentTools();
+initGuard();
 
 // ---------- nav ----------
 // on phones the menu is a full-screen sheet, as on the home page: focus moves into it, the page and the
