@@ -22,6 +22,7 @@ const abs = (path) => SITE.origin + path;
 const pageUrl = (s) => abs(`/${s.slug}/`);
 const wa = (msg) => `${SITE.whatsapp}?text=${encodeURIComponent(msg)}`;
 const mailto = (subject) => `mailto:${SITE.email}?subject=${encodeURIComponent(subject)}`;
+const QUOTE_TEXT = "Hi Urobins, I'd like a quote for a project.";
 const write = (rel, body) => {
   mkdirSync(dirname(join(ROOT, rel)), { recursive: true });
   writeFileSync(join(ROOT, rel), body);
@@ -121,14 +122,14 @@ function header(waText) {
       </nav>
       <div class="nav__right">
         <a class="nav__wa" href="${esc(wa(waText))}" target="_blank" rel="noopener" aria-label="Chat with us on WhatsApp"><svg aria-hidden="true"><use href="#i-whatsapp" /></svg></a>
-        <a class="nav__cta pill pill--brand" href="#contact"><span class="nav__cta-full">Contact</span><span class="nav__cta-quote">Get a quote</span> ${arrow}</a>
+        <a class="nav__cta pill pill--brand" href="${esc(wa(QUOTE_TEXT))}" target="_blank" rel="noopener"><span class="nav__cta-full">Contact</span><span class="nav__cta-quote">Get a quote</span> ${arrow}</a>
         <button class="nav__toggle" type="button" id="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Menu"><span></span><span></span></button>
       </div>
     </div>
   </header>`;
 }
 
-function footer({ ctaHtml, subject, current }) {
+function footer({ ctaHtml, waText, current }) {
   const marquee = ['Websites', 'Mobile apps', 'CRM workflows', 'Cloud infrastructure', 'Technical SEO', 'Performance marketing']
     .map((w) => `<span>${w}</span><i></i>`).join('');
   const services = SERVICES.map((s) => `            <li><a href="/${s.slug}/"${s.slug === current ? ' aria-current="page"' : ''}>${esc(s.name)} ${arrow}</a></li>`).join('\n');
@@ -143,7 +144,7 @@ function footer({ ctaHtml, subject, current }) {
       <h2 class="contact__title">${lines(ctaHtml)}</h2>
       <div class="contact__actions">
         <p>Tell us what you are building. We reply within one business day with next steps and a rough timeline.</p>
-        <a class="pill pill--brand pill--lg" href="${esc(mailto(subject))}">Start a project ${arrow}</a>
+        <a class="pill pill--brand pill--lg" href="${esc(wa(waText))}" target="_blank" rel="noopener">Start a project ${arrow}</a>
         <dl class="contact__list">
           <div>
             <dt>General inquiries</dt>
@@ -309,8 +310,8 @@ ${header(s.whatsappText)}
         <div class="page-hero__foot">
           <p class="page-hero__lede">${esc(s.lede)}</p>
           <div class="page-hero__actions">
-            <a class="pill pill--brand pill--lg" href="#contact">Start a project ${arrow}</a>
-            <a class="pill pill--glass pill--lg" href="${esc(wa(s.whatsappText))}" target="_blank" rel="noopener">Chat on WhatsApp</a>
+            <a class="pill pill--brand pill--lg" href="${esc(wa(s.whatsappText))}" target="_blank" rel="noopener">Start a project ${arrow}</a>
+            <a class="pill pill--glass pill--lg" href="${esc(mailto(`${s.name} project`))}">Email us</a>
           </div>
         </div>
         <ul class="page-hero__chips">
@@ -388,7 +389,7 @@ ${s.stack.map((t) => `          <li>${esc(t)}</li>`).join('\n')}
       <div class="qa__head" data-rv>
         <p class="eyebrow">FAQ</p>
         <h2 class="section__title" id="faq-title">${lines(['Questions,', '<em>answered</em>'])}</h2>
-        <p class="section__lede">Something else on your mind? <a href="#contact">Ask us directly</a>; we reply within one business day.</p>
+        <p class="section__lede">Something else on your mind? <a href="${esc(wa(s.whatsappText))}" target="_blank" rel="noopener">Ask us directly</a>; we reply within one business day.</p>
       </div>
       <div class="faq qa__list" data-rv>
 ${s.faqs.map(([q, a]) => `        <details>
@@ -418,7 +419,7 @@ ${others.map((o, i) => `        <li data-rv>
 
   </main>
 
-${footer({ ctaHtml: s.ctaHtml, subject: `${s.name} project`, current: s.slug })}
+${footer({ ctaHtml: s.ctaHtml, waText: s.whatsappText, current: s.slug })}
 
 ${tail(s.whatsappText)}`;
 }
@@ -444,7 +445,7 @@ ${header(waText)}
           <p class="page-hero__lede">The link may be old or mistyped. Everything we do is one click away: start at the home page or pick a service below.</p>
           <div class="page-hero__actions">
             <a class="pill pill--brand pill--lg" href="/">Back to home ${arrow}</a>
-            <a class="pill pill--glass pill--lg" href="#contact">Contact us</a>
+            <a class="pill pill--glass pill--lg" href="${esc(wa(waText))}" target="_blank" rel="noopener">Contact us</a>
           </div>
         </div>
       </div>
@@ -465,7 +466,7 @@ ${SERVICES.map((o, i) => `        <li>
     </section>
   </main>
 
-${footer({ ctaHtml: ['Have a product', '<em>to scale?</em>'], subject: 'New project', current: null })}
+${footer({ ctaHtml: ['Have a product', '<em>to scale?</em>'], waText: "Hi Urobins, I'd like to start a project.", current: null })}
 
 ${tail(waText)}`;
 }

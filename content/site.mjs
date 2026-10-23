@@ -13,9 +13,9 @@ export const SITE = {
   summary: 'Urobins is a remote-first digital agency in India. One in-house team designs, builds and grows websites, mobile apps, custom CRMs and cloud infrastructure, then markets them with SEO and performance marketing, for startups and growing businesses across India and worldwide.',
   email: 'hellourobins@gmail.com',
   support: 'support@urobins.com',
-  phone: '+91 9810942673',
-  phoneHref: '+919810942673',
-  whatsapp: 'https://wa.me/919810942673',
+  phone: '+91 8755060559',
+  phoneHref: '+918755060559',
+  whatsapp: 'https://wa.me/918755060559',
   founder: { name: 'Nikhil Chauhan', role: 'CEO & CTO' },
   social: [
     ['Instagram', 'https://www.instagram.com/theurobins/', 'i-instagram'],
