@@ -74,6 +74,55 @@ if (contact) {
   new IntersectionObserver(([e]) => contact.classList.toggle('is-live', e.isIntersecting)).observe(contact);
 }
 
+// ---------- contact page: draft an inquiry ----------
+// the form only writes a message: it opens WhatsApp or the visitor's email app with it filled in, and the
+// visitor sends it from there. Without JavaScript the form still opens WhatsApp with the project text
+const inquiry = document.getElementById('inquiry');
+if (inquiry) {
+  inquiry.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const f = new FormData(inquiry);
+    const v = (k) => String(f.get(k) || '').trim();
+    const who = v('company') ? `${v('name')} from ${v('company')}` : v('name');
+    const body = `Hi Urobins, I'm ${who}. I'd like help with: ${v('service')}.\n\n${v('text')}`;
+    const url = e.submitter && e.submitter.value === 'email'
+      ? `mailto:${inquiry.dataset.email}?subject=${encodeURIComponent(`Project inquiry: ${v('service')}`)}&body=${encodeURIComponent(body)}`
+      : `${inquiry.dataset.wa}?text=${encodeURIComponent(body)}`;
+    if (url.startsWith('mailto:')) window.location.href = url;
+    else window.open(url, '_blank', 'noopener');
+  });
+}
+
+// ---------- blog: filter the guides by topic ----------
+// the chips show one category's cards (or all); the choice is kept in the URL (#topic=…) so it can be
+// shared and survives the back button. Without JavaScript every post simply shows
+const filter = document.getElementById('blog-filter');
+const grid = document.getElementById('blog-grid');
+if (filter && grid) {
+  const chips = [...filter.querySelectorAll('[data-filter]')];
+  const show = (cat) => {
+    chips.forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.filter === cat)));
+    grid.querySelectorAll('[data-cat]').forEach((card) => {
+      card.hidden = Boolean(cat) && card.dataset.cat !== cat;
+      if (!card.hidden) card.classList.add('is-in');
+    });
+  };
+  const fromHash = () => {
+    const m = /topic=([^&]+)/.exec(location.hash);
+    const cat = m ? decodeURIComponent(m[1]) : '';
+    show(chips.some((c) => c.dataset.filter === cat) ? cat : '');
+  };
+  filter.addEventListener('click', (e) => {
+    const chip = e.target.closest('[data-filter]');
+    if (!chip) return;
+    const cat = chip.dataset.filter;
+    history.replaceState(null, '', cat ? `#topic=${encodeURIComponent(cat)}` : location.pathname);
+    show(cat);
+  });
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+}
+
 // ---------- entrance reveals ----------
 const items = document.querySelectorAll('[data-rv]');
 if (reduced || !('IntersectionObserver' in window)) {

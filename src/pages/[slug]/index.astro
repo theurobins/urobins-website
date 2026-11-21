@@ -6,6 +6,7 @@ import Glass from '../../components/Glass.astro';
 import Arrow from '../../components/Arrow.astro';
 import { wa, mailto, pad, text, lines } from '../../lib/text.mjs';
 import { serviceLd } from '../../lib/schema.mjs';
+import { lastmodOf } from '../../lib/pages.mjs';
 
 export function getStaticPaths() {
   return SERVICES.map((s) => ({ params: { slug: s.slug }, props: { s } }));
@@ -22,7 +23,7 @@ const head = {
   path: `/${s.slug}/`,
   ogImage: `/assets/og/${s.slug}.jpg`,
   ogAlt: `Urobins: ${text(s.h1Html.join(' '))}`,
-  jsonld: serviceLd(s),
+  jsonld: serviceLd(s, await lastmodOf(`/${s.slug}/`)),
 };
 ---
 <PageShell head={head} bodyClass="page" waText={s.whatsappText} footer={{ ctaHtml: s.ctaHtml, waText: s.whatsappText, current: s.slug }}>

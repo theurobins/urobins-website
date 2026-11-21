@@ -5,8 +5,9 @@
 import { SITE, HOME } from '../../content/site.mjs';
 import BaseHead from '../components/BaseHead.astro';
 import Symbols from '../components/Symbols.astro';
-import { wa, tel, YEAR } from '../lib/text.mjs';
+import { wa, tel, YEAR, COMPANY_LINKS } from '../lib/text.mjs';
 import { homeLd } from '../lib/schema.mjs';
+import { lastmodOf } from '../lib/pages.mjs';
 import '../styles/style.css';
 import smokeUrl from '../assets/texture/about-smoke.webp?url';
 import posterUrl from '../assets/video/about-poster.webp?url';
@@ -24,7 +25,7 @@ const head = {
   path: '/',
   ogImage: '/assets/og/home.jpg',
   ogAlt: 'Urobins: web and app development, CRM, cloud, SEO and digital marketing agency',
-  jsonld: homeLd(),
+  jsonld: homeLd(await lastmodOf('/')),
   // the About smoke is the largest paint on phones, and only the CSS names it: fetch it with the HTML
   preloadImages: [smokeUrl],
 };
@@ -149,6 +150,7 @@ const head = {
         <a href="#capabilities">Services</a>
         <a href="#process">Process</a>
         <a href="#team">Team</a>
+        <a href="/blog/">Blog</a>
         {/* phones: under the links on the sheet, the ways to reach us */}
         <div class="nav__reach">
           <p class="nav__avail"><i aria-hidden="true"></i>Taking on new projects</p>
@@ -621,6 +623,12 @@ const head = {
           <li><a href="/cloud-devops/">Cloud &amp; DevOps <svg class="arr" aria-hidden="true">
                 <use href="#i-arrow" />
               </svg></a></li>
+        </ul>
+        <h2 class="eyebrow resources__sub" id="footer-company">Company</h2>
+        <ul aria-labelledby="footer-company">
+          {COMPANY_LINKS.map(([n, h]) => (
+            <li><a href={h}>{n} <svg class="arr" aria-hidden="true"><use href="#i-arrow" /></svg></a></li>
+          ))}
         </ul>
       </nav>
     </div>

@@ -1,0 +1,51 @@
+---
+// /portfolio/: every project in content/work.mjs, each linking to its case study
+import { PORTFOLIO } from '../../../content/site.mjs';
+import { WORK } from '../../../content/work.mjs';
+import PageShell from '../../components/PageShell.astro';
+import Glass from '../../components/Glass.astro';
+import Arrow from '../../components/Arrow.astro';
+import WorkCard from '../../components/WorkCard.astro';
+import { wa, lines } from '../../lib/text.mjs';
+import { portfolioLd } from '../../lib/schema.mjs';
+import { lastmodOf } from '../../lib/pages.mjs';
+
+const waText = "Hi Urobins, I saw your portfolio and I'd like to discuss a project.";
+const head = {
+  title: PORTFOLIO.title,
+  description: PORTFOLIO.description,
+  path: '/portfolio/',
+  ogImage: '/assets/og/work-urobins.jpg',
+  ogAlt: 'Urobins portfolio: websites, platforms and online stores',
+  jsonld: portfolioLd(WORK, await lastmodOf('/portfolio/')),
+};
+---
+<PageShell head={head} bodyClass="page" waText={waText} footer={{ ctaHtml: ['Your project', '<em>could be next</em>'], waText, current: '/portfolio/' }}>
+
+    <section class="page-hero page-hero--short" aria-labelledby="page-title">
+      <Glass />
+      <div class="page-hero__in">
+        <nav class="crumbs" aria-label="Breadcrumb">
+          <ol>
+            <li><a href="/">Home</a></li>
+            <li aria-current="page">Portfolio</li>
+          </ol>
+        </nav>
+        <p class="eyebrow page-hero__eyebrow">{PORTFOLIO.eyebrow}</p>
+        <h1 class="page-hero__title" id="page-title" set:html={lines(PORTFOLIO.h1Html)} />
+        <div class="page-hero__foot">
+          <p class="page-hero__lede">{PORTFOLIO.lede}</p>
+          <div class="page-hero__actions">
+            <a class="pill pill--brand pill--lg" href={wa(waText)} target="_blank" rel="noopener">Start a project <Arrow /></a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sp-sec" aria-label="Projects">
+      <ul class="work-grid">
+        {WORK.map((w, i) => <WorkCard w={w} i={i} />)}
+      </ul>
+    </section>
+
+</PageShell>

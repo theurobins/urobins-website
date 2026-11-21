@@ -1,0 +1,126 @@
+---
+// /contact/: every way to reach the team, and a short form that drafts a WhatsApp message or an email
+// for the visitor to send from their own app (page.js; nothing is stored or sent by the site).
+// Copy: CONTACT in content/site.mjs
+import { SITE, SERVICES, CONTACT } from '../../../content/site.mjs';
+import PageShell from '../../components/PageShell.astro';
+import Glass from '../../components/Glass.astro';
+import Arrow from '../../components/Arrow.astro';
+import { wa, tel, mailto, lines, officeLine } from '../../lib/text.mjs';
+import { contactLd } from '../../lib/schema.mjs';
+import { lastmodOf } from '../../lib/pages.mjs';
+
+const head = {
+  title: CONTACT.title,
+  description: CONTACT.description,
+  path: '/contact/',
+  ogImage: '/assets/og/home.jpg',
+  ogAlt: 'Contact Urobins',
+  jsonld: contactLd(await lastmodOf('/contact/')),
+};
+const cities = SITE.offices.map((o) => o.city).join(' & ');
+---
+<PageShell head={head} bodyClass="page" waText={CONTACT.whatsappText} footer={{ ctaHtml: ['Ready when', '<em>you are</em>'], waText: CONTACT.whatsappText, current: '/contact/' }}>
+
+    <section class="page-hero" aria-labelledby="page-title">
+      <Glass />
+      <div class="page-hero__in">
+        <nav class="crumbs" aria-label="Breadcrumb">
+          <ol>
+            <li><a href="/">Home</a></li>
+            <li aria-current="page">Contact</li>
+          </ol>
+        </nav>
+        <p class="eyebrow page-hero__eyebrow">{CONTACT.eyebrow}</p>
+        <h1 class="page-hero__title" id="page-title" set:html={lines(CONTACT.h1Html)} />
+        <div class="page-hero__foot">
+          <p class="page-hero__lede">{CONTACT.lede}</p>
+          <div class="page-hero__actions">
+            <a class="pill pill--brand pill--lg" href={wa(CONTACT.whatsappText)} target="_blank" rel="noopener">WhatsApp us <Arrow /></a>
+            <a class="pill pill--glass pill--lg" href={mailto('Project inquiry')}>Email us</a>
+          </div>
+        </div>
+        <ul class="page-hero__chips">
+          <li>Reply within one business day</li>
+          <li>{cities}</li>
+          <li>Clients across India &amp; worldwide</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="sp-sec reach" aria-labelledby="reach-title">
+      <div class="reach__info" data-rv>
+        <p class="eyebrow">Reach us</p>
+        <h2 class="section__title" id="reach-title" set:html={lines(['Pick the way', '<em>that suits you</em>'])} />
+        <dl class="reach__list">
+          <div>
+            <dt>New projects</dt>
+            <dd><a href={mailto('Project inquiry')}>{SITE.email}</a></dd>
+          </div>
+          <div>
+            <dt>Client &amp; technical support</dt>
+            <dd><a href={`mailto:${SITE.support}`}>{SITE.support}</a></dd>
+          </div>
+          <div>
+            <dt>Phone &amp; WhatsApp</dt>
+            <dd><a href={tel} set:html={SITE.phone.replace(/ /g, '&nbsp;')} /> · <a href={wa(CONTACT.whatsappText)} target="_blank" rel="noopener">WhatsApp</a></dd>
+          </div>
+          {SITE.offices.map((o) => (
+            <div>
+              <dt>{o.label}</dt>
+              <dd><address>{officeLine(o)}</address></dd>
+            </div>
+          ))}
+          <div>
+            <dt>Social</dt>
+            <dd class="reach__social">{SITE.social.map(([n, h]) => <a href={h} target="_blank" rel="noopener me">{n}</a>)}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <form class="inquiry" id="inquiry" data-rv action={SITE.whatsapp} method="get" target="_blank" data-wa={SITE.whatsapp} data-email={SITE.email}>
+        <p class="eyebrow">Draft your message</p>
+        <p class="inquiry__note">Fill in what you can. We open WhatsApp or your email app with the message ready; nothing is sent until you press send there.</p>
+        <label class="field">
+          <span>Your name</span>
+          <input name="name" autocomplete="name" required>
+        </label>
+        <label class="field">
+          <span>Company <i>(optional)</i></span>
+          <input name="company" autocomplete="organization">
+        </label>
+        <label class="field">
+          <span>What do you need?</span>
+          <select name="service">
+            {SERVICES.map((s) => <option>{s.name}</option>)}
+            <option>Something else</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>About your project</span>
+          <textarea name="text" rows="5" required placeholder={CONTACT.brief.join('. ') + '.'}></textarea>
+        </label>
+        <div class="inquiry__actions">
+          <button class="pill pill--brand pill--lg" type="submit" value="whatsapp">Send on WhatsApp <Arrow /></button>
+          <button class="pill pill--glass pill--lg" type="submit" value="email">Send by email</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="sp-sec qa" id="faq" aria-labelledby="faq-title">
+      <div class="qa__head" data-rv>
+        <p class="eyebrow">FAQ</p>
+        <h2 class="section__title" id="faq-title" set:html={lines(['Before you', '<em>write</em>'])} />
+        <p class="section__lede">A few lines is enough to start. Not sure what you need yet? <a href="/#capabilities">Browse our services</a> or <a href="/portfolio/">see our work</a>.</p>
+      </div>
+      <div class="faq qa__list" data-rv>
+        {CONTACT.faqs.map(([q, a]) => (
+          <details>
+            <summary>{q}</summary>
+            <p>{a}</p>
+          </details>
+        ))}
+      </div>
+    </section>
+
+</PageShell>

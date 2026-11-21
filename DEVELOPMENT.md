@@ -23,6 +23,11 @@ npm run preview    # http://localhost:4321, exactly what deploys (run the build 
 | --- | --- |
 | `src/pages/index.astro` | The home page's markup and copy. Its FAQ, About text, contact details and social links come from `content/site.mjs`; the rest is written here. Comments are `{/* */}`, so they never ship |
 | `src/pages/[slug]/index.astro` | One service page per entry in `SERVICES` (folder + `index.html`, so URLs end in a slash) |
+| `src/pages/about/`, `contact/`, `portfolio/`, `blog/` | The About and Contact pages, the Portfolio index and one case study per entry in `content/work.mjs` (`portfolio/[slug]/`), the Blog index and one page per post in `content/blog/` (`blog/[slug]/`), each with its Markdown twin |
+| `content/work.mjs` | The portfolio: one entry per real, live project (brief, what was built, stack, related services, screenshot name). Screenshots are `src/assets/work/<shot>.webp` (1440x900) and `<shot>-sm.webp` (760 wide); share images `public/assets/og/work-<shot>.jpg` (1200x630). Add results only with numbers the client has confirmed |
+| `content/blog/*.md` | Blog posts (front matter: `title`, `heading`, `description`, `published`, `related`); the file name is the URL. `src/content.config.mjs` defines the collection |
+| `content/lastmod.json` | Each page's last real change, kept by the build (see "Dates" below). Keep it with the sources |
+| `src/lib/pages.mjs`, `src/lib/lastmod.mjs` | Every indexable page with the content it is built from, and the dates derived from it (sitemap.xml, each page's `dateModified`) |
 | `src/pages/404.astro` | The not-found page (Firebase serves it with a 404 status) |
 | `src/pages/*.js`, `src/pages/[slug]/index.md.js`, `src/pages/.well-known/` | Endpoints that write the text files at build time: `sitemap.xml`, `llms.txt`, `llms-full.txt`, each page's Markdown twin and the agent skill with its index |
 | `src/components/` | `BaseHead` (every page's meta tags, canonical, Open Graph, font preloads, JSON-LD and the Firebase-domain redirect), `Symbols` (the logo as two `<symbol>`s, `#logo-mark` and `#logo-word`, traced from the brand PNG, plus the arrow and social marks, drawn with `<use>`; recolour them with CSS `fill`), and the service pages' `PageShell`, `SiteHeader`, `SiteFooter`, `BookCall`, `Glass` and `Arrow` |
@@ -189,13 +194,24 @@ unpinned.
 
 - **Where things rank from.** Each service has its own page, title, description, H1 and FAQ aimed at
   one cluster of searches, with the cities in the title where they fit (`/web-development/`: "web
-  development company in Noida & Mathura"; `/mobile-app-development/`, `/seo-services/` and
+  development company in Bengaluru & Mathura"; `/mobile-app-development/`, `/seo-services/` and
   `/digital-marketing/` likewise; `/crm-development/` and `/cloud-devops/` by service). The home page
   targets the brand and the broad "web and app development, digital marketing agency" terms and links
   to every service page from the Services cards, the footer and the FAQ.
-- **Editing copy.** Change `content/site.mjs`, bump `SITE.updated` (the sitemap's `<lastmod>` and each
-  page's `dateModified`) and build. Keep copy as capabilities and commitments, never invented results,
-  clients or reviews; name tools and platforms only if the team really uses them.
+- **Editing copy.** Change `content/site.mjs` (or `content/work.mjs`, or a post) and build. Keep copy as
+  capabilities and commitments, never invented results, clients, reviews or team members; name tools and
+  platforms only if the team really uses them.
+- **Dates.** There is no site-wide date to bump. `src/lib/pages.mjs` lists each page with the content it
+  is built from; `src/lib/lastmod.mjs` hashes that content and keeps the date it last changed in
+  `content/lastmod.json`. A build that finds a page unchanged keeps its old date, so the sitemap's
+  `<lastmod>` and the page's `dateModified` move only when that page's copy really changes (Google
+  ignores dates that change on every build). `npm run dev` previews but never writes the file. A new kind
+  of page needs an entry in `pages()`.
+- **Adding a blog post.** Add `content/blog/<url-slug>.md` with the front matter of an existing post and
+  build: the post page, its Markdown twin, the blog index, the sitemap, llms.txt and llms-full.txt follow.
+  Posts are written by the founder (byline and `author` in the structured data).
+- **Adding a project.** Add an entry to `WORK` in `content/work.mjs`, its two screenshots in
+  `src/assets/work/` and its share image in `public/assets/og/`. Describe only what is live and true.
 - **Adding a service.** Add an entry to `SERVICES` (copy an existing one), add its share image as
   `public/assets/og/<slug>.jpg`, add it to the home page's Services cards and footer list in
   `src/pages/index.astro`, and add a canonical `Link` header for its `index.md` in `firebase.json`. Its
@@ -203,10 +219,13 @@ unpinned.
   and related lists follow from the content file.
 - **Structured data** comes from `src/lib/schema.mjs`. The home page's visible FAQ is rendered from the
   same `HOME.faqs`, so the two always match word for word, as Google requires.
-- **Locations.** `SITE.locations` lists the cities the team works in (Mathura and Noida) at city level:
-  the Organization's `address` and `areaServed`, and the copy. Add a `streetAddress` and `postalCode`
-  only for a real, staffed office, written exactly as on the Google Business Profile. A made-up or
-  mismatched address gets a Business Profile suspended and the structured data distrusted.
+- **Offices.** `SITE.offices` has two offices. Bengaluru is the registered head office, with its full
+  street address; it is the Organization's `address`. Mathura is the regional office where the team
+  works; it is a `ProfessionalService` department in the schema and is the verified Google Business
+  Profile. Both cities are in `areaServed` and the copy. Write Mathura's street and postal code exactly
+  as on the Business Profile. Never put the Bengaluru address on a Business Profile: nobody works there
+  day to day, so Google would suspend it. A made-up or mismatched address gets a profile suspended and
+  the structured data distrusted.
 - **After deploying:** submit `https://urobins.com/sitemap.xml` in Google Search Console and Bing
   Webmaster Tools, and request indexing for each service page. `www.urobins.com` should redirect to
   `urobins.com` (Firebase custom domain redirect or a Cloudflare redirect rule); it does not serve the
@@ -241,7 +260,9 @@ unpinned.
   `dist/_astro/` by its content hash, so `firebase.json` caches that folder for a year (`immutable`);
   `public/assets/` (share images, logos) keeps fixed URLs and a week. Pages revalidate on every visit
   (Firebase's CDN keeps them until the next deploy). Edit the sources, never `dist/`. A new service page
-  needs its own canonical `Link` header entry in `firebase.json` for its `index.md`. In Cloudflare,
+  needs its own canonical `Link` header entry in `firebase.json` for its `index.md`; the Markdown twins
+  of case studies and posts are covered by one `X-Robots-Tag: noindex` rule instead, so new posts need
+  no `firebase.json` change. In Cloudflare,
   Caching > Browser Cache TTL should be "Respect Existing Headers", or Cloudflare raises the pages' and
   text files' lifetimes to its own.
 

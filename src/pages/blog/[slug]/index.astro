@@ -1,0 +1,140 @@
+---
+// /blog/<slug>/: one post from content/blog/<slug>.md. Built for people and answer engines alike: key
+// takeaways first, question headings with direct answers, a contents list, and an FAQ that is also the
+// page's FAQPage structured data
+import { render } from 'astro:content';
+import { SITE, SERVICES } from '../../../../content/site.mjs';
+import PageShell from '../../../components/PageShell.astro';
+import Glass from '../../../components/Glass.astro';
+import Arrow from '../../../components/Arrow.astro';
+import PostCard from '../../../components/PostCard.astro';
+import { wa, pad, longDate, isoDate, readMinutes } from '../../../lib/text.mjs';
+import { postLd } from '../../../lib/schema.mjs';
+import { getPosts, lastmodOf } from '../../../lib/pages.mjs';
+// the founder's small portrait, as in the home page's About chip
+import avatar from '../../../assets/team/team-1-sm.webp?url';
+
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  return posts.map((p) => ({ params: { slug: p.id }, props: { p, posts } }));
+}
+
+const { p, posts } = Astro.props;
+const { Content, headings } = await render(p);
+const toc = headings.filter((h) => h.depth === 2);
+const path = `/blog/${p.id}/`;
+const modified = await lastmodOf(path);
+const published = isoDate(p.data.published);
+const related = p.data.related.map((k: string) => SERVICES.find((s) => s.slug === k)).filter(Boolean);
+// more reading: the same topic first, then the newest of the rest
+const others = posts.filter((o: any) => o.id !== p.id);
+const more = [...others.filter((o: any) => o.data.category === p.data.category), ...others.filter((o: any) => o.data.category !== p.data.category)].slice(0, 3);
+const waText = "Hi Urobins, I read your blog and I'd like to discuss a project.";
+const head = {
+  title: p.data.title,
+  description: p.data.description,
+  path,
+  ogImage: '/assets/og/home.jpg',
+  ogAlt: p.data.heading,
+  jsonld: postLd(p, modified),
+};
+---
+<PageShell head={head} bodyClass="page" waText={waText} footer={{ ctaHtml: ['Rather we', '<em>did it for you?</em>'], waText, current: '/blog/' }}>
+
+    <article aria-labelledby="page-title">
+      <header class="page-hero page-hero--post">
+        <Glass />
+        <div class="page-hero__in">
+          <nav class="crumbs" aria-label="Breadcrumb">
+            <ol>
+              <li><a href="/">Home</a></li>
+              <li><a href="/blog/">Blog</a></li>
+              <li aria-current="page">{p.data.heading}</li>
+            </ol>
+          </nav>
+          <p class="eyebrow page-hero__eyebrow">{p.data.category} · <time datetime={published}>{longDate(p.data.published)}</time> · {readMinutes(p.body)} min read</p>
+          <h1 class="page-hero__title page-hero__title--post" id="page-title">{p.data.heading}</h1>
+          <div class="page-hero__foot">
+            <p class="page-hero__lede">{p.data.description}</p>
+          </div>
+          <p class="byline"><img class="byline__img" src={avatar} alt="" width="36" height="36">By <a href="/about/">{SITE.founder.name}</a>, {SITE.founder.role}{modified > published && <> · Updated <time datetime={modified}>{longDate(modified)}</time></>}</p>
+        </div>
+      </header>
+
+      <div class="sp-sec post">
+        <div class="post__main">
+          {p.data.takeaways.length > 0 && (
+            <aside class="takeaways" aria-labelledby="takeaways-title">
+              <h2 class="eyebrow" id="takeaways-title">Key takeaways</h2>
+              <ul>
+                {p.data.takeaways.map((t: string) => <li>{t}</li>)}
+              </ul>
+            </aside>
+          )}
+          <div class="prose prose--article">
+            <Content />
+          </div>
+          {p.data.faqs.length > 0 && (
+            <section class="post-faq" id="faq" aria-labelledby="faq-title">
+              <h2 class="post-faq__title" id="faq-title">Frequently asked questions</h2>
+              <div class="faq">
+                {p.data.faqs.map(({ q, a }: { q: string; a: string }) => (
+                  <details>
+                    <summary>{q}</summary>
+                    <p>{a}</p>
+                  </details>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+        <aside class="post__aside" aria-label="On this page and contact">
+          {toc.length > 1 && (
+            <nav class="toc" aria-labelledby="toc-title">
+              <p class="eyebrow" id="toc-title">On this page</p>
+              <ol>
+                {toc.map((h) => <li><a href={`#${h.slug}`}>{h.text}</a></li>)}
+                {p.data.faqs.length > 0 && <li><a href="#faq">Frequently asked questions</a></li>}
+              </ol>
+            </nav>
+          )}
+          <div class="post__cta">
+            <p class="eyebrow">Work with Urobins</p>
+            <p>Want this handled for you? Tell us about your project and we reply within one business day.</p>
+            <a class="pill pill--brand" href={wa(waText)} target="_blank" rel="noopener">Start a project <Arrow /></a>
+          </div>
+        </aside>
+      </div>
+    </article>
+
+    {related.length > 0 && (
+      <section class="sp-sec" aria-labelledby="related-title">
+        <h2 class="eyebrow" id="related-title">Related services</h2>
+        <ul class="rel">
+          {related.map((o: any, i: number) => (
+            <li>
+              <a class="rel__item" href={`/${o.slug}/`}>
+                <span class="rel__num" aria-hidden="true">{pad(i + 1)}</span>
+                <span class="rel__name">{o.name}</span>
+                <span class="rel__blurb">{o.blurb}</span>
+                <Arrow />
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    {more.length > 0 && (
+      <section class="sp-sec" aria-labelledby="more-title">
+        <div class="blog-all__head">
+          <h2 class="eyebrow" id="more-title">Keep reading</h2>
+          <a class="blog-all__link" href="/blog/">All guides <Arrow /></a>
+        </div>
+        <ul class="pgrid">
+          {more.map((o: any) => <PostCard p={o} level={3} />)}
+        </ul>
+      </section>
+    )}
+
+</PageShell>

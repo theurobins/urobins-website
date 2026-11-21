@@ -1,0 +1,136 @@
+---
+// /portfolio/<slug>/: one case study per entry in content/work.mjs
+import { SERVICES } from '../../../../content/site.mjs';
+import { WORK } from '../../../../content/work.mjs';
+import PageShell from '../../../components/PageShell.astro';
+import Glass from '../../../components/Glass.astro';
+import Arrow from '../../../components/Arrow.astro';
+import WorkCard from '../../../components/WorkCard.astro';
+import { wa, pad, lines, text } from '../../../lib/text.mjs';
+import { workLd } from '../../../lib/schema.mjs';
+import { lastmodOf } from '../../../lib/pages.mjs';
+
+export function getStaticPaths() {
+  return WORK.map((w) => ({ params: { slug: w.slug }, props: { w } }));
+}
+
+const { w } = Astro.props;
+const shots = import.meta.glob('../../../assets/work/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+const big = shots[`../../../assets/work/${w.shot}.webp`];
+const sm = shots[`../../../assets/work/${w.shot}-sm.webp`];
+const host = new URL(w.url).hostname.replace(/^www\./, '');
+const related = w.related.map((k: string) => SERVICES.find((s) => s.slug === k));
+// the next projects in the list, wrapping round
+const at = WORK.indexOf(w);
+const more = [1, 2].map((d) => WORK[(at + d) % WORK.length]);
+const waText = `Hi Urobins, I saw the ${w.name} case study and I'd like to discuss a similar project.`;
+const head = {
+  title: w.title,
+  description: w.description,
+  path: `/portfolio/${w.slug}/`,
+  ogImage: `/assets/og/work-${w.shot}.jpg`,
+  ogAlt: `Urobins case study: ${text(w.h1Html.join(' '))}`,
+  jsonld: workLd(w, await lastmodOf(`/portfolio/${w.slug}/`)),
+};
+---
+<PageShell head={head} bodyClass="page" waText={waText} footer={{ ctaHtml: ['Want something', '<em>like this?</em>'], waText, current: '/portfolio/' }}>
+
+    <section class="page-hero page-hero--short" aria-labelledby="page-title">
+      <Glass />
+      <div class="page-hero__in">
+        <nav class="crumbs" aria-label="Breadcrumb">
+          <ol>
+            <li><a href="/">Home</a></li>
+            <li><a href="/portfolio/">Portfolio</a></li>
+            <li aria-current="page">{w.name}</li>
+          </ol>
+        </nav>
+        <p class="eyebrow page-hero__eyebrow">Case study · {w.kind}</p>
+        <h1 class="page-hero__title" id="page-title" set:html={lines(w.h1Html)} />
+        <div class="page-hero__foot">
+          <p class="page-hero__lede">{w.lede}</p>
+          <div class="page-hero__actions">
+            <a class="pill pill--brand pill--lg" href={wa(waText)} target="_blank" rel="noopener">Start a similar project <Arrow /></a>
+            <a class="pill pill--glass pill--lg" href={w.url} target="_blank" rel="noopener">Visit {host}</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sp-sec case-top" aria-label="Project overview">
+      <figure class="shot" data-rv>
+        <div class="shot__bar" aria-hidden="true"><i></i><i></i><i></i><span>{host}</span></div>
+        <img src={big} srcset={`${sm} 760w, ${big} 1440w`} sizes="(max-width: 760px) 92vw, 92vw" width="1440" height="900" alt={`The ${w.name} home page`} fetchpriority="high">
+      </figure>
+      <dl class="case-facts" data-rv>
+        <div><dt>Client</dt><dd>{w.client}</dd></div>
+        <div><dt>Industry</dt><dd>{w.industry}</dd></div>
+        <div><dt>Project</dt><dd>{w.kind}</dd></div>
+        <div><dt>Year</dt><dd>{w.year}</dd></div>
+        <div><dt>Live site</dt><dd><a href={w.url} target="_blank" rel="noopener">{host}</a></dd></div>
+      </dl>
+    </section>
+
+    <section class="sp-sec why" aria-labelledby="brief-title">
+      <div class="why__head" data-rv>
+        <p class="eyebrow">The challenge</p>
+        <h2 class="section__title" id="brief-title" set:html={lines(w.brief.titleHtml)} />
+      </div>
+      <div class="prose prose--lead" data-rv>
+        {w.brief.paras.map((p: string) => <p>{p}</p>)}
+      </div>
+    </section>
+
+    <section class="sp-sec" aria-labelledby="built-title">
+      <div class="section__head" data-rv>
+        <p class="eyebrow">The work</p>
+        <h2 class="section__title" id="built-title" set:html={lines(w.built.titleHtml)} />
+      </div>
+      <ul class="svc-grid">
+        {w.built.items.map(([t, d]: string[], i: number) => (
+          <li class="svc" data-rv style={`--i:${i % 3}`}>
+            <span class="svc__num" aria-hidden="true">{pad(i + 1)}</span>
+            <h3 class="svc__title">{t}</h3>
+            <p class="svc__text">{d}</p>
+          </li>
+        ))}
+      </ul>
+      <div class="stack" data-rv>
+        <h2 class="eyebrow">Tools and technologies</h2>
+        <ul class="stack__list">
+          {w.stack.map((t: string) => <li>{t}</li>)}
+        </ul>
+      </div>
+    </section>
+
+    <section class="sp-sec" aria-labelledby="related-title">
+      <div class="section__head" data-rv>
+        <p class="eyebrow">Related services</p>
+        <h2 class="section__title" id="related-title" set:html={lines(['Need something', '<em>similar?</em>'])} />
+      </div>
+      <ul class="rel">
+        {related.map((o: any, i: number) => (
+          <li data-rv>
+            <a class="rel__item" href={`/${o.slug}/`}>
+              <span class="rel__num" aria-hidden="true">{pad(i + 1)}</span>
+              <span class="rel__name">{o.name}</span>
+              <span class="rel__blurb">{o.blurb}</span>
+              <Arrow />
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <section class="sp-sec" aria-labelledby="more-title">
+      <div class="section__head" data-rv>
+        <p class="eyebrow">More work</p>
+        <h2 class="section__title" id="more-title" set:html={lines(['Keep', '<em>looking</em>'])} />
+        <p class="section__lede"><a href="/portfolio/">See every project</a>.</p>
+      </div>
+      <ul class="work-grid">
+        {more.map((o, i) => <WorkCard w={o} i={i} level={3} />)}
+      </ul>
+    </section>
+
+</PageShell>

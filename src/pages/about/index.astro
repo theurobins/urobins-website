@@ -1,0 +1,176 @@
+---
+// /about/: the company, its founder, principles and where the team works. Copy: ABOUT in content/site.mjs
+import { SITE, HOME, SERVICES, ABOUT } from '../../../content/site.mjs';
+import { WORK } from '../../../content/work.mjs';
+import PageShell from '../../components/PageShell.astro';
+import Glass from '../../components/Glass.astro';
+import Arrow from '../../components/Arrow.astro';
+import WorkCard from '../../components/WorkCard.astro';
+import { wa, pad, lines, text, officeLine } from '../../lib/text.mjs';
+import { aboutLd } from '../../lib/schema.mjs';
+import { lastmodOf } from '../../lib/pages.mjs';
+// the founder's portrait from the home page's team section (same file, same duotone)
+import portrait from '../../assets/team/team-1.webp?url';
+
+const head = {
+  title: ABOUT.title,
+  description: ABOUT.description,
+  path: '/about/',
+  ogImage: '/assets/og/home.jpg',
+  ogAlt: `Urobins: ${text(ABOUT.h1Html.join(' '))}`,
+  jsonld: aboutLd(await lastmodOf('/about/')),
+};
+const n = HOME.process.length;
+---
+<PageShell head={head} bodyClass="page" waText={ABOUT.whatsappText} footer={{ ctaHtml: ABOUT.cta, waText: ABOUT.whatsappText, current: '/about/' }}>
+
+    <section class="page-hero" aria-labelledby="page-title">
+      <Glass />
+      <div class="page-hero__in">
+        <nav class="crumbs" aria-label="Breadcrumb">
+          <ol>
+            <li><a href="/">Home</a></li>
+            <li aria-current="page">About</li>
+          </ol>
+        </nav>
+        <p class="eyebrow page-hero__eyebrow">{ABOUT.eyebrow}</p>
+        <h1 class="page-hero__title" id="page-title" set:html={lines(ABOUT.h1Html)} />
+        <div class="page-hero__foot">
+          <p class="page-hero__lede">{ABOUT.lede}</p>
+          <div class="page-hero__actions">
+            <a class="pill pill--brand pill--lg" href={wa(ABOUT.whatsappText)} target="_blank" rel="noopener">Talk to us <Arrow /></a>
+            <a class="pill pill--glass pill--lg" href="/portfolio/">See our work</a>
+          </div>
+        </div>
+        <ul class="page-hero__chips">
+          <li>Bengaluru &amp; Mathura</li>
+          <li>One in-house team</li>
+          <li>Code you own</li>
+          <li>India &amp; worldwide</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="sp-sec why" aria-labelledby="story-title">
+      <div class="why__head" data-rv>
+        <p class="eyebrow">Our story</p>
+        <h2 class="section__title" id="story-title" set:html={lines(ABOUT.story.titleHtml)} />
+      </div>
+      <div class="prose prose--lead" data-rv>
+        {ABOUT.story.paras.map((p) => <p>{p}</p>)}
+      </div>
+    </section>
+
+    <section class="sp-sec" aria-labelledby="founder-title">
+      <div class="person" data-rv>
+        <div class="person__img"><img src={portrait} alt={`Portrait of ${SITE.founder.name}`} width="800" height="1000" loading="lazy" decoding="async"></div>
+        <div class="person__body">
+          <p class="eyebrow" id="founder-title">Founder</p>
+          <h2 class="person__name">{SITE.founder.name}</h2>
+          <p class="person__role">{SITE.founder.role}</p>
+          <p class="person__text">{SITE.founder.name} founded Urobins and leads it as {SITE.founder.role}, responsible for {SITE.founder.focus.toLowerCase()}.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="sp-sec why" aria-labelledby="principles-title">
+      <div class="why__head" data-rv>
+        <p class="eyebrow">Principles</p>
+        <h2 class="section__title" id="principles-title" set:html={lines(ABOUT.principles.titleHtml)} />
+      </div>
+      <ol class="why__list">
+        {ABOUT.principles.items.map(([t, d], i) => (
+          <li data-rv>
+            <span class="why__num" aria-hidden="true">{pad(i + 1)}</span>
+            <div>
+              <h3>{t}</h3>
+              <p>{d}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <section class="sp-sec" aria-labelledby="steps-title">
+      <div class="section__head" data-rv>
+        <p class="eyebrow">How we work</p>
+        <h2 class="section__title" id="steps-title" set:html={lines(['Four steps,', '<em>one team</em>'])} />
+        <p class="section__lede">A fixed-scope first sprint, then a working build to review every two weeks until launch and beyond.</p>
+      </div>
+      <ol class="steps">
+        {HOME.process.map(([t, d], i) => (
+          <li class="step" data-rv style={`--i:${i}`}>
+            <p class="step__num" aria-hidden="true">{pad(i + 1)} / {pad(n)}</p>
+            <h3 class="step__title">{t}</h3>
+            <p class="step__text">{d}</p>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <section class="sp-sec" aria-labelledby="facts-title">
+      <div class="facts" data-rv>
+        <div class="facts__head">
+          <p class="eyebrow">Our commitments</p>
+          <h2 class="facts__title" id="facts-title">Numbers we <em>stand behind</em></h2>
+          <p class="facts__lede">No inflated case numbers. These are the standards we hold ourselves to on every project, written down before we start.</p>
+        </div>
+        <ul class="facts__list">
+          {SITE.commitments.map(([big, d]) => <li><strong class="facts__big">{big}</strong><span>{d}</span></li>)}
+        </ul>
+      </div>
+    </section>
+
+    <section class="sp-sec duo" aria-label="Where we work and our name">
+      <div class="duo__item" data-rv>
+        <p class="eyebrow">Where we work</p>
+        <h2 class="duo__title" set:html={lines(['Bengaluru and Mathura,', '<em>and worldwide</em>'])} />
+        <p class="duo__text">Urobins is {SITE.where}, where the team works. We work with startups and businesses across India and abroad, over video calls, WhatsApp and a shared project channel.</p>
+        <dl class="offices">
+          {SITE.offices.map((o) => (
+            <div>
+              <dt>{o.label}</dt>
+              <dd><address>{officeLine(o)}</address></dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+      <div class="duo__item" data-rv>
+        <p class="eyebrow">Our name</p>
+        <h2 class="duo__title" set:html={lines(ABOUT.name.titleHtml)} />
+        <p class="duo__text">{ABOUT.name.text}</p>
+      </div>
+    </section>
+
+    <section class="sp-sec" aria-labelledby="work-title">
+      <div class="section__head" data-rv>
+        <p class="eyebrow">Recent work</p>
+        <h2 class="section__title" id="work-title" set:html={lines(['Live, online,', '<em>and real</em>'])} />
+        <p class="section__lede">A few of the websites, platforms and stores we have shipped. <a href="/portfolio/">See the whole portfolio</a>.</p>
+      </div>
+      <ul class="work-grid">
+        {WORK.slice(1, 5).map((w, i) => <WorkCard w={w} i={i} level={3} />)}
+      </ul>
+    </section>
+
+    <section class="sp-sec" aria-labelledby="related-title">
+      <div class="section__head" data-rv>
+        <p class="eyebrow">What we do</p>
+        <h2 class="section__title" id="related-title" set:html={lines(['Everything under', '<em>one roof</em>'])} />
+        <p class="section__lede">Most products need more than one of these. One accountable team means nothing gets lost between agencies.</p>
+      </div>
+      <ul class="rel">
+        {SERVICES.map((o, i) => (
+          <li data-rv>
+            <a class="rel__item" href={`/${o.slug}/`}>
+              <span class="rel__num" aria-hidden="true">{pad(i + 1)}</span>
+              <span class="rel__name">{o.name}</span>
+              <span class="rel__blurb">{o.blurb}</span>
+              <Arrow />
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+</PageShell>

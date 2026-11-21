@@ -1,5 +1,6 @@
 ---
-// The service pages' and 404's nav: the home page's floating bar, with links back into the home page
+// The inner pages' and 404's nav: the home page's floating bar, linking the About, Portfolio and Blog
+// pages and the home page's Services section
 import { SITE } from '../../content/site.mjs';
 import { wa, tel, QUOTE_TEXT } from '../lib/text.mjs';
 import Arrow from './Arrow.astro';
@@ -20,10 +21,10 @@ const { waText } = Astro.props;
         </svg>
       </a>
       <nav class="nav__menu" id="nav-menu" aria-label="Primary">
-        <a href="/#about">About</a>
+        <a href="/about/">About</a>
         <a href="/#capabilities">Services</a>
-        <a href="/#process">Process</a>
-        <a href="/#team">Team</a>
+        <a href="/portfolio/">Work</a>
+        <a href="/blog/">Blog</a>
         <div class="nav__reach">
           <p class="nav__avail"><i aria-hidden="true"></i>Taking on new projects</p>
           <a class="nav__mail" href={`mailto:${SITE.support}`}>{SITE.support}</a>

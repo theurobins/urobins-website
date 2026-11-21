@@ -3416,6 +3416,11 @@ body.is-scrolled .hero__scroll {
   border-bottom: 1px solid var(--line);
 }
 
+/* a second list in the same column (the home page's Company links under Services) */
+.resources ul + .resources__sub {
+  margin-top: 44px;
+}
+
 .resources a {
   display: flex;
   justify-content: space-between;
@@ -4330,6 +4335,10 @@ body.is-scrolled .hero__scroll {
 
   .nav__menu > a:nth-child(4) {
     --d: 0.29s;
+  }
+
+  .nav__menu > a:nth-child(5) {
+    --d: 0.36s;
   }
 
   .nav__toggle {

@@ -1,0 +1,24 @@
+---
+// One blog post as a card: a CSS cover in its category's colours, then category, title, summary and date.
+// `big` lays it out wide (the featured post at the top of /blog/)
+import Arrow from './Arrow.astro';
+import { CATEGORIES } from '../content.config.mjs';
+import { longDate, isoDate, readMinutes } from '../lib/text.mjs';
+
+interface Props { p: any; big?: boolean; level?: 2 | 3 }
+const { p, big = false, level = 2 } = Astro.props;
+const cat = CATEGORIES.indexOf(p.data.category);
+const Heading = `h${level}`;
+---
+<li class:list={['pcard', { 'pcard--big': big }]} data-cat={p.data.category} data-rv>
+  <a class="pcard__link" href={`/blog/${p.id}/`}>
+    <span class="cover" style={`--cat:${cat}`} aria-hidden="true">
+      <svg class="cover__mark" viewBox="0 0 340 303"><use href="#logo-mark" /></svg>
+      <span class="cover__cat">{p.data.category}</span>
+    </span>
+    <span class="pcard__meta">{p.data.category} · {readMinutes(p.body)} min read</span>
+    <Heading class="pcard__title">{p.data.heading}</Heading>
+    <span class="pcard__text">{p.data.description}</span>
+    <span class="pcard__foot"><time datetime={isoDate(p.data.published)}>{longDate(p.data.published)}</time><span class="pcard__more">Read <Arrow /></span></span>
+  </a>
+</li>

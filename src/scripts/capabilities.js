@@ -25,7 +25,7 @@ const scenes = {
       <div class="map"><i class="map__blob map__blob--a"></i><i class="map__blob map__blob--b"></i><i class="map__blob map__blob--c"></i>
         <svg class="map__route" viewBox="0 0 220 460" aria-hidden="true"><path class="map__path" d="M44 372 C 70 300, 170 300, 132 220 S 60 110, 160 72"/><circle class="map__dot" r="7"/></svg></div>
       <div class="ride"><i></i><div class="ride__text"><strong>Order #4821</strong><span>On the way</span></div><div class="ride__time"><strong><span class="ride__min">12</span> min</strong><span>2.4 km</span></div></div>
-      <div class="route"><div class="route__stops"><i></i><i></i></div><div class="route__text"><span><small>From</small>Sector 18, Noida</span><span><small>To</small>Connaught Place</span></div></div>
+      <div class="route"><div class="route__stops"><i></i><i></i></div><div class="route__text"><span><small>From</small>Koramangala</span><span><small>To</small>Indiranagar</span></div></div>
       <div class="phone2__actions"><b></b><b></b><em>•••• 1234</em></div>
     </div></div>
     <div class="toast"><i>✓</i><div><strong>Payment received</strong><s style="--w:.5"></s></div></div>

@@ -1,0 +1,22 @@
+---
+// One project in a portfolio grid (/portfolio/, /about/ and a case study's "More work"): the live
+// site's screenshot, its type and a one-line summary, linking to its case study
+import Arrow from './Arrow.astro';
+
+const shots = import.meta.glob('../assets/work/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+
+interface Props { w: Record<string, any>; i: number; level?: 2 | 3 }
+const { w, i, level = 2 } = Astro.props;
+const big = shots[`../assets/work/${w.shot}.webp`];
+const sm = shots[`../assets/work/${w.shot}-sm.webp`];
+const Heading = `h${level}`;
+---
+<li class="work" data-rv style={`--i:${i % 2}`}>
+  <a class="work__link" href={`/portfolio/${w.slug}/`}>
+    <span class="work__shot"><img src={sm} srcset={`${sm} 760w, ${big} 1440w`} sizes="(max-width: 760px) 92vw, 46vw" width="1440" height="900" alt={`The ${w.name} home page`} loading="lazy" decoding="async"></span>
+    <span class="work__meta">{w.kind} · {w.industry}</span>
+    <Heading class="work__name">{w.name}</Heading>
+    <span class="work__text">{w.summary}</span>
+    <span class="work__more">Read the case study <Arrow /></span>
+  </a>
+</li>

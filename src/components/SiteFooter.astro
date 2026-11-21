@@ -2,13 +2,14 @@
 // The service pages' and 404's footer: the call to action, contact details, every service and the
 // company links
 import { SITE, SERVICES } from '../../content/site.mjs';
-import { wa, tel, lines, YEAR } from '../lib/text.mjs';
+import { wa, tel, lines, YEAR, COMPANY_LINKS } from '../lib/text.mjs';
 import Arrow from './Arrow.astro';
 
+// current: the service slug, or the path of a company page ('/about/'), marked as the current page
 interface Props { ctaHtml: string[]; waText: string; current?: string | null }
 const { ctaHtml, waText, current = null } = Astro.props;
 const marquee = ['Websites', 'Mobile apps', 'CRM workflows', 'Cloud infrastructure', 'Technical SEO', 'Performance marketing'];
-const company = [['Home', '/'], ['About', '/#about'], ['Process', '/#process'], ['Team', '/#team'], ['FAQ', '/#faq']];
+const company = [['Home', '/'], ...COMPANY_LINKS, ['FAQ', '/#faq']];
 ---
   <footer class="contact" id="contact">
     <div class="marquee" aria-hidden="true">
@@ -47,7 +48,7 @@ const company = [['Home', '/'], ['About', '/#about'], ['Process', '/#process'], 
       <nav class="resources" aria-labelledby="ft-company">
         <h2 class="eyebrow" id="ft-company">Company</h2>
         <ul>
-          {company.map(([n, h]) => <li><a href={h}>{n} <Arrow /></a></li>)}
+          {company.map(([n, h]) => <li><a href={h} aria-current={current && current.startsWith('/') && current.startsWith(h) && h !== '/' ? 'page' : undefined}>{n} <Arrow /></a></li>)}
         </ul>
       </nav>
     </div>
