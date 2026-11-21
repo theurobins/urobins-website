@@ -1,0 +1,68 @@
+---
+// The service pages' and 404's footer: the call to action, contact details, every service and the
+// company links
+import { SITE, SERVICES } from '../../content/site.mjs';
+import { wa, tel, lines, YEAR } from '../lib/text.mjs';
+import Arrow from './Arrow.astro';
+
+interface Props { ctaHtml: string[]; waText: string; current?: string | null }
+const { ctaHtml, waText, current = null } = Astro.props;
+const marquee = ['Websites', 'Mobile apps', 'CRM workflows', 'Cloud infrastructure', 'Technical SEO', 'Performance marketing'];
+const company = [['Home', '/'], ['About', '/#about'], ['Process', '/#process'], ['Team', '/#team'], ['FAQ', '/#faq']];
+---
+  <footer class="contact" id="contact">
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee__track">{[...marquee, ...marquee].map((w) => <Fragment><span>{w}</span><i></i></Fragment>)}</div>
+    </div>
+    <div class="contact__cta">
+      <h2 class="contact__title" set:html={lines(ctaHtml)} />
+      <div class="contact__actions">
+        <p>Tell us what you are building. We reply within one business day with next steps and a rough timeline.</p>
+        <a class="pill pill--brand pill--lg" href={wa(waText)} target="_blank" rel="noopener">Start a project <Arrow /></a>
+        <dl class="contact__list">
+          <div>
+            <dt>General inquiries</dt>
+            <dd><a href={`mailto:${SITE.email}`}>{SITE.email}</a></dd>
+          </div>
+          <div>
+            <dt>Client &amp; technical support</dt>
+            <dd><a href={`mailto:${SITE.support}`}>{SITE.support}</a></dd>
+          </div>
+          <div>
+            <dt>Phone / WhatsApp</dt>
+            <dd><a href={tel} set:html={SITE.phone.replace(/ /g, '&nbsp;')} /> &middot; <a href={SITE.whatsapp} target="_blank" rel="noopener">WhatsApp</a></dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+    <div class="contact__cols contact__cols--links">
+      <nav class="resources" aria-labelledby="ft-services">
+        <h2 class="eyebrow" id="ft-services">Services</h2>
+        <ul>
+          {SERVICES.map((s) => (
+            <li><a href={`/${s.slug}/`} aria-current={s.slug === current ? 'page' : undefined}>{s.name} <Arrow /></a></li>
+          ))}
+        </ul>
+      </nav>
+      <nav class="resources" aria-labelledby="ft-company">
+        <h2 class="eyebrow" id="ft-company">Company</h2>
+        <ul>
+          {company.map(([n, h]) => <li><a href={h}>{n} <Arrow /></a></li>)}
+        </ul>
+      </nav>
+    </div>
+    <div class="contact__base">
+      <p class="contact__mark" role="img" aria-label="Urobins">
+        <svg class="contact__mark-m" viewBox="0 0 340 303" aria-hidden="true"><use href="#logo-mark" /></svg>
+        <svg class="contact__mark-w" viewBox="0 0 881 211" aria-hidden="true"><use href="#logo-word" /></svg>
+      </p>
+      <div class="contact__meta">
+        <ul class="social" aria-label="Urobins on social media">
+          {SITE.social.map(([n, h, ic]) => (
+            <li><a href={h} target="_blank" rel="noopener me" aria-label={`Urobins on ${n}`} title={n}><svg aria-hidden="true"><use href={`#${ic}`} /></svg></a></li>
+          ))}
+        </ul>
+        <p>&copy; {YEAR} Urobins. Engineering and growth for ambitious brands.</p>
+      </div>
+    </div>
+  </footer>

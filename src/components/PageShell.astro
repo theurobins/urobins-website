@@ -1,0 +1,47 @@
+---
+// The document around a service page or the 404: head, shared symbols, nav, footer, call button and
+// the pages' small script (page.js: no GSAP or Lenis). The page fills <main>.
+import BaseHead from './BaseHead.astro';
+import Symbols from './Symbols.astro';
+import SiteHeader from './SiteHeader.astro';
+import SiteFooter from './SiteFooter.astro';
+import BookCall from './BookCall.astro';
+import '../styles/style.css';
+import '../styles/page.css';
+
+interface Props {
+  head: Record<string, any>;
+  bodyClass: string;
+  waText: string;
+  bookText?: string;
+  footer: { ctaHtml: string[]; waText: string; current?: string | null };
+}
+const { head, bodyClass, waText, bookText = waText, footer } = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+
+<head>
+<BaseHead {...head} />
+</head>
+
+<body class={bodyClass}>
+
+<Symbols />
+
+<SiteHeader waText={waText} />
+
+  <main id="main">
+<slot />
+  </main>
+
+<SiteFooter {...footer} />
+
+<BookCall waText={bookText} />
+
+  <script>
+    import '../scripts/page.js';
+  </script>
+</body>
+
+</html>

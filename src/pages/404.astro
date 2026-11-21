@@ -1,0 +1,48 @@
+---
+// Firebase serves this for any path it has no file for (with a 404 status)
+import { SERVICES } from '../../content/site.mjs';
+import PageShell from '../components/PageShell.astro';
+import Glass from '../components/Glass.astro';
+import Arrow from '../components/Arrow.astro';
+import { wa, pad, lines } from '../lib/text.mjs';
+
+const waText = "Hi Urobins, I'd like to discuss a project.";
+const head = {
+  title: 'Page not found | Urobins',
+  description: 'This page does not exist. Find Urobins web development, app development, CRM, cloud, SEO and digital marketing services here.',
+  path: '/404.html',
+  noindex: true,
+};
+---
+<PageShell head={head} bodyClass="page page--404" waText={waText} footer={{ ctaHtml: ['Have a product', '<em>to scale?</em>'], waText: "Hi Urobins, I'd like to start a project.", current: null }}>
+    <section class="page-hero page-hero--404" aria-labelledby="page-title">
+      <Glass />
+      <div class="page-hero__in">
+        <p class="eyebrow page-hero__eyebrow">Error 404</p>
+        <h1 class="page-hero__title" id="page-title" set:html={lines(['This page took', '<em>a wrong turn</em>'])} />
+        <div class="page-hero__foot">
+          <p class="page-hero__lede">The link may be old or mistyped. Everything we do is one click away: start at the home page or pick a service below.</p>
+          <div class="page-hero__actions">
+            <a class="pill pill--brand pill--lg" href="/">Back to home <Arrow /></a>
+            <a class="pill pill--glass pill--lg" href={wa(waText)} target="_blank" rel="noopener">Contact us</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sp-sec" aria-labelledby="related-title">
+      <h2 class="eyebrow" id="related-title">Our services</h2>
+      <ul class="rel">
+        {SERVICES.map((o, i) => (
+          <li>
+            <a class="rel__item" href={`/${o.slug}/`}>
+              <span class="rel__num" aria-hidden="true">{pad(i + 1)}</span>
+              <span class="rel__name">{o.name}</span>
+              <span class="rel__blurb">{o.blurb}</span>
+              <Arrow />
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+</PageShell>

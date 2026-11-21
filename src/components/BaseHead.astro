@@ -1,0 +1,62 @@
+---
+// Everything a page's <head> needs for search, sharing and fast first paint. The page's CSS is
+// imported by the page itself; Astro inlines it into the head (build.inlineStylesheets).
+import { SITE } from '../../content/site.mjs';
+import { abs } from '../lib/text.mjs';
+import serifUrl from '../assets/fonts/instrument-serif-latin.woff2?url';
+import serifItalicUrl from '../assets/fonts/instrument-serif-italic-latin.woff2?url';
+import sansUrl from '../assets/fonts/inter-tight-latin.woff2?url';
+
+interface Props {
+  title: string;
+  description: string;
+  path: string;
+  ogImage?: string;
+  ogAlt?: string;
+  noindex?: boolean;
+  jsonld?: object;
+  /** images to fetch before the CSS asks for them (the LCP element's background) */
+  preloadImages?: string[];
+}
+const { title, description, path, ogImage, ogAlt, noindex = false, jsonld, preloadImages = [] } = Astro.props;
+const url = abs(path);
+// keep "</script>" and friends out of the inline JSON
+const ld = jsonld && JSON.stringify(jsonld, null, 2).replace(/</g, '\\u003c');
+---
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+{/* Firebase's default domains serve a full copy of the site: send people and crawlers to urobins.com */}
+<script is:inline>if(/^theurobins\.(web\.app|firebaseapp\.com)$/.test(location.hostname))location.replace('https://urobins.com'+location.pathname+location.search+location.hash)</script>
+<title>{title}</title>
+<meta name="description" content={description}>
+{noindex ? (
+  <meta name="robots" content="noindex, follow">
+) : (
+  <>
+    <link rel="canonical" href={url}>
+    <link rel="alternate" type="text/markdown" href={`${path}index.md`} title="This page as Markdown">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content={SITE.name}>
+    <meta property="og:locale" content="en_IN">
+    <meta property="og:url" content={url}>
+    <meta property="og:title" content={title}>
+    <meta property="og:description" content={description}>
+    <meta property="og:image" content={abs(ogImage)}>
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content={ogAlt}>
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@theurobins">
+  </>
+)}
+<meta name="theme-color" content="#09090b">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/assets/logo/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/assets/logo/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="preload" href={serifUrl} as="font" type="font/woff2" crossorigin>
+<link rel="preload" href={serifItalicUrl} as="font" type="font/woff2" crossorigin>
+<link rel="preload" href={sansUrl} as="font" type="font/woff2" crossorigin>
+{preloadImages.map((href) => <link rel="preload" href={href} as="image" fetchpriority="high">)}
+{ld && <script type="application/ld+json" set:html={ld} />}

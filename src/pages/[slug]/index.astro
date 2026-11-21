@@ -1,0 +1,162 @@
+---
+// One page per service in content/site.mjs (SERVICES), each aimed at one cluster of searches
+import { SITE, SERVICES } from '../../../content/site.mjs';
+import PageShell from '../../components/PageShell.astro';
+import Glass from '../../components/Glass.astro';
+import Arrow from '../../components/Arrow.astro';
+import { wa, mailto, pad, text, lines } from '../../lib/text.mjs';
+import { serviceLd } from '../../lib/schema.mjs';
+
+export function getStaticPaths() {
+  return SERVICES.map((s) => ({ params: { slug: s.slug }, props: { s } }));
+}
+
+const { s } = Astro.props;
+// the related services first, then every other one
+const others = [...s.related, ...SERVICES.map((o) => o.slug).filter((k) => k !== s.slug && !s.related.includes(k))]
+  .map((k) => SERVICES.find((o) => o.slug === k));
+const n = s.process.length;
+const head = {
+  title: s.title,
+  description: s.description,
+  path: `/${s.slug}/`,
+  ogImage: `/assets/og/${s.slug}.jpg`,
+  ogAlt: `Urobins: ${text(s.h1Html.join(' '))}`,
+  jsonld: serviceLd(s),
+};
+---
+<PageShell head={head} bodyClass="page" waText={s.whatsappText} footer={{ ctaHtml: s.ctaHtml, waText: s.whatsappText, current: s.slug }}>
+
+    <section class="page-hero" aria-labelledby="page-title">
+      <Glass />
+      <div class="page-hero__in">
+        <nav class="crumbs" aria-label="Breadcrumb">
+          <ol>
+            <li><a href="/">Home</a></li>
+            <li><a href="/#capabilities">Services</a></li>
+            <li aria-current="page">{s.name}</li>
+          </ol>
+        </nav>
+        <p class="eyebrow page-hero__eyebrow">{s.eyebrow}</p>
+        <h1 class="page-hero__title" id="page-title" set:html={lines(s.h1Html)} />
+        <div class="page-hero__foot">
+          <p class="page-hero__lede">{s.lede}</p>
+          <div class="page-hero__actions">
+            <a class="pill pill--brand pill--lg" href={wa(s.whatsappText)} target="_blank" rel="noopener">Start a project <Arrow /></a>
+            <a class="pill pill--glass pill--lg" href={mailto(`${s.name} project`)}>Email us</a>
+          </div>
+        </div>
+        <ul class="page-hero__chips">
+          {s.chips.map((c) => <li>{c}</li>)}
+        </ul>
+      </div>
+    </section>
+
+    <section class="sp-sec" aria-labelledby="offer-title">
+      <div class="section__head" data-rv>
+        <p class="eyebrow">What we build</p>
+        <h2 class="section__title" id="offer-title" set:html={lines(s.offer.titleHtml)} />
+        <p class="section__lede">{s.offer.lede}</p>
+      </div>
+      <ul class="svc-grid">
+        {s.offer.items.map(([t, d], i) => (
+          <li class="svc" data-rv style={`--i:${i % 3}`}>
+            <span class="svc__num" aria-hidden="true">{pad(i + 1)}</span>
+            <h3 class="svc__title">{t}</h3>
+            <p class="svc__text">{d}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <section class="sp-sec why" aria-labelledby="why-title">
+      <div class="why__head" data-rv>
+        <p class="eyebrow">Why Urobins</p>
+        <h2 class="section__title" id="why-title" set:html={lines(s.why.titleHtml)} />
+      </div>
+      <ol class="why__list">
+        {s.why.items.map(([t, d], i) => (
+          <li data-rv>
+            <span class="why__num" aria-hidden="true">{pad(i + 1)}</span>
+            <div>
+              <h3>{t}</h3>
+              <p>{d}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <section class="sp-sec" aria-labelledby="steps-title">
+      <div class="section__head" data-rv>
+        <p class="eyebrow">How we work</p>
+        <h2 class="section__title" id="steps-title" set:html={lines(['Four steps,', '<em>one team</em>'])} />
+        <p class="section__lede">A fixed-scope first sprint, then a working build to review every two weeks until launch and beyond.</p>
+      </div>
+      <ol class="steps">
+        {s.process.map(([t, d], i) => (
+          <li class="step" data-rv style={`--i:${i}`}>
+            <p class="step__num" aria-hidden="true">{pad(i + 1)} / {pad(n)}</p>
+            <h3 class="step__title">{t}</h3>
+            <p class="step__text">{d}</p>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <section class="sp-sec" aria-labelledby="facts-title">
+      <div class="facts" data-rv>
+        <div class="facts__head">
+          <p class="eyebrow">Our commitments</p>
+          <h2 class="facts__title" id="facts-title">Numbers we <em>stand behind</em></h2>
+          <p class="facts__lede">No inflated case numbers. These are the standards we hold ourselves to on every project, written down before we start.</p>
+        </div>
+        <ul class="facts__list">
+          {SITE.commitments.map(([big, d]) => <li><strong class="facts__big">{big}</strong><span>{d}</span></li>)}
+        </ul>
+      </div>
+      <div class="stack" data-rv>
+        <h2 class="eyebrow">Tools and technologies</h2>
+        <ul class="stack__list">
+          {s.stack.map((t) => <li>{t}</li>)}
+        </ul>
+      </div>
+    </section>
+
+    <section class="sp-sec qa" id="faq" aria-labelledby="faq-title">
+      <div class="qa__head" data-rv>
+        <p class="eyebrow">FAQ</p>
+        <h2 class="section__title" id="faq-title" set:html={lines(['Questions,', '<em>answered</em>'])} />
+        <p class="section__lede">Something else on your mind? <a href={wa(s.whatsappText)} target="_blank" rel="noopener">Ask us directly</a>; we reply within one business day.</p>
+      </div>
+      <div class="faq qa__list" data-rv>
+        {s.faqs.map(([q, a]) => (
+          <details>
+            <summary>{q}</summary>
+            <p>{a}</p>
+          </details>
+        ))}
+      </div>
+    </section>
+
+    <section class="sp-sec" aria-labelledby="related-title">
+      <div class="section__head" data-rv>
+        <p class="eyebrow">More from Urobins</p>
+        <h2 class="section__title" id="related-title" set:html={lines(['Everything under', '<em>one roof</em>'])} />
+        <p class="section__lede">Most products need more than one of these. One accountable team means nothing gets lost between agencies.</p>
+      </div>
+      <ul class="rel">
+        {others.map((o, i) => (
+          <li data-rv>
+            <a class="rel__item" href={`/${o.slug}/`}>
+              <span class="rel__num" aria-hidden="true">{pad(i + 1)}</span>
+              <span class="rel__name">{o.name}</span>
+              <span class="rel__blurb">{o.blurb}</span>
+              <Arrow />
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+</PageShell>

@@ -1,16 +1,39 @@
-// Copy and facts for the service pages, sitemap.xml, llms.txt and llms-full.txt. Edit here, then run
-// `npm run build:pages` (scripts/build-pages.mjs writes the files). The home page (index.html) is
-// written by hand; keep its facts in step with SITE below.
+// Copy and facts for every page, the structured data, sitemap.xml, the Markdown twins, llms.txt,
+// llms-full.txt and the agent skill. Edit here; `npm run dev` shows the change and `npm run build`
+// writes the site. The home page's own markup (src/pages/index.astro) reads its FAQ, About text and
+// contact details from here.
 // Fields that end in Html may hold <em> for the serif italic; everything else is plain text.
 // Keep the copy as commitments and capabilities, never invented results or client names.
 
 export const SITE = {
   origin: 'https://urobins.com',
   name: 'Urobins',
+  // other names the brand is known or said by, for the structured data's alternateName. Misspellings
+  // people search for (Yurobins, Eurobins) are answered in the visible FAQ instead, not claimed here
+  alternateNames: ['U Robins', 'URobins', 'You Robins', 'The Urobins', 'theurobins'],
   // the date the pages last changed in substance, for sitemap.xml <lastmod>
-  updated: '2026-10-22',
+  updated: '2026-11-21',
+  // where the team works, city level (the schema's address and areaServed, and the copy). Add a
+  // streetAddress and postalCode only for a real, staffed office
+  locations: [
+    { city: 'Mathura', region: 'Uttar Pradesh', country: 'IN' },
+    { city: 'Noida', region: 'Uttar Pradesh', country: 'IN' },
+  ],
+  basedIn: 'Mathura and Noida, Uttar Pradesh',
+  // the WebSite's alternateName (Google site names): only names that really refer to the site
+  siteAlternateNames: ['U Robins', 'URobins', 'urobins.com'],
+  slogan: 'Engineered for Growth. Powered by Innovation.',
+  // the Organization's knowsAbout in the structured data
+  knowsAbout: [
+    'Web development', 'Website design', 'Web application development', 'E-commerce development',
+    'Mobile app development', 'iOS app development', 'Android app development', 'Flutter',
+    'UI/UX design', 'Custom CRM development', 'CRM integration', 'Sales automation',
+    'Business process automation', 'Cloud computing', 'DevOps', 'AWS', 'Google Cloud', 'Kubernetes',
+    'Search engine optimization', 'Technical SEO', 'Local SEO', 'Digital marketing',
+    'Performance marketing', 'Google Ads', 'Social media marketing', 'Content marketing',
+  ],
   tagline: 'Web and app development, CRM, cloud, SEO and digital marketing agency',
-  summary: 'Urobins is a remote-first digital agency in India. One in-house team designs, builds and grows websites, mobile apps, custom CRMs and cloud infrastructure, then markets them with SEO and performance marketing, for startups and growing businesses across India and worldwide.',
+  summary: 'Urobins is a digital agency in Mathura and Noida, Uttar Pradesh, India. One in-house team designs, builds and grows websites, mobile apps, custom CRMs and cloud infrastructure, then markets them with SEO and performance marketing, for startups and growing businesses across India and worldwide.',
   email: 'hellourobins@gmail.com',
   support: 'support@urobins.com',
   phone: '+91 8755060559',
@@ -36,10 +59,10 @@ export const SITE = {
 
 // The home page, as llms-full.txt describes it (index.html holds the real markup)
 export const HOME = {
-  title: 'Urobins | Web & App Development, CRM & Marketing Agency',
-  description: 'Urobins is a web and app development agency in India. We build websites, mobile apps, custom CRMs and cloud systems, then grow them with SEO and marketing.',
+  title: 'Urobins | Web & App Development, Digital Marketing Agency',
+  description: 'Urobins is a web and app development and digital marketing agency in Mathura and Noida. We build websites, apps, CRMs and cloud systems, then grow them with SEO.',
   about: [
-    'Urobins is an engineering-led digital agency, based in India and working worldwide. We design, build, and ship custom websites, mobile apps, and CRM workflows end to end, from architecture and code through launch, monitoring, and iteration.',
+    'Urobins is an engineering-led digital agency, based in Mathura and Noida, India, and working worldwide. We design, build, and ship custom websites, mobile apps, and CRM workflows end to end, from architecture and code through launch, monitoring, and iteration.',
     'Every system runs on secure cloud infrastructure with monitoring, backups, and uptime designed in from day one. Growth work is just as transparent: clear SEO and performance marketing plans, shared dashboards, and reporting tied to revenue.',
   ],
   process: [
@@ -49,8 +72,9 @@ export const HOME = {
     ['Scale', 'SEO, performance marketing and CRM automation turn a launched product into a growing business, reported against revenue.'],
   ],
   faqs: [
-    ['What services does Urobins offer?', 'Web development, mobile app development, custom CRM development and automation, cloud and DevOps, SEO, and digital marketing, all from one in-house team.'],
-    ['Where is Urobins based?', 'Urobins is a remote-first agency in India. We work with startups and businesses across India and worldwide, over video calls, WhatsApp and a shared project channel.'],
+    ['What services does Urobins offer?', 'Web development, mobile app development, custom CRM development and automation, cloud and DevOps, SEO, and digital marketing, all from one in-house team.', '<a href="/web-development/">Web development</a>, <a href="/mobile-app-development/">mobile app development</a>, <a href="/crm-development/">custom CRM development and automation</a>, <a href="/cloud-devops/">cloud and DevOps</a>, <a href="/seo-services/">SEO</a>, and <a href="/digital-marketing/">digital marketing</a>, all from one in-house team.'],
+    ['Where is Urobins based?', 'Urobins is based in Mathura and Noida, Uttar Pradesh. We work with startups and businesses across India and worldwide, over video calls, WhatsApp and a shared project channel.'],
+    ['How do you pronounce Urobins?', 'Say it “you-robins”. Urobins is one word, though people also search for it as U Robins, You Robins, Yurobins or Eurobins. Our only website is urobins.com.'],
     ['How long does a typical project take?', 'Most MVPs launch in about 45 days. Larger platforms ship in phased releases, with a working build to review every two weeks.'],
     ['How much does a website or app cost?', 'It depends on scope, so we do not publish a price list. Tell us what you are building and we reply within one business day with next steps and a rough timeline; a written proposal follows a short discovery call.'],
     ['Do you work with existing codebases?', 'Yes. We start with a technical audit, then improve, migrate, or extend what you already have instead of rebuilding by default.'],
@@ -64,8 +88,8 @@ export const SERVICES = [
     slug: 'web-development',
     name: 'Web development',
     serviceType: 'Web development',
-    title: 'Web Development Company in India | Urobins',
-    description: 'Custom website and web app development in Next.js, React, Node.js and WordPress. Fast, SEO-ready and built to scale, by an in-house team in India.',
+    title: 'Web Development Company in Noida & Mathura | Urobins',
+    description: 'Custom website and web app development in Next.js, React, Node.js and WordPress. Fast, SEO-ready and built to scale, by an in-house team in Noida and Mathura.',
     blurb: 'Business websites, web apps, SaaS platforms and online stores, fast and SEO-ready.',
     eyebrow: 'Web development company',
     h1Html: ['Web development', '<em>built to rank and convert</em>'],
@@ -105,7 +129,7 @@ export const SERVICES = [
       ['Which technologies do you use for web development?', 'Mostly Next.js and React with TypeScript on the front end, Node.js and PostgreSQL on the back end, and WordPress or a headless CMS when your team needs to edit content. We choose the stack per project and explain why in writing.'],
       ['Will my website be fast and SEO-friendly?', 'Yes. Every build ships with semantic HTML, structured data, an XML sitemap, clean URLs, optimised images and Core Web Vitals checks, so search engines can crawl it and visitors never wait.'],
       ['Can you redesign my website without losing Google rankings?', 'Yes. We crawl the current site first, map every URL to its new home with 301 redirects, keep the content that ranks and watch Search Console closely after launch.'],
-      ['Do you work with clients outside India?', 'Yes. We are a remote-first team in India and work with clients across India and abroad, over video calls, WhatsApp and a shared project channel.'],
+      ['Do you work with clients outside India?', 'Yes. We are based in Mathura and Noida, India, and work with clients across India and abroad, over video calls, WhatsApp and a shared project channel.'],
     ],
     related: ['mobile-app-development', 'seo-services', 'cloud-devops'],
     ctaHtml: ['Planning a new', '<em>website?</em>'],
@@ -115,7 +139,7 @@ export const SERVICES = [
     slug: 'mobile-app-development',
     name: 'Mobile app development',
     serviceType: 'Mobile app development',
-    title: 'Mobile App Development Company in India | Urobins',
+    title: 'Mobile App Development Company in Noida & Mathura | Urobins',
     description: 'iOS, Android and cross-platform Flutter app development: UX design, native code, secure backends and App Store launch, with a test build every two weeks.',
     blurb: 'iOS, Android and Flutter apps with the backend, admin panel and launch they need.',
     eyebrow: 'App development company',
@@ -216,7 +240,7 @@ export const SERVICES = [
     slug: 'seo-services',
     name: 'SEO services',
     serviceType: 'Search engine optimization',
-    title: 'SEO Services & Technical SEO Agency in India | Urobins',
+    title: 'SEO Services in Noida & Mathura | Technical SEO | Urobins',
     description: 'SEO services from an engineering-led agency: technical SEO audits, Core Web Vitals, on-page, content and local SEO, with reporting tied to revenue.',
     blurb: 'Technical, on-page, content and local SEO, implemented by engineers and reported against revenue.',
     eyebrow: 'SEO agency',
@@ -267,7 +291,7 @@ export const SERVICES = [
     slug: 'digital-marketing',
     name: 'Digital marketing',
     serviceType: 'Digital marketing',
-    title: 'Digital & Performance Marketing Agency in India | Urobins',
+    title: 'Digital Marketing Agency in Noida & Mathura | Urobins',
     description: 'Google Ads, Meta ads, social media and content marketing, landing pages and lead generation funnels, with conversion tracking and reporting tied to revenue.',
     blurb: 'Google and Meta ads, social, content and lead generation, tracked to revenue.',
     eyebrow: 'Digital marketing agency',

@@ -1,66 +1,64 @@
 # Development
 
-Scroll-driven agency site built with GSAP + ScrollTrigger and Lenis smooth scrolling, plus six static
-service pages for search. The home page's code is bundled locally into one script (`js/app.js`), the
-service pages share a 2 KB one (`js/page.js`), and the fonts are self-hosted, so the site has no
-runtime CDN dependencies.
+An [Astro](https://astro.build) static site: a scroll-driven home page built with GSAP + ScrollTrigger and
+Lenis smooth scrolling, plus six service pages for search. Astro writes plain HTML for every page at build
+time and ships no client framework: each page carries only its own script (the home page's scroll story,
+or the service pages' small `page.js`), and its CSS is inlined into the HTML. Fonts, images and video are
+self-hosted under content-hashed names, so the site has no runtime CDN dependencies.
 
 ## Run it
 
 ```bash
-npm install        # once
-npm run build      # writes the service pages, their Markdown twins, 404.html, sitemap.xml, the llms
-                   # files, the agent skill and src/site-facts.js from content/site.mjs, bundles
-                   # src/ -> js/app.js + js/page.js, then stamps every page's CSS/JS links with a
-                   # content hash (?v=...), then writes the deployable copy to dist/ (see below).
+npm install        # once (Node 22.23 or newer)
+npm run dev        # http://localhost:4321, reloads as you edit
+npm run build      # writes the deployable site to dist/: every page, its Markdown twin, 404.html,
+                   # sitemap.xml, the llms files and the agent skill, with hashed assets in dist/_astro/.
                    # firebase.json runs this before every deploy
-npm run serve      # http://localhost:8080, the readable sources
-npm run serve:dist # http://localhost:8080, exactly what deploys (run the build first)
+npm run preview    # http://localhost:4321, exactly what deploys (run the build first)
 ```
-
-`npm run build:js` and `npm run build:pages` run the two halves on their own. Opening `index.html`
-directly from disk mostly works (the service pages use root paths, so they need the server), but a local server is recommended so the
-video and fonts behave like production (browsers refuse `@font-face` files from `file://`). Use
-`npm run watch` while editing `src/`.
 
 ## Structure
 
 | Path | What it is |
 | --- | --- |
-| `index.html` | All markup and copy. The logo lives here as two `<symbol>`s (`#logo-mark`, `#logo-word`, traced from the brand PNG) reused with `<use>`; recolour it with CSS `fill` |
-| `css/style.css` | Design tokens, layout, responsive rules. One palette: near-black `--ink`, white type, the logo's blue (`--brand`, lifted to `--brand-2` on dark), `--card` gradient for every card |
-| `src/main.js` | Lenis + ScrollTrigger setup, hero stage, nav, floating call button, magnetic buttons, anchors, intro, render loop |
-| `src/torch.js` | The nav logo: solid white at rest; a cursor on or near it (full within 70px of its box, none past 240px) or a tap beside it on touch lights it like a torch: the side away from the light cools to silver, the edges facing it catch a white rim, a glint runs square to the light and a shadow falls on the glass away from it, and a faint pool of light (`.nav__pool`, its own layer, moved by transform) shows on the bar. Drawn with SVG masks and `<use>` copies (never a CSS filter); its ticker only runs while the light is moving |
-| `src/breakpoints.js` | The phone media query (`PHONE`: up to 760px wide, or a touch screen at most 500px tall, so a phone in landscape stays a phone) and its complements (`NOT_PHONE`, `TABLET`, `DESKTOP`, `PHONE_LAND`); every script imports these and the CSS phone blocks repeat the same condition lists |
-| `src/latch.js` | A scroll threshold with hysteresis: fires forward once the scroll passes a line and only undoes once it is a dead band back above it (used for the About text beats) |
-| `src/reveal.js` | Entrance reveals: headings marked up as `.line > .line__in` slide out of line masks, paragraphs rise line by line, blocks rise in sequence |
-| `src/viewport.js` | Cached CSS viewport size (what `100vh` resolves to), so phone toolbars can't shift the scroll maths |
-| `src/preloader.js` | Loading screen (desktop and tablets), after the reference film: a hard close-up on the right lamp pulls back to reveal an indigo stage; the right giant rises and opens its eyes, the left lamp ignites with sparks, both beams swing onto the logo at the centre (assembling as faint glass in the dark and lit by the beams, see `logo-light.js`), the giants lean in, blink, settle, and the camera dives into the crossing beams; the hero's glass then fades in from the same light colour (`WASH`, passed to the shader's `uHand`). Canvas scene as a pure function of time in a 1600×900 design space, with the logo as DOM mapped into that space, so nothing is ever painted behind it. Keyframe tables are in reference seconds, stretched by `TS`. On phones (`PHONE` in `breakpoints.js`, either way up) it hands over to `preloader-mobile.js` |
-| `src/preloader-mobile.js` | The phones' loading screen, a portrait scene of its own: a torch catches at the top edge, its beam searches the wall while the logo assembles, then rises onto the logo, opens to take it in and a softer counter-beam crosses from below; the exit dives into the same `WASH` colour as desktop. Beams are sprites built once (one dithered `getImageData` at start-up), so a frame is a fill and a few `drawImage`s |
-| `src/logo-light.js` | Torch lighting for the loader logo, shared by both scenes. In the dark the logo is a faint glass rim; each lamp lights its own copy of the artwork through a CSS mask in the logo's units (a conic gradient for the beam, a radial one for distance), so a beam's edge can light half a piece or part of the word and two lamps add. Each lamp also leaves a glint (a band square to its light, on the side facing it) and a soft shadow on the wall away from it (blurred sprites built once, projected with `drawImage`). Masks are rewritten only when they change; no CSS filter or drop-shadow touches the logo (Safari draws a rectangle) |
-| `src/hero-gl.js` | WebGL ribbed-glass gradient (electric blue to violet) that also paints the stepped funnel bars of transition 1 |
-| `src/funnel.js` | Stepped-bar geometry for transition 1 (the hero funnel) |
-| `src/story.js` | About stage: 3D letter assembly, line draw, video pill, text beats, then the pill becomes a portal that grows to full screen with the Impact header inside it |
-| `src/path-sample.js` | Points along SVG paths without per-call `getPointAtLength` walks: `samplePath` (the About line, sampled once per command) and `pathLookup` (a table in plain maths for loops that move something along a path every frame) |
-| `src/ease.js` | A cubic-bezier ease (the portal's grow curve), in place of the CustomEase plugin |
-| `src/metrics.js` | Impact bento: card reveal, count-ups, the uptime card's striped chart; the tag icons loop in CSS while the section is on screen |
-| `src/process.js` | "How we work": a pinned stage whose column of four stages scrolls up (each resting centred while the others dim) beside a tilted, parallaxing wall of CSS project mockups (wireframes built from `data-kind`) |
-| `src/capabilities.js` | "What we build": four cards with vector scenes (product scene with phone, browser and goal widget; tech orbit with deploy status; automation pipeline a deal card travels; growth chart with keyword rankings). Loops only run while on screen; the orbit turns are CSS animations. Phones get a numbered index instead (see below) |
-| `src/guard.js` | A deterrent on every page (both page scripts call it): the context menu, the developer-tools, view-source and save-page shortcuts, and dragging media out are swallowed; `style.css` also turns off iOS's long-press "Save Image". It only raises the bar (browser menus and `view-source:` still work) and is off on localhost so development and screenshot tests keep their tools |
-| `src/lines.js` | Splits a paragraph into rendered lines for line-by-line reveals |
-| `content/site.mjs` | Copy and facts for the service pages, sitemap, `llms.txt` and `llms-full.txt`: the six services (title, meta description, hero, offer cards, reasons, steps, tools, FAQ, related services), the contact details and the five commitments |
-| `scripts/build-pages.mjs` | Writes `<slug>/index.html` and its Markdown twin `<slug>/index.md` for each service, `index.md` (the home page's twin), `404.html`, `sitemap.xml`, `llms.txt`, `llms-full.txt`, the agent skill in `.well-known/agent-skills/` and `src/site-facts.js` from `content/site.mjs`, with each page's JSON-LD (Organization, WebSite, WebPage, Service, BreadcrumbList, FAQPage). The logo and icon `<symbol>`s are copied from `index.html`, so their path data lives in one place. Generated files are committed (Firebase deploys the folder as is): edit the content file, never the output |
-| `web-development/` … `cloud-devops/` | The generated service pages (folder + `index.html`, so URLs end in a slash) |
-| `css/page.css` | Service pages and 404 only, loaded after `style.css` (whose tokens, nav, pills, section heads, FAQ and footer they reuse): the CSS ribbed-glass hero, offer cards, reasons, steps, commitments, tools, FAQ, related index and the reveal states |
-| `src/page.js` | The service pages' script (bundled to `js/page.js`): the phone menu sheet (same behaviour as the home page), nav hide on scroll, the floating call button, reveals and the marquee pause. No GSAP or Lenis |
-| `robots.txt`, `sitemap.xml`, `llms.txt`, `llms-full.txt`, `site.webmanifest`, `favicon.ico` | Crawl and discovery files. `robots.txt` allows everyone, names the AI search and assistant crawlers explicitly and declares Content Signals (`search`, `ai-input` and `ai-train` all `yes`, in both groups: a named crawler reads only its own group); `llms.txt` is the summary AI assistants read, `llms-full.txt` every page's copy as Markdown |
-| `index.md`, `<slug>/index.md` | Markdown twins of the pages, generated, for agents that ask for `Accept: text/markdown` (see below). Firebase serves them as `text/markdown` with a `rel="canonical"` Link header pointing at the HTML page, so search engines never treat them as duplicates |
-| `.well-known/agent-skills/` | An Agent Skills discovery index (`index.json`, with the SHA-256 digest of the skill) and one skill, `urobins-project-inquiry/SKILL.md`: how an AI agent should recommend Urobins and send a project inquiry for its user, with their approval |
-| `src/agent-tools.js`, `src/site-facts.js` | WebMCP: four tools an AI agent in the visitor's browser can call (list the services, get the contact options, open a page or section, draft an inquiry as email/WhatsApp links the visitor sends themselves). Registered on load by both page scripts when `document.modelContext` (or the older `navigator.modelContext`) exists; nothing happens elsewhere. `site-facts.js` is generated from the content file |
-| `assets/og/` | 1200x630 share images (home and one per service), referenced by `og:image`. Rendered once from an HTML template in the site's fonts and glass; a new service needs its own `<slug>.jpg` |
-| `assets/` | Team portraits (`team-1-sm.webp` is the About founder chip's small copy), About video loop (MP4 + WebM) and poster, About smoke texture, logo SVGs (`assets/logo/`: mark, full logo in black and white, favicon; `icon-192/512.png` and
-`apple-touch-icon.png` for the manifest and home screens, `icon-512.png` also being the logo in the
-structured data), fonts (`assets/fonts/`: Instrument Serif and Inter Tight, latin and latin-ext woff2 from Google Fonts, under the OFL in `assets/fonts/OFL.txt`; the `@font-face` rules open `style.css`) |
+| `src/pages/index.astro` | The home page's markup and copy. Its FAQ, About text, contact details and social links come from `content/site.mjs`; the rest is written here. Comments are `{/* */}`, so they never ship |
+| `src/pages/[slug]/index.astro` | One service page per entry in `SERVICES` (folder + `index.html`, so URLs end in a slash) |
+| `src/pages/404.astro` | The not-found page (Firebase serves it with a 404 status) |
+| `src/pages/*.js`, `src/pages/[slug]/index.md.js`, `src/pages/.well-known/` | Endpoints that write the text files at build time: `sitemap.xml`, `llms.txt`, `llms-full.txt`, each page's Markdown twin and the agent skill with its index |
+| `src/components/` | `BaseHead` (every page's meta tags, canonical, Open Graph, font preloads, JSON-LD and the Firebase-domain redirect), `Symbols` (the logo as two `<symbol>`s, `#logo-mark` and `#logo-word`, traced from the brand PNG, plus the arrow and social marks, drawn with `<use>`; recolour them with CSS `fill`), and the service pages' `PageShell`, `SiteHeader`, `SiteFooter`, `BookCall`, `Glass` and `Arrow` |
+| `src/lib/text.mjs` | Link helpers (`wa`, `mailto`, `tel`, `lines`) and the contents of the text files, built from the content file |
+| `src/lib/schema.mjs` | Every page's structured data (Organization, WebSite, WebPage, Person, Service, BreadcrumbList, FAQPage), built from the content file |
+| `content/site.mjs` | Copy and facts: the brand and its alternate names, the cities, contact details, the home page's FAQ and About text, the six services (title, meta description, hero, offer cards, reasons, steps, tools, FAQ, related services) and the five commitments |
+| `src/styles/style.css` | Design tokens, layout, responsive rules. One palette: near-black `--ink`, white type, the logo's blue (`--brand`, lifted to `--brand-2` on dark), `--card` gradient for every card |
+| `src/styles/page.css` | Service pages and 404 only, loaded after `style.css` (whose tokens, nav, pills, section heads, FAQ and footer they reuse): the CSS ribbed-glass hero, offer cards, reasons, steps, commitments, tools, FAQ, related index and the reveal states |
+| `src/scripts/main.js` | Lenis + ScrollTrigger setup, hero stage, nav, floating call button, magnetic buttons, anchors, intro, render loop |
+| `src/scripts/torch.js` | The nav logo: solid white at rest; a cursor on or near it (full within 70px of its box, none past 240px) or a tap beside it on touch lights it like a torch: the side away from the light cools to silver, the edges facing it catch a white rim, a glint runs square to the light and a shadow falls on the glass away from it, and a faint pool of light (`.nav__pool`, its own layer, moved by transform) shows on the bar. Drawn with SVG masks and `<use>` copies (never a CSS filter); its ticker only runs while the light is moving |
+| `src/scripts/breakpoints.js` | The phone media query (`PHONE`: up to 760px wide, or a touch screen at most 500px tall, so a phone in landscape stays a phone) and its complements (`NOT_PHONE`, `TABLET`, `DESKTOP`, `PHONE_LAND`); every script imports these and the CSS phone blocks repeat the same condition lists |
+| `src/scripts/latch.js` | A scroll threshold with hysteresis: fires forward once the scroll passes a line and only undoes once it is a dead band back above it (used for the About text beats) |
+| `src/scripts/reveal.js` | Entrance reveals: headings marked up as `.line > .line__in` slide out of line masks, paragraphs rise line by line, blocks rise in sequence |
+| `src/scripts/viewport.js` | Cached CSS viewport size (what `100vh` resolves to), so phone toolbars can't shift the scroll maths |
+| `src/scripts/preloader.js` | Loading screen (desktop and tablets), after the reference film: a hard close-up on the right lamp pulls back to reveal an indigo stage; the right giant rises and opens its eyes, the left lamp ignites with sparks, both beams swing onto the logo at the centre (assembling as faint glass in the dark and lit by the beams, see `logo-light.js`), the giants lean in, blink, settle, and the camera dives into the crossing beams; the hero's glass then fades in from the same light colour (`WASH`, passed to the shader's `uHand`). Canvas scene as a pure function of time in a 1600×900 design space, with the logo as DOM mapped into that space, so nothing is ever painted behind it. Keyframe tables are in reference seconds, stretched by `TS`. On phones (`PHONE` in `breakpoints.js`, either way up) it hands over to `preloader-mobile.js` |
+| `src/scripts/preloader-mobile.js` | The phones' loading screen, a portrait scene of its own: a torch catches at the top edge, its beam searches the wall while the logo assembles, then rises onto the logo, opens to take it in and a softer counter-beam crosses from below; the exit dives into the same `WASH` colour as desktop. Beams are sprites built once (one dithered `getImageData` at start-up), so a frame is a fill and a few `drawImage`s |
+| `src/scripts/logo-light.js` | Torch lighting for the loader logo, shared by both scenes. In the dark the logo is a faint glass rim; each lamp lights its own copy of the artwork through a CSS mask in the logo's units (a conic gradient for the beam, a radial one for distance), so a beam's edge can light half a piece or part of the word and two lamps add. Each lamp also leaves a glint (a band square to its light, on the side facing it) and a soft shadow on the wall away from it (blurred sprites built once, projected with `drawImage`). Masks are rewritten only when they change; no CSS filter or drop-shadow touches the logo (Safari draws a rectangle) |
+| `src/scripts/hero-gl.js` | WebGL ribbed-glass gradient (electric blue to violet) that also paints the stepped funnel bars of transition 1 |
+| `src/scripts/funnel.js` | Stepped-bar geometry for transition 1 (the hero funnel) |
+| `src/scripts/story.js` | About stage: 3D letter assembly, line draw, video pill, text beats, then the pill becomes a portal that grows to full screen with the Impact header inside it |
+| `src/scripts/path-sample.js` | Points along SVG paths without per-call `getPointAtLength` walks: `samplePath` (the About line, sampled once per command) and `pathLookup` (a table in plain maths for loops that move something along a path every frame) |
+| `src/scripts/ease.js` | A cubic-bezier ease (the portal's grow curve), in place of the CustomEase plugin |
+| `src/scripts/metrics.js` | Impact bento: card reveal, count-ups, the uptime card's striped chart; the tag icons loop in CSS while the section is on screen |
+| `src/scripts/process.js` | "How we work": a pinned stage whose column of four stages scrolls up (each resting centred while the others dim) beside a tilted, parallaxing wall of CSS project mockups (wireframes built from `data-kind`) |
+| `src/scripts/capabilities.js` | "What we build": four cards with vector scenes (product scene with phone, browser and goal widget; tech orbit with deploy status; automation pipeline a deal card travels; growth chart with keyword rankings). Loops only run while on screen; the orbit turns are CSS animations. Phones get a numbered index instead (see below) |
+| `src/scripts/guard.js` | A deterrent on every page (both page scripts call it): the context menu, the developer-tools, view-source and save-page shortcuts, and dragging media out are swallowed; `style.css` also turns off iOS's long-press "Save Image". It only raises the bar (browser menus and `view-source:` still work) and is off on localhost so development and screenshot tests keep their tools |
+| `src/scripts/lines.js` | Splits a paragraph into rendered lines for line-by-line reveals |
+| `src/scripts/gpu.js` | Whether the page is drawn without a GPU (a software WebGL renderer such as SwiftShader): the hero then shows the CSS glass and the loaders draw at a lower resolution (see Keeping it smooth) |
+| `src/scripts/page.js` | The service pages' script: the phone menu sheet (same behaviour as the home page), nav hide on scroll, the floating call button, reveals and the marquee pause. No GSAP or Lenis |
+| `src/scripts/agent-tools.js` | WebMCP: four tools an AI agent in the visitor's browser can call (list the services, get the contact options, open a page or section, draft an inquiry as email/WhatsApp links the visitor sends themselves). Registered on load by both page scripts when `document.modelContext` (or the older `navigator.modelContext`) exists; nothing happens elsewhere. its facts come from the `virtual:site-facts` module (`astro.config.mjs`), built from the content file at build time |
+| `src/assets/` | Files the build fingerprints (`/_astro/<name>.<hash>.<ext>`, cached for a year): the fonts (Instrument Serif and Inter Tight, latin and latin-ext woff2 from Google Fonts, under the OFL in `public/assets/fonts/OFL.txt`; the `@font-face` rules open `style.css`), team portraits (`team-1-sm.webp` is the About founder chip's small copy), the About video loop (MP4 + WebM), its poster and the About smoke texture. Import them (`?url`) or name them in the CSS, never by a fixed path |
+| `public/` | Files served as they are at fixed URLs: `robots.txt`, `favicon.ico`, `site.webmanifest`, the Yandex verification file, `assets/og/` (1200x630 share images, home and one per service, referenced by `og:image`; a new service needs its own `<slug>.jpg`) and `assets/logo/` (logo SVGs, `icon-192/512.png` and `apple-touch-icon.png` for the manifest and home screens, `icon-512.png` also being the logo in the structured data) |
+| `astro.config.mjs` | Build settings: directory URLs, CSS inlined into each page, whitespace kept exactly as written (Astro 7's default would join words to links that start a new source line), the `virtual:site-facts` module, and `modulepreload` hints for the script chunk the two page scripts share |
+| Crawl and discovery files | Crawl and discovery files. `robots.txt` allows everyone, names the AI search and assistant crawlers explicitly and declares Content Signals (`search`, `ai-input` and `ai-train` all `yes`, in both groups: a named crawler reads only its own group); `llms.txt` is the summary AI assistants read, `llms-full.txt` every page's copy as Markdown |
+| Markdown twins (`index.md`, `<slug>/index.md`) | Markdown twins of the pages, for agents that ask for `Accept: text/markdown` (see below). Firebase serves them as `text/markdown` with a `rel="canonical"` Link header pointing at the HTML page, so search engines never treat them as duplicates |
+| Agent skill (`/.well-known/agent-skills/`) | An Agent Skills discovery index (`index.json`, with the SHA-256 digest of the skill) and one skill, `urobins-project-inquiry/SKILL.md`: how an AI agent should recommend Urobins and send a project inquiry for its user, with their approval |
 
 ## Scroll lengths
 
@@ -126,19 +124,18 @@ unpinned.
 
 ## Replacing placeholder content
 
-- **Team:** `assets/team/team-1.webp` … `team-4.webp` (4:5 crops, 800x1000, saved as WebP at about
+- **Team:** `src/assets/team/team-1.webp` … `team-4.webp` (4:5 crops, 800x1000, saved as WebP at about
   quality 80: roughly half the size of a JPEG; keep new photos in WebP too). The About founder chip
   shows `team-1-sm.webp`, a 160x200 copy of the founder's portrait: replace both together. The
   current images are rendered placeholders shot "through reeded glass"; every portrait gets the same
   blue duotone in CSS, so mixed photo styles still read as one set. Names, roles and the focus line
-  live in `index.html` under `.team__grid`.
-- **About video:** replace `assets/video/about-loop.mp4` / `.webm` and `about-poster.webp`. The loop
+  live in `src/pages/index.astro` under `.team__grid`.
+- **About video:** replace `src/assets/video/about-loop.mp4` / `.webm` and `about-poster.webp`. The loop
   is turned to the site's blue with a CSS `hue-rotate` on `.about__video video`; remove that filter if
   the replacement is already on-palette.
-- **Contact details:** the footer's `.contact__list` in `index.html`, the `#book` WhatsApp link at
-  the bottom of the page and the JSON-LD in its `<head>`; for the service pages, 404 and llms files,
-  `SITE` in `content/site.mjs` (then `npm run build:pages`).
-- **Impact:** each `.card`'s number is a `.count` with `data-count`, `data-decimals`, `data-prefix`,
+- **Contact details:** `SITE` in `content/site.mjs`. Every page, the structured data, the Markdown twins,
+  the llms files and the agent skill read them from there.
+- **Impact:** in `src/pages/index.astro`, each `.card`'s number is a `.count` with `data-count`, `data-decimals`, `data-prefix`,
   `data-suffix` (add `data-static` to show a small number without counting). The copy is written as
   commitments (targets and cadences), not past results: keep it that way until there are real case
   numbers to cite.
@@ -159,6 +156,12 @@ unpinned.
   they fire once the scroll passes their line and only undo once it is 12vh back above it, so a slow
   scroll resting near a line never plays them back and forth. Everything else is scrubbed.
 - The hero WebGL canvas only renders while it can be seen and drops to 30 fps at rest.
+- Without a GPU (`gpu.js`: WebGL on a software renderer such as SwiftShader, as in PageSpeed Insights'
+  and Googlebot's headless Chrome, some VMs and blocklisted drivers) the hero shows the CSS glass
+  (`.hero__gl.is-fallback`, cut off at the funnel's edge as it opens) and the loaders draw their canvas
+  at a lower resolution. Drawn on the CPU, the shader and the full-resolution loader blocked the main
+  thread for seconds (PageSpeed desktop measured 21 s of Total Blocking Time). Visitors with a GPU see no
+  difference. To test it, start Chrome with `--disable-gpu --use-angle=swiftshader --enable-unsafe-swiftshader`.
 - Loops (tag icons, product scene, tech orbit, pipeline, growth chart, footer marquee) are paused
   whenever their section is off screen, CSS ones included: the deploy pulse, the scroll hint (once it
   has faded out) and the About smoke (only once the stage has pinned; until then it sits under the
@@ -172,9 +175,11 @@ unpinned.
   used to cost ~200ms per pass, four passes during the loader.
 - The pinned Process stage gives each step its own layer (`will-change: opacity`, desktop only), so
   dimming them never repaints the serif column, and skips style writes whose value hasn't changed.
-- Load: the fonts are preloaded from `assets/fonts/` (no render-blocking third-party stylesheet), the
-  About video is `preload="none"` until the hero intro has played (or the stage is reached), and the
-  founder chip uses a small copy of its portrait.
+- Load: each page's CSS is inlined (no render-blocking stylesheet request), the fonts are preloaded
+  from `src/assets/fonts/`, the About smoke texture (the largest paint on phones, named only in the CSS)
+  is preloaded with the HTML, the script chunk both page scripts share gets a `modulepreload`, the About
+  video is `preload="none"` until the hero intro has played (or the stage is reached), and the founder
+  chip uses a small copy of its portrait.
 - The loader logo's light is gradients and masks only: a CSS filter or drop-shadow there stalled
   WebKit for 350-590ms at the hand-off to the hero.
 - Counters are locked to their final width (the serif's digits are proportional), so the text
@@ -183,25 +188,40 @@ unpinned.
 ## Service pages, SEO and AI discovery
 
 - **Where things rank from.** Each service has its own page, title, description, H1 and FAQ aimed at
-  one cluster of searches (`/web-development/`: "web development company in India"; `/mobile-app-development/`:
-  "app development company"; `/crm-development/`, `/seo-services/`, `/digital-marketing/`,
-  `/cloud-devops/`). The home page targets the brand and the broad "web and app development agency"
-  terms and links to every service page from the Services cards, the footer and the FAQ.
-- **Editing copy.** Change `content/site.mjs`, bump `SITE.updated` (it becomes the sitemap's
-  `<lastmod>`), run `npm run build:pages`. Keep copy as capabilities and commitments, never invented
-  results, clients or reviews; name tools and platforms only if the team really uses them.
+  one cluster of searches, with the cities in the title where they fit (`/web-development/`: "web
+  development company in Noida & Mathura"; `/mobile-app-development/`, `/seo-services/` and
+  `/digital-marketing/` likewise; `/crm-development/` and `/cloud-devops/` by service). The home page
+  targets the brand and the broad "web and app development, digital marketing agency" terms and links
+  to every service page from the Services cards, the footer and the FAQ.
+- **Editing copy.** Change `content/site.mjs`, bump `SITE.updated` (the sitemap's `<lastmod>` and each
+  page's `dateModified`) and build. Keep copy as capabilities and commitments, never invented results,
+  clients or reviews; name tools and platforms only if the team really uses them.
 - **Adding a service.** Add an entry to `SERVICES` (copy an existing one), add its share image as
-  `assets/og/<slug>.jpg`, add it to the home page's Services cards, footer list and JSON-LD
-  `hasOfferCatalog` in `index.html`, add a canonical `Link` header for its `index.md` in `firebase.json`,
-  then rebuild. The sitemap, llms files, Markdown twins, agent skill, WebMCP tools, footers and related
-  lists pick it up automatically.
-- **Home page structured data** is hand-written in `index.html`'s `<head>`. Its FAQ entries must match
-  the visible FAQ in the footer word for word (and `HOME.faqs` in the content file, which feeds
-  `llms-full.txt`).
+  `public/assets/og/<slug>.jpg`, add it to the home page's Services cards and footer list in
+  `src/pages/index.astro`, and add a canonical `Link` header for its `index.md` in `firebase.json`. Its
+  page, Markdown twin, sitemap entry, structured data, llms files, agent skill, WebMCP tools, footers
+  and related lists follow from the content file.
+- **Structured data** comes from `src/lib/schema.mjs`. The home page's visible FAQ is rendered from the
+  same `HOME.faqs`, so the two always match word for word, as Google requires.
+- **Locations.** `SITE.locations` lists the cities the team works in (Mathura and Noida) at city level:
+  the Organization's `address` and `areaServed`, and the copy. Add a `streetAddress` and `postalCode`
+  only for a real, staffed office, written exactly as on the Google Business Profile. A made-up or
+  mismatched address gets a Business Profile suspended and the structured data distrusted.
 - **After deploying:** submit `https://urobins.com/sitemap.xml` in Google Search Console and Bing
   Webmaster Tools, and request indexing for each service page. `www.urobins.com` should redirect to
   `urobins.com` (Firebase custom domain redirect or a Cloudflare redirect rule); it does not serve the
   site on its own.
+- **The brand name.** Google autocorrects a brand it does not know yet ("urobins" to "robins"). The
+  structured data lists the real aliases as `alternateName` (`SITE.alternateNames` for the company,
+  `SITE.siteAlternateNames` for the website), the home FAQ says how to pronounce the name and names the
+  misspellings people search for, and the home page's `<h1>` (the hero kicker above the big serif line)
+  names the brand and its main services (one row on desktop and tablets, two balanced rows on phones,
+  which is why `placeMark` in `main.js` shows the phone brand mark from 126px of glass). Keep it to that: no hidden text and no pages per misspelling,
+  which Google treats as spam.
+- **Firebase's default domains.** `theurobins.web.app` and `theurobins.firebaseapp.com` serve the same
+  files as `urobins.com`. A one-line script at the top of every page's `<head>` (`BaseHead.astro`)
+  sends them to `urobins.com`, on top of the canonical tags. Preview channels (`theurobins--*.web.app`)
+  are left alone.
 - **Cloudflare's managed robots.txt** (AI Crawl Control) prepends its own rules to ours and can block
   AI crawlers; leave it off or set to allow, or AI assistants cannot read the site to recommend it.
 - **Markdown for agents.** Cloudflare's own Markdown conversion needs a paid plan, so on the free
@@ -215,18 +235,15 @@ unpinned.
   OIDC metadata, auth.md, MCP or A2A cards, Web Bot Auth keys or DNS-AID records: there is no API,
   login, agent or bot behind them, and empty or invented metadata would only mislead agents. Revisit
   if the agency ever ships one (an AI quote assistant, a client portal).
-- **Deploy contents.** `firebase.json` (one folder up) deploys `dist/`, which `scripts/dist.mjs` (the
-  last build step, git-ignored) fills from the project: everything except `src/`, `scripts/`,
-  `content/`, the package files, these two Markdown docs and the dotfiles (`.git`, `.gitignore`,
-  `.vscode`), so `.well-known/` and the pages' `index.md` twins go out. On the way the stylesheets are
-  minified and the HTML loses its comments (inline `<style>` blocks are minified too), so the notes in
-  the sources never ship; JS is already minified by esbuild. Edit the sources, never `dist/`. A new
-  service page needs its own canonical `Link` header entry in `firebase.json` for its `index.md`. It also sets cache and security headers: fonts,
-  CSS and JS for a year (the CSS and JS links carry a content hash from `scripts/stamp-assets.mjs`, so a
-  changed file gets a new URL), images and video for a week, pages revalidated on every visit (Firebase's
-  CDN keeps them until the next deploy). Its `predeploy` hook runs `npm run build`, so a deploy can
-  never ship a page pointing at an old bundle. In Cloudflare, Caching > Browser Cache TTL should be
-  "Respect Existing Headers", or Cloudflare raises the pages' and text files' lifetimes to its own.
+- **Deploy contents.** `firebase.json` (one folder up) deploys `dist/`, which `npm run build` writes from
+  scratch; its `predeploy` hook runs the build, so a deploy can never ship stale pages. Astro minifies
+  the CSS and JS, inlines the CSS into each page and names every script, font, image and video in
+  `dist/_astro/` by its content hash, so `firebase.json` caches that folder for a year (`immutable`);
+  `public/assets/` (share images, logos) keeps fixed URLs and a week. Pages revalidate on every visit
+  (Firebase's CDN keeps them until the next deploy). Edit the sources, never `dist/`. A new service page
+  needs its own canonical `Link` header entry in `firebase.json` for its `index.md`. In Cloudflare,
+  Caching > Browser Cache TTL should be "Respect Existing Headers", or Cloudflare raises the pages' and
+  text files' lifetimes to its own.
 
 ## Accessibility and motion
 

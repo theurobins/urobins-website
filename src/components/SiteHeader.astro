@@ -1,0 +1,44 @@
+---
+// The service pages' and 404's nav: the home page's floating bar, with links back into the home page
+import { SITE } from '../../content/site.mjs';
+import { wa, tel, QUOTE_TEXT } from '../lib/text.mjs';
+import Arrow from './Arrow.astro';
+
+interface Props { waText: string }
+const { waText } = Astro.props;
+---
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="nav" id="nav">
+    <div class="nav__bar">
+      <a class="nav__logo" href="/" aria-label="Urobins home">
+        <svg class="nav__torch" viewBox="0 0 91.02 21" width="91" height="21" aria-hidden="true" focusable="false">
+          <g class="nav__rest">
+            <use href="#logo-mark" width="340" height="303" transform="scale(0.069307)" />
+            <use href="#logo-word" width="881" height="211" transform="translate(32.564 3.5) scale(0.066351)" />
+          </g>
+        </svg>
+      </a>
+      <nav class="nav__menu" id="nav-menu" aria-label="Primary">
+        <a href="/#about">About</a>
+        <a href="/#capabilities">Services</a>
+        <a href="/#process">Process</a>
+        <a href="/#team">Team</a>
+        <div class="nav__reach">
+          <p class="nav__avail"><i aria-hidden="true"></i>Taking on new projects</p>
+          <a class="nav__mail" href={`mailto:${SITE.support}`}>{SITE.support}</a>
+          <div class="nav__reach-row">
+            <a href={wa(waText)} target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#i-whatsapp" /></svg>WhatsApp</a>
+            <a href={tel}><svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z" />
+              </svg>Call&nbsp;us</a>
+          </div>
+        </div>
+      </nav>
+      <div class="nav__right">
+        <a class="nav__wa" href={wa(waText)} target="_blank" rel="noopener" aria-label="Chat with us on WhatsApp"><svg aria-hidden="true"><use href="#i-whatsapp" /></svg></a>
+        <a class="nav__cta pill pill--brand" href={wa(QUOTE_TEXT)} target="_blank" rel="noopener"><span class="nav__cta-full">Contact</span><span class="nav__cta-quote">Get a quote</span> <Arrow /></a>
+        <button class="nav__toggle" type="button" id="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Menu"><span></span><span></span></button>
+      </div>
+    </div>
+  </header>
